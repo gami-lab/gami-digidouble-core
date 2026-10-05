@@ -4,6 +4,11 @@
  */
 
 import {
+  isTextToSpeechProviderName,
+  TEXT_TO_SPEECH_PROVIDER_NAMES,
+  type TextToSpeechProviderName,
+} from '@gami/shared'
+import {
   normalizeSpeechToTextLanguage,
   SPEECH_TO_TEXT_LIMITS,
   type SpeechToTextLimits,
@@ -37,7 +42,7 @@ export interface Config {
   deepgramDefaultLanguage: string | undefined
   speechToTextLimits: SpeechToTextLimits
   /** Default text-to-speech provider; scenarios/avatars may pick any provider with an API key. */
-  ttsProvider: 'null' | 'gradium'
+  ttsProvider: 'null' | TextToSpeechProviderName
   gradiumApiKey: string | undefined
   gradiumBaseUrl: string
   gradiumTimeoutMs: number
@@ -202,10 +207,12 @@ function parseLanguage(key: string, value: string | undefined, fallback: string)
   return normalized
 }
 
-function parseTtsProvider(value: string | undefined): 'null' | 'gradium' {
+function parseTtsProvider(value: string | undefined): 'null' | TextToSpeechProviderName {
   const normalized = value === undefined || value.trim().length === 0 ? DEFAULT_TTS_PROVIDER : value
-  if (normalized !== 'null' && normalized !== 'gradium') {
-    throw new Error('Invalid TTS_PROVIDER: expected null or gradium.')
+  if (normalized !== 'null' && !isTextToSpeechProviderName(normalized)) {
+    throw new Error(
+      `Invalid TTS_PROVIDER: expected null or one of ${TEXT_TO_SPEECH_PROVIDER_NAMES.join(', ')}.`,
+    )
   }
   return normalized
 }

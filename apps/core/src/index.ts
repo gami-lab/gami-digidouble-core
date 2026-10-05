@@ -62,7 +62,7 @@ import { KnowledgeQueryEmbeddingService } from './application/services/knowledge
 import { TypedRetrievalService } from './application/services/knowledge/typed-retrieval.service.js'
 import { KnowledgeReindexService } from './application/services/knowledge/knowledge-reindex.service.js'
 import { createSpeechToTextAdapter } from './infrastructure/speech/deepgram-speech-to-text.adapter.js'
-import { createTextToSpeechProviders } from './infrastructure/speech/gradium-text-to-speech.adapter.js'
+import { createTextToSpeechProviders } from './infrastructure/speech/text-to-speech-providers.factory.js'
 import { RedisUtteranceIdempotencyStore } from './infrastructure/cache/redis-utterance-idempotency.store.js'
 
 type CoreRepositories = ReturnType<typeof buildCoreRepositories>
@@ -282,6 +282,7 @@ function buildTextToSpeechProviders(
         baseUrl: config.gradiumBaseUrl,
         timeoutMs: config.gradiumTimeoutMs,
       },
+      openai: config.openaiApiKey === undefined ? {} : { apiKey: config.openaiApiKey },
       limits: config.textToSpeechLimits,
     },
     observability,

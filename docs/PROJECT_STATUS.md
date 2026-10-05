@@ -16,7 +16,7 @@ shipped platform includes:
   1536-dimension recall@k/MRR reporting
 - deterministic context assembly for Avatar and GM with separate conversation/retrieved-context projections
 - API, admin, console, web, and authenticated scripted-evaluation consumers
-- optional Deepgram speech input and Gradium-compatible text-to-speech delivery with text-preserving fallback
+- optional Deepgram speech input and Gradium or OpenAI text-to-speech delivery, selectable per scenario/avatar, with text-preserving fallback
 - health, metrics, safe diagnostics, replay, reset, and memory/reindex operations
 - provider/model selection and bounded observability behind internal ports, including symmetric
   four-slot scenario selection and independent scenario-default avatar trait preparation
@@ -43,7 +43,7 @@ detail for a specific area belongs in its owning document (`GAME_MASTER_CONTRACT
 - Scenario language is the canonical BCP-47 language for Avatar text, speech recognition, and voice
   synthesis; a client `x-language` header cannot override a configured Scenario language.
 - Voice input and text-to-speech are optional and provider-neutral behind application ports; the
-  platform stays fully functional on text alone when Deepgram/Gradium are unconfigured, and no raw
+  platform stays fully functional on text alone when Deepgram/Gradium/OpenAI voice are unconfigured, and no raw
   audio is persisted.
 - Public/admin diagnostics never expose raw prompts, secrets, provider payloads, raw vectors, or unbounded transcripts.
 - Fresh deployment uses the canonical PostgreSQL bootstrap; old compatibility volumes/contracts are not supported.

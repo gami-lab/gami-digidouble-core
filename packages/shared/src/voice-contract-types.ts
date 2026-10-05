@@ -11,7 +11,7 @@ export const AUDIO_METADATA_ID_MAX_LENGTH = 128
 
 export type AudioOutputFormat = (typeof AUDIO_OUTPUT_FORMATS)[number]
 
-export const TEXT_TO_SPEECH_PROVIDER_NAMES = ['gradium'] as const
+export const TEXT_TO_SPEECH_PROVIDER_NAMES = ['gradium', 'openai'] as const
 export const VOICE_ID_MAX_LENGTH = 128
 
 export type TextToSpeechProviderName = (typeof TEXT_TO_SPEECH_PROVIDER_NAMES)[number]

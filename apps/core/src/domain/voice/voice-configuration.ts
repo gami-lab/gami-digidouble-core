@@ -105,8 +105,6 @@ export function selectVoice(
   const provider = selections[0]?.provider ?? defaultProvider
   if (provider === null) return undefined
   const voiceId = selections.find(
-    // Always true while Gradium is the only provider name; kept for the next provider.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     (voice) => voice.provider === provider && voice.voiceId !== undefined,
   )?.voiceId
   return voiceId === undefined ? { provider } : { provider, voiceId }

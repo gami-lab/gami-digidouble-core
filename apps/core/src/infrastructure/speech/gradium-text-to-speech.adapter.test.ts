@@ -9,7 +9,6 @@ import {
   type TextToSpeechInput,
 } from '../../application/ports/ITextToSpeechAdapter.js'
 import {
-  createTextToSpeechProviders,
   GradiumTextToSpeechAdapter,
   type GradiumTransport,
   type GradiumTransportRequest,
@@ -389,49 +388,7 @@ describe('GradiumTextToSpeechAdapter cancellation and timeout', () => {
   })
 })
 
-describe('createTextToSpeechProviders', () => {
-  const gradium = { baseUrl: 'https://gradium.test/api', timeoutMs: 30_000 }
-
-  it('registers no provider without credentials, so there is no default either', () => {
-    const providers = createTextToSpeechProviders(
-      { defaultProvider: 'gradium', gradium, limits: TEXT_TO_SPEECH_LIMITS },
-      createObservability().adapter,
-    )
-
-    expect(providers.available).toEqual([])
-    expect(providers.defaultProvider).toBeNull()
-    expect(providers.get('gradium')).toBeUndefined()
-  })
-
-  it('registers Gradium when its API key is present and keeps it as the default', () => {
-    const providers = createTextToSpeechProviders(
-      {
-        defaultProvider: 'gradium',
-        gradium: { ...gradium, apiKey: 'gradium-secret-test' },
-        limits: TEXT_TO_SPEECH_LIMITS,
-      },
-      createObservability().adapter,
-    )
-
-    expect(providers.available).toEqual(['gradium'])
-    expect(providers.defaultProvider).toBe('gradium')
-    expect(providers.get('gradium')).toBeInstanceOf(GradiumTextToSpeechAdapter)
-  })
-
-  it('keeps Gradium selectable per scenario when there is no default provider', () => {
-    const providers = createTextToSpeechProviders(
-      {
-        defaultProvider: null,
-        gradium: { ...gradium, apiKey: 'gradium-secret-test' },
-        limits: TEXT_TO_SPEECH_LIMITS,
-      },
-      createObservability().adapter,
-    )
-
-    expect(providers.available).toEqual(['gradium'])
-    expect(providers.defaultProvider).toBeNull()
-  })
-
+describe('text-to-speech failures', () => {
   it('does not expose secrets through typed failures', () => {
     const error = new TextToSpeechError({
       code: 'invalid_configuration',

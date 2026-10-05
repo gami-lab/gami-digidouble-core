@@ -58,12 +58,17 @@ product code rather than in an external agent framework.
 - Speech-to-text: `DeepgramSpeechToTextAdapter` uses Deepgram's pre-recorded HTTP endpoint via the
   platform `fetch` client (no SDK dependency), chosen to avoid adding a provider SDK for a bounded,
   one-shot HTTP call.
-- Text-to-speech: every provider with an API key is registered (`GRADIUM_API_KEY` → Gradium), and
-  the admin picks one per Scenario/Avatar. `TTS_PROVIDER` only names the default provider
-  (`gradium` by default; `null` means no voice unless a Scenario/Avatar picks a provider). The Gradium adapter
+- Text-to-speech: every provider with an API key is registered (`GRADIUM_API_KEY` → Gradium,
+  `OPENAI_API_KEY` → OpenAI), and the admin picks one per Scenario/Avatar. `TTS_PROVIDER` only
+  names the default provider (`gradium` by default, or `openai`; `null` means no voice unless a
+  Scenario/Avatar picks a provider). The Gradium adapter
   uses the official one-shot REST endpoint over native `fetch` rather than its Python-only SDK. It
   emits native WAV or Ogg-wrapped Opus and rejects unsupported formats without transcoding; its
   response currently carries no duration metadata, so duration is optional end-to-end.
+- The OpenAI adapter calls `audio.speech` (`gpt-4o-mini-tts`) through the existing `openai` SDK,
+  emitting WAV, Ogg/Opus, or MP3. Its built-in voices are multilingual, so they are not
+  language-tagged and the default voice is `marin`; input is capped at OpenAI's 4096 characters.
+  Both adapters share bounded audio-response reading and HTTP status mapping.
 - The text-to-speech port also lists voices and picks a default per language, so voices are chosen
   in the admin rather than in env config. Gradium lists account + catalog voices (cached 10 minutes)
   and defaults to the first catalog voice in the scenario language. A new provider implements the
