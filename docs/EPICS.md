@@ -228,6 +228,25 @@ provider, and runtime-order contracts remain unchanged.
 
 ## Open Backlog
 
+### `9.4 Streamed Voice Output`
+
+**Purpose**  
+Start speaking the Avatar reply as soon as the provider sends its first audio, instead of after
+the whole clip is synthesized (about 10 s for a 400-character reply).
+
+**Description**  
+Stream provider audio through Core to the browser: the text-to-speech port yields audio chunks,
+the message-audio route forwards them without buffering, and the web client plays raw PCM chunks
+through Web Audio as they arrive. Record time-to-first-audio next to total synthesis time so the
+debug console shows the latency the user actually waits for.
+
+**Definition of done**
+
+- Gradium and OpenAI adapters stream bounded audio chunks with typed failures and cancellation
+- `POST /v1/conversations/:id/messages/:messageId/audio` streams the body and accepts `audio/pcm`
+- the web client starts playback on the first PCM chunks and falls back to text on failure
+- `message_audio_synthesized` records `firstAudioMs`; the console latency shows "voice starts after"
+
 ### `3.3 Replay & Recovery Tools`
 
 **Current state**  
