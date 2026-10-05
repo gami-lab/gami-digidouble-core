@@ -222,6 +222,22 @@ provider, and runtime-order contracts remain unchanged.
 
 ## Open Backlog
 
+### `9.3 Voice Output with OpenAI`
+
+**Purpose**  
+Give admins a second text-to-speech provider to pick per scenario or avatar.
+
+**Description**  
+Add an OpenAI text-to-speech adapter behind the existing provider-neutral port, registered when
+`OPENAI_API_KEY` is present, selectable in the admin voice picker, and usable as the
+`TTS_PROVIDER` default.
+
+**Definition of done**
+
+- `openai` is a supported provider name; its built-in voices are listed by `GET /v1/admin/voices`
+- synthesis returns bounded WAV, Ogg/Opus, or MP3 audio with typed failures and redacted traces
+- saving an `openai` voice is rejected when `OPENAI_API_KEY` is absent
+
 ### `3.3 Replay & Recovery Tools`
 
 **Current state**  
