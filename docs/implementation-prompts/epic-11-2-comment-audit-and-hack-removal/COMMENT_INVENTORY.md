@@ -229,9 +229,24 @@ Counts are comment-bearing lines, not every logical comment token:
 | root config                   |   128 | Docker/YAML/environment setup comments, mostly operational constraints rather than code narration.                                               |
 
 The largest actionable pattern is suppressions: 169 directives versus only three explicit TODO
-comments. Prompt 03 should therefore remove the structural causes first; prompts 04 and 05 should
-then delete restatements, change narration, compatibility labels, and empty catch explanations while
-preserving provider, protocol, security, and public-contract rationale.
+comments. Prompt 03 removed the structural causes; prompt 04 removed restatements, change narration,
+compatibility labels, and empty catch explanations from Core while preserving provider, protocol,
+security, and public-contract rationale. Prompt 05 remains for the other application areas.
+
+### Core prompt 04 before/after
+
+The after counts are comment-bearing lines measured after the Core sweep. Production area counts
+exclude test files; `tests/setup` includes Core test files and test/setup configuration. The before
+values are the prompt 01 Core baseline.
+
+| Core area      |  Before |   After | Dominant remaining pattern                                                  |
+| -------------- | ------: | ------: | --------------------------------------------------------------------------- |
+| domain         |     215 |     130 | Contract rationale and parser/selection suppression reasons.                |
+| application    |     250 |     223 | Orchestration and memory invariants, plus retained fixture suppressions.    |
+| infrastructure |     142 |     122 | Provider/database boundary rationale and retained fixture suppressions.     |
+| API            |      50 |      47 | Boundary, security, streaming, and contract rationale.                      |
+| tests/setup    |     326 |     256 | External preconditions, fixture invariants, and reasoned lint suppressions. |
+| **Core total** | **983** | **778** | **Noise comments removed; policy-compliant rationale retained.**            |
 
 ## Verification notes
 
@@ -243,3 +258,8 @@ preserving provider, protocol, security, and public-contract rationale.
   remains accurate because it already describes conversation working memory as canonical.
 - ARCHITECTURE.md remains accurate: the changes preserve existing API/Application/Domain/
   Infrastructure boundaries and add no new module boundary.
+- Prompt 04 swept every comment in `apps/core/src` (there is no separate `apps/core/tests`
+  directory). No new hack markers were found, and no behavior or public contract changed.
+- `PROJECT_STATUS.md`, `ARCHITECTURE.md`, `GAME_MASTER_CONTRACT.md`, and `MEMORY_SYSTEM_SPEC.md`
+  remain accurate after the Core comment sweep; no source-of-truth update beyond the status marker
+  was required.

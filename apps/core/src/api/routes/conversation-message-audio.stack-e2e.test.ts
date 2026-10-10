@@ -184,10 +184,7 @@ describe('Stack E2E — conversation message audio success', () => {
   it('maps provider unavailable to 502 when TTS adapter lacks credentials', async () => {
     const fixture = await seedConversation()
     try {
-      // Attempt audio request against a real (but unconfigured) TTS stack.
-      // If Gradium credentials are available in CI, this might return 409 (no voice) or success.
-      // If not available, this returns 502 PROVIDER_ERROR (credentials missing).
-      // Both outcomes prove the route is wired correctly; route-level tests prove the success path.
+      // The stack returns 502 without Gradium credentials, or 409/success when credentials exist.
       const audioResponse = await postJson(
         audioPath(fixture.conversationId, 'message_missing'),
         {
@@ -196,7 +193,6 @@ describe('Stack E2E — conversation message audio success', () => {
         API_KEY,
       )
 
-      // Verify graceful error handling; valid responses for missing message or missing TTS config
       expect([404, 409, 502]).toContain(audioResponse.status)
       const body = (await audioResponse.json()) as ApiResponse<null>
       expect(['NOT_FOUND', 'CONFLICT', 'PROVIDER_ERROR']).toContain(body.error?.code)

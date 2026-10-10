@@ -31,9 +31,7 @@ function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
     status: 'active',
     objectives: [],
     worldContext: '',
-    // Non-empty so the availability policy is treated as configured (deterministic
-    // empty result once filtered against the test's avatar roster), rather than
-    // "no policy" (which would leave unlockedAvatarIds untouched on reset).
+    // Keep the policy configured so filtering yields an empty result instead of leaving unlocks unchanged.
     avatarAvailability: {
       initialAvatarIds: ['avatar_unregistered'],
     },
