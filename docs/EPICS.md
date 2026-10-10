@@ -236,6 +236,26 @@ provider, and runtime-order contracts remain unchanged.
 
 ## Open Backlog
 
+### `11.2 No Agent Comments Policy`
+
+**Purpose**  
+Keep agent-written change-log comments (e.g. `// Updated function to handle null check`,
+`/* Added by AI */`) out of source code. They clutter diffs, pollute LLM context on later passes,
+and go stale fast; comments should explain why tricky logic exists, not restate the change.
+
+**Description**  
+Add a `no-comments` ESLint rule that flags change-narrating and AI-attribution comments, run it
+through the existing lint and `lint-staged` pre-commit path, and state the comment policy in
+`AGENTS.md`. The rule reports rather than rewrites, so a human or agent removes or rewords each hit.
+
+**Definition of done**
+
+- the rule flags change-narrating and AI-attribution comments and leaves "why" comments, JSDoc,
+  and directives (`eslint-disable`, `@ts-expect-error`) alone
+- unit tests cover flagged and allowed comment examples
+- `pnpm lint` and the pre-commit hook fail on a flagged comment; the existing codebase passes
+- `AGENTS.md` and `docs/TEST_STRATEGY.md` describe the policy
+
 ### `3.3 Replay & Recovery Tools`
 
 **Current state**  
