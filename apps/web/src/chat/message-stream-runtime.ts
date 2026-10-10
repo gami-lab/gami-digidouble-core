@@ -57,7 +57,6 @@ export type StreamedTurnArgs = {
   setters: Omit<StreamMessageSetters, 'streamController'> & { stopMessageAudio: () => void }
 }
 
-/** Shared start of a text or voice turn: optimistic user bubble, then stream and reconcile. */
 export function startStreamedTurn({
   conversationId,
   pendingContent,
