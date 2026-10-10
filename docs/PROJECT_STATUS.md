@@ -1,6 +1,6 @@
 # Project status
 
-Last reviewed: 2026-09-14
+Last reviewed: 2026-10-10
 
 ## Snapshot
 
@@ -91,6 +91,8 @@ that touches persistence, retrieval, or provider adapters.
   final hardening verification are finished. The ownership matrix in `CODE_AUDIT.md` records the
   canonical owners and explicit keep-separate boundaries. The cleanup is behavior-preserving and
   does not change runtime ordering or public API contracts.
+- EPIC 11.2 is in progress: prompt 01 has measured the comment baseline and inventoried hacks,
+  suppressions, ownership, and planned fixes. No production code cleanup has started yet.
 - Phase A has API-key auth only (no user accounts/roles), one Core deployment unit, optional
   provider integrations, and no audio persistence — sufficient for the current prototype scope, but
   worth revisiting before multi-tenant or external-user deployment.

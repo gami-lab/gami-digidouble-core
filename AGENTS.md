@@ -53,6 +53,17 @@ Core domain or infrastructure modules.
   Update the same change's docs/tests instead. This will change once a phase requires durable data
   across deploys.
 
+## Comment policy
+
+- Keep comments only when they explain a non-obvious reason, an external constraint, a security or
+  protocol rule, or a public contract that names and types do not make clear.
+- Delete comments that restate code, narrate changes or AI authorship, point to tickets/prompts,
+  preserve commented-out code, or act as empty section banners.
+- Fix stale comments. A TODO is completed or removed; tracked follow-ups belong in
+  docs/EPICS.md, not in code.
+- Treat comments that expose legacy fallbacks, workarounds, swallowed errors, or suppressions as a
+  prompt to fix the underlying code, not merely to delete the comment.
+
 ## Required documentation checks
 
 - Architecture/module/flow change: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)

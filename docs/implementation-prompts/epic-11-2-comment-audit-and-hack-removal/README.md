@@ -10,21 +10,41 @@ to production, so the target is clean code now, not compatibility.
 **Generated:** 2026-10-10  
 **Roadmap entry:** [`docs/EPICS.md`](../../EPICS.md)
 
-## Baseline (2026-10-10, rough grep counts)
+## Baseline (2026-10-10, measured for prompt `01`)
 
-- Comment lines: `apps/core` ~1,050 (application 312, domain 219, infrastructure 205, api 149,
-  tests ~230), `packages/shared` ~170, `apps/web` ~75, `apps/console` ~65, `apps/admin` ~45,
-  `tools/conversation-evaluation` ~40.
-- `eslint-disable`: 157 (73 outside tests), mostly `complexity` (64) and
-  `max-lines-per-function` (62), plus `max-lines` (21), `no-non-null-assertion` (5),
-  `require-await` (3), `no-unnecessary-condition` (1), `no-explicit-any` (1).
-- `as unknown as`: 59 (6 outside tests). `@ts-ignore` / `@ts-expect-error`: 0.
-- Hack markers: `TODO(EPIC-4.2)` in `start-session` and `get-history` use cases,
-  `TODO(epic-4-5)` in `stream-runtime-events.stack-e2e.test.ts`, "legacy" fallbacks for sessions
-  without unlock state, working-memory rows without covered topics, a legacy session-memory mirror,
-  legacy evaluation report fields, and a `'legacy'` provider branch in the evaluation tool.
+The scan counts comment-bearing source lines, including TSX, CSS, HTML, SQL, Dockerfiles, YAML, and
+root config files. It covers every file under `apps/`, `packages/`, `tools/`, and `scripts/`, plus
+matching root config files; generated and dependency directories are excluded.
 
-Re-measure in prompt `01`; these numbers only size the work.
+| Area                             | Comment-bearing lines |
+| -------------------------------- | --------------------: |
+| `apps/core` API                  |                    50 |
+| `apps/core` application          |                   250 |
+| `apps/core` domain               |                   215 |
+| `apps/core` infrastructure       |                   142 |
+| `apps/core` tests and test setup |                   326 |
+| `apps/core` config/other         |                    38 |
+| `apps/web`                       |                    76 |
+| `apps/console`                   |                    72 |
+| `apps/admin`                     |                    44 |
+| `packages/shared`                |                   171 |
+| `tools/conversation-evaluation`  |                    41 |
+| `scripts`                        |                     0 |
+| root config                      |                   128 |
+| **Total**                        |             **1,553** |
+
+- `eslint-disable`: 172 directives (83 outside tests), mostly `complexity` (74 rule uses) and
+  `max-lines-per-function` (82 rule uses), plus `max-lines` (14),
+  `@typescript-eslint/no-non-null-assertion` (5), `@typescript-eslint/require-await` (3),
+  `@typescript-eslint/no-explicit-any` (1), `@typescript-eslint/no-unsafe-call` (1),
+  `@typescript-eslint/no-unnecessary-condition` (1), and `require-yield` (1). Combined directives
+  are counted once as directives and once per listed rule in the rule-use totals.
+- `as unknown as`: 59 (6 outside tests); `as any`: 1 (test-only); non-null assertions: 5
+  (test-only); `@ts-ignore` / `@ts-expect-error`: 0.
+- Confirmed hack markers include the three stale TODOs, undefined unlock-state and missing
+  working-memory-field fallbacks, session/avatar memory mirrors, legacy evaluation provider/report
+  handling, the fixture-only direct chunk-write path, and commented swallowed-error paths. The full
+  disposition is in [COMMENT_INVENTORY.md](COMMENT_INVENTORY.md).
 
 ## Ordered execution list
 

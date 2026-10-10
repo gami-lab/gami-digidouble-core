@@ -238,6 +238,11 @@ provider, and runtime-order contracts remain unchanged.
 
 ### `11.2 Comment Audit & Hack Removal`
 
+**Current state**
+
+Prompt 01 is in progress: the comment baseline and decision inventory are complete; legacy/hack
+removal, suppression refactoring, comment sweeps, and the final guardrail remain.
+
 **Purpose**  
 Harden the code before the first release. Agent-written comments clutter diffs, pollute LLM
 context, and go stale; worse, many comments mark a hack (a legacy fallback, a TODO, a workaround, a
