@@ -1,6 +1,5 @@
 import type { AvatarRequestOptions, ModelSelectionOverride } from '@gami/shared'
 
-/** Runtime session — owns the lifecycle of one conversation. */
 export interface Session {
   sessionId: string
   userId: string
@@ -16,7 +15,6 @@ export interface Session {
   endedAt?: string
 }
 
-/** One bounded dialogue episode with one avatar inside a session. */
 export interface Conversation {
   conversationId: string
   sessionId: string
@@ -30,7 +28,6 @@ export interface Conversation {
   handoffFromConversationId?: string
 }
 
-/** A single message in a conversation. */
 export interface Message {
   messageId: string
   conversationId: string
@@ -40,7 +37,6 @@ export interface Message {
   metadata?: MessageMetadata
 }
 
-/** Observability metadata attached to avatar-generated messages. */
 export interface MessageMetadata {
   model?: string
   latencyMs?: number

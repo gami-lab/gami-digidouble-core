@@ -1,10 +1,3 @@
-/**
- * Memory domain types.
- *
- * Layers: short-term exchanges, per-conversation working memory, and
- * immutable episodic memories created when a conversation closes.
- */
-
 export type ContextMessageRole = 'user' | 'avatar' | 'system'
 
 export type ContextMessage = {

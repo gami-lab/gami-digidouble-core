@@ -1,12 +1,5 @@
 import type { ScenarioModelSelection, VoiceConfiguration } from '@gami/shared'
 
-/**
- * Scenario domain types.
- *
- * A Scenario is a config-driven experience template.
- * It defines which avatars are available, the world context,
- * objectives, and linked knowledge sources.
- */
 export type ScenarioStatus = 'draft' | 'active' | 'archived'
 
 export interface Scenario {

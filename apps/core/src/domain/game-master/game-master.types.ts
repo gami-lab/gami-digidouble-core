@@ -7,32 +7,12 @@ import type {
   SelectedEpisodicMemory,
 } from '../memory/memory.types.js'
 
-/**
- * Game Master domain types.
- *
- * The GM is a lightweight async director — it observes conversations and
- * injects guidance when needed. It never blocks the Avatar's response.
- *
- * Source of truth: docs/GAME_MASTER_CONTRACT.md
- *
- * Ownership:
- * - Static system instructions: gm-prompt.service.ts
- * - Dynamic LLM input rendering: gm-input-renderer.ts
- * - Runtime contract types: this file
- * - Output parsing/normalization guards: gm-output-parser.ts and
- *   gm-output-normalization.ts
- */
-
-/** Minimal state maintained by the Game Master across turns. */
 export interface GameMasterState {
-  /** Textual description of where the user is in the experience. */
   progression: string
   interactionCount: number
-  /** Latest unconsumed GM result for the next Avatar turn. */
   nextTurnOrchestration?: GameMasterOrchestrationState
 }
 
-/** Input provided to the GM on each background evaluation. */
 export interface GameMasterInput {
   session: {
     sessionId: string
@@ -72,7 +52,6 @@ export interface GameMasterInput {
   }
 }
 
-/** How the next Avatar turn should be led. */
 export type DialogueControlMode =
   'user_led' | 'avatar_guided' | 'avatar_led' | 'repair' | 'transition'
 
@@ -84,10 +63,7 @@ export interface DialogueControl {
 
 export type RetrievalScope = 'avatar_memory' | 'world_context' | 'scenario_knowledge'
 
-/**
- * Retrieval the GM wants prepared for the next related Avatar turn.
- * The GM does not perform retrieval itself; it only plans it.
- */
+/** The GM plans retrieval for a later Avatar turn; it does not perform it. */
 export interface RetrievalPlan {
   required: boolean
   queries?: string[]
@@ -136,23 +112,20 @@ export interface GameMasterOrchestrationState {
 export interface GameMasterOutput {
   dialogueControl: DialogueControl
   retrievalPlan: RetrievalPlan
-  /** Compact narrative guidance for the next Avatar turn. */
+  /** Compact guidance injected into the next Avatar turn. */
   directorNotes: string
-  /** Omitted entirely when routing is not applicable (e.g. a single-Avatar scenario). */
+  /** Omitted when routing is not applicable. */
   routing?: RoutingDecision
   progressionUpdate: ProgressionUpdate
 }
 
-/** Snapshot of GM state fields included in diagnostic event payloads. */
 export type GameMasterStateSummary = {
   progression: string
 }
 
-/** Structured diagnostic event emitted by the GM after every post-turn run. */
 export type GameMasterEvent = {
   type: 'gm_triggered' | 'gm_error'
   severity: 'info' | 'error'
-  /** Shared with the originating user turn. */
   correlationId: string
   requestId?: string
   payload: {

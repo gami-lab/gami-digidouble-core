@@ -1,8 +1,5 @@
 import type { AvatarConfig } from './avatar.types.js'
 
-/**
- * Shared avatar config test fixture factory.
- */
 export function makeAvatarConfig(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
   return {
     avatarId: 'avatar-1',

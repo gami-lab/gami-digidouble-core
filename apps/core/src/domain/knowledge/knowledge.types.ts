@@ -12,14 +12,6 @@ import type {
   RetrievalVisibilityMode as SharedRetrievalVisibilityMode,
 } from '@gami/shared'
 
-/**
- * Knowledge domain contracts.
- *
- * Ownership:
- * - Domain/internal knowledge contracts: this file.
- * - HTTP/shared DTO contracts: packages/shared/src/knowledge-contract-types.ts.
- */
-
 export type KnowledgeType = SharedKnowledgeType
 
 export type KnowledgeSourceFormat = SharedKnowledgeSourceFormat
@@ -37,7 +29,6 @@ export interface KnowledgeSource {
   sourceId: string
   scenarioId: string
   name: string
-  /** Retrieval domain classification used by EPIC 5.1. */
   knowledgeType: KnowledgeType
   /** Input/source representation (file or URI flavor). */
   format: KnowledgeSourceFormat
@@ -49,7 +40,6 @@ export interface KnowledgeSource {
   /** Explicit visibility policy for every persisted static source. */
   visibilityPolicy: KnowledgeVisibilityPolicy
   /**
-   * Avatar visibility scope for EPIC 5.1b.
    * Relevant when `visibilityPolicy` is `'avatars'`.
    * Undefined or empty (with `'all'` policy) => visible to all avatars.
    */
@@ -79,7 +69,6 @@ export interface KnowledgeChunk {
   visibleToAvatarIds?: string[]
 }
 
-/** Canonical retrieval query contracts are shared with the safe API projections. */
 export type RetrievalQuerySource = SharedRetrievalQuerySource
 
 export type RetrievalQueryVariant = SharedRetrievalQueryVariant

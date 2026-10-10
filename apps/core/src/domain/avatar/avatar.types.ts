@@ -8,24 +8,15 @@ export type { AvatarComputedTraits }
 
 export type AvatarStatus = 'draft' | 'active' | 'archived'
 
-/**
- * Avatar persistence entity aligned with DATA_MODEL.md.
- * Represents the full avatar record including persistence timestamps.
- */
 export interface Avatar {
   id: string
   scenarioId: string
   name: string
   status: AvatarStatus
-  /** Core system prompt defining character, role, and behavior. */
   personaPrompt: string
-  /** Optional tone descriptor used to modulate response style. */
   tone?: string
-  /** Optional human-readable avatar description. */
   description?: string
-  /** Derived trait structure for prepared avatars. */
   computedTraits?: AvatarComputedTraits
-  /** JSONB-backed extensible configuration. */
   config: Record<string, unknown>
   /** Provider-neutral voice configuration projected from the reserved config section. */
   voiceConfig?: VoiceConfiguration
@@ -42,7 +33,6 @@ export interface AvatarConfig {
   scenarioId: string
   name: string
   status: AvatarStatus
-  /** Core system prompt defining character, role, and behavior. */
   personaPrompt: string
   tone?: string
   description?: string
@@ -50,9 +40,8 @@ export interface AvatarConfig {
   adjustments?: string[]
   /** Optional per-avatar model override sourced from config.llmOverride JSONB. */
   llmOverride?: AvatarLlmOverride
-  /** Derived trait structure; undefined until preparation has run (EPIC 8.1). */
+  /** Derived trait structure; undefined until preparation has run. */
   computedTraits?: AvatarComputedTraits
-  /** JSONB-backed extensible configuration for voice, UI hints, knowledge scope, etc. */
   config: Record<string, unknown>
   /** Provider-neutral voice configuration projected from the reserved config section. */
   voiceConfig?: VoiceConfiguration
