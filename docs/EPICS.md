@@ -234,35 +234,14 @@ consolidated only behaviorally equivalent Core, browser, provider, and stream he
 unused checks, lint, typecheck, build, and deterministic tests pass; public API, persistence,
 provider, and runtime-order contracts remain unchanged.
 
+#### `11.2 Comment Audit & Hack Removal` ✅ Done
+
+Completed the comment inventory, removed documented legacy fallbacks and stale TODOs, refactored
+unexplained production suppressions, and swept noise comments across Core, shared contracts,
+clients, evaluation tools, Docker/config, and workflows. Public contracts and runtime behavior are
+unchanged apart from the documented hack removals.
+
 ## Open Backlog
-
-### `11.2 Comment Audit & Hack Removal`
-
-**Current state**
-
-Prompt 01 is in progress: the comment baseline and decision inventory are complete; legacy/hack
-removal, suppression refactoring, comment sweeps, and the final guardrail remain.
-
-**Purpose**  
-Harden the code before the first release. Agent-written comments clutter diffs, pollute LLM
-context, and go stale; worse, many comments mark a hack (a legacy fallback, a TODO, a workaround, a
-lint or type suppression) that should not exist in code nothing has shipped yet.
-
-**Description**  
-Scan every comment in `apps/`, `packages/`, and `tools/`. Delete comments that restate the code or
-narrate a change, fix stale ones, and keep only comments that explain non-obvious "why". When a
-comment, `TODO`, `eslint-disable`, or type escape (`as unknown as`, `!`) exposes a hack, remove the
-hack itself, not just the comment. Then add a lint guardrail so narration comments and unexplained
-suppressions do not come back.
-
-**Definition of done**
-
-- every comment, `TODO`, `eslint-disable`, and production type escape is fixed, removed, or kept
-  with a recorded reason
-- legacy/compatibility fallbacks, stale `TODO(EPIC-x)` markers, and workaround code are removed
-- lint fails on change-narrating/AI-attribution comments and on unused or unexplained disables
-- `AGENTS.md` states the comment policy; lint, typecheck, build, and tests pass with no behavior
-  change beyond removed hacks
 
 ### `3.3 Replay & Recovery Tools`
 

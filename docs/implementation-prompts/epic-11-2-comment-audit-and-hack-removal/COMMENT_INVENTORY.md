@@ -211,7 +211,8 @@ The integration preflight is the assertion boundary. There are no production non
 
 ## C — comment counts per area
 
-Counts are comment-bearing lines, not every logical comment token:
+Counts are comment-bearing lines, not every logical comment token. The first table is the prompt 01
+baseline; prompt-specific before/after measurements below use the same matcher at each sweep.
 
 | Area                          | Lines | Dominant noise pattern                                                                                                                           |
 | ----------------------------- | ----: | ------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -229,9 +230,9 @@ Counts are comment-bearing lines, not every logical comment token:
 | root config                   |   128 | Docker/YAML/environment setup comments, mostly operational constraints rather than code narration.                                               |
 
 The largest actionable pattern is suppressions: 169 directives versus only three explicit TODO
-comments. Prompt 03 removed the structural causes; prompt 04 removed restatements, change narration,
-compatibility labels, and empty catch explanations from Core while preserving provider, protocol,
-security, and public-contract rationale. Prompt 05 remains for the other application areas.
+comments. Prompt 03 removed the structural causes; prompts 04 and 05 removed restatements, change
+narration, compatibility labels, and empty catch explanations while preserving provider, protocol,
+security, and public-contract rationale.
 
 ### Core prompt 04 before/after
 
@@ -248,6 +249,21 @@ values are the prompt 01 Core baseline.
 | tests/setup    |     326 |     256 | External preconditions, fixture invariants, and reasoned lint suppressions. |
 | **Core total** | **983** | **778** | **Noise comments removed; policy-compliant rationale retained.**            |
 
+### Prompt 05 outside-Core before/after
+
+Counts use the same comment-bearing-line matcher at the start of prompt 05 and after the sweep.
+
+| Area                          |  Before |   After | Dominant remaining pattern                                                              |
+| ----------------------------- | ------: | ------: | --------------------------------------------------------------------------------------- |
+| packages/shared               |     167 |     145 | Public contract semantics, units, nullability, and boundary ownership.                  |
+| apps/admin                    |      44 |      42 | Browser navigation, CORS, voice fallback, and retained fixture suppressions.            |
+| apps/console                  |      75 |      67 | Runtime event ordering, latency units, stream timing, and retained render suppressions. |
+| apps/web                      |      75 |      74 | Browser audio, microphone, PCM, streaming, and voice-activity constraints.              |
+| tools/conversation-evaluation |      39 |      39 | Judge/report semantics, retry/atomic-write rationale, and retained suppressions.        |
+| scripts                       |       0 |       0 | No comments detected beyond the executable shebang.                                     |
+| root config/workflows         |     119 |      30 | Cache, volume, provider, credential, and CI operational constraints.                    |
+| **Outside-Core total**        | **519** | **397** | **Noise comments removed; policy rationale retained.**                                  |
+
 ## Verification notes
 
 - Prompt 03 removed production type escapes and the in-memory corpus async suppression without
@@ -263,3 +279,6 @@ values are the prompt 01 Core baseline.
 - `PROJECT_STATUS.md`, `ARCHITECTURE.md`, `GAME_MASTER_CONTRACT.md`, and `MEMORY_SYSTEM_SPEC.md`
   remain accurate after the Core comment sweep; no source-of-truth update beyond the status marker
   was required.
+- Prompt 05 reviewed shared DTO ownership and found no local client copies of the touched public
+  contracts. `API_CONTRACT.md` remains consistent with the shared JSDoc; `TEST_COVERAGE_PLAN.md`
+  now owns the workflow test-depth follow-ups previously embedded as CI TODO comments.

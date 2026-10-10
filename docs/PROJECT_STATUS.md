@@ -92,12 +92,11 @@ that touches persistence, retrieval, or provider adapters.
   final hardening verification are finished. The ownership matrix in `CODE_AUDIT.md` records the
   canonical owners and explicit keep-separate boundaries. The cleanup is behavior-preserving and
   does not change runtime ordering or public API contracts.
-- EPIC 11.2 is in progress: prompt 01 measured the comment baseline and inventoried hacks,
-  suppressions, ownership, and planned fixes; prompt 02 removed the documented legacy fallbacks,
-  stale TODOs, compatibility paths, and obsolete session/avatar memory mirrors; prompt 03 removed
-  production type escapes, fixed the async port suppression, and recorded the remaining reasoned
-  lint keeps; prompt 04 completed the policy sweep across Core. Prompt 05 owns the remaining
-  comment sweeps outside Core.
+- EPIC 11.2 is complete: the comment baseline and decision inventory were recorded; documented
+  legacy fallbacks, stale TODOs, compatibility paths, production type escapes, and unexplained
+  suppressions were removed or resolved; and policy sweeps covered Core, shared contracts, clients,
+  evaluation tools, Docker/config, and workflows. Public contracts and runtime behavior remain
+  unchanged apart from the documented hack removals.
 - Phase A has API-key auth only (no user accounts/roles), one Core deployment unit, optional
   provider integrations, and no audio persistence — sufficient for the current prototype scope, but
   worth revisiting before multi-tenant or external-user deployment.
