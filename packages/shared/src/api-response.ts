@@ -40,12 +40,10 @@ export type ErrorCode =
   | 'TIMEOUT'
   | 'INTERNAL_ERROR'
 
-/** Convenience: build a successful ApiResponse */
 export function ok<T>(data: T, meta?: ResponseMeta): ApiResponse<T> {
   return { data, error: null, ...(meta !== undefined ? { meta } : {}) }
 }
 
-/** Convenience: build a failed ApiResponse */
 export function fail<T = null>(
   code: ErrorCode,
   message: string,

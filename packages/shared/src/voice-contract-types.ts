@@ -34,7 +34,6 @@ export type VoiceConfiguration = {
   voiceId?: string
 }
 
-/** One selectable voice from a text-to-speech provider. */
 export type VoiceOption = {
   voiceId: string
   name: string
@@ -66,7 +65,6 @@ export type ClientAudioOptions = {
   format?: AudioOutputFormat
 }
 
-/** Minimal request body for a future binary audio-delivery route. */
 export type AudioDeliveryRequest = Pick<ClientAudioOptions, 'format'>
 
 /** Metadata sent ahead of streamed binary audio; the length is unknown until the stream ends. */

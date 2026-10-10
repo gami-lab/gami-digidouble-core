@@ -93,9 +93,9 @@ export type AvatarTraitPreparationFailureReason =
   | 'unknown_error'
 
 /**
- * Per-avatar outcome of an explicit scenario-scoped trait preparation run
- * (EPIC 8.1). `prepared` carries the freshly persisted `computedTraits`;
- * `failed` isolates one avatar's error without failing the whole batch.
+ * Per-avatar outcome of an explicit scenario-scoped trait preparation run.
+ * `prepared` carries the persisted `computedTraits`; `failed` isolates one
+ * avatar's error without failing the whole batch.
  */
 export type AvatarTraitPreparationResult =
   | { avatarId: string; status: 'prepared'; computedTraits: AvatarComputedTraits }
@@ -178,7 +178,6 @@ export type AvatarRequestOptions = {
   retrieval?: AvatarRetrievalOptions
 }
 
-// The future message-stream route reuses this request body unchanged.
 export type SendMessageRequest = {
   message: {
     content: string

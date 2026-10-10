@@ -121,7 +121,7 @@ export type RetrievalCountsDto = {
   duplicateCount?: number
   /** Candidates removed by bounded retrieval selection after variant merging. */
   selectionExcludedCount?: number
-  /** Compatibility aggregate of all bounded exclusions reported by retrieval. */
+  /** Aggregate of duplicate and selection exclusions reported by retrieval. */
   excludedCount?: number
 }
 
@@ -308,8 +308,7 @@ export type RecordedAvatarContextKnowledgeInjection = RecordedTypedKnowledgeSect
 export type RecordedGmContextKnowledgeInjection = RecordedTypedKnowledgeSections
 
 /**
- * Canonical shared API DTOs for EPIC 5.1 knowledge endpoints.
- * Keep API-facing request/response contracts here to avoid route-local copies.
+ * API-facing knowledge requests and responses live here so routes share one wire contract.
  */
 export type CreateKnowledgeSourceRequest = {
   scenarioId: string

@@ -16,7 +16,6 @@ import type { AvatarRequestOptions } from './web-contract-types.js'
 import type { VoiceConfiguration, VoiceConfigurationUpdate } from './voice-contract-types.js'
 export type { ScenarioModelSelection } from './model-catalog.js'
 
-/** Avatar status union — matches domain AvatarStatus. */
 export type AvatarStatus = 'draft' | 'active' | 'archived'
 
 export type AvatarLlmOverride = ModelSelectionOverride
@@ -38,11 +37,9 @@ type AvatarMutationOptionalFields = {
 
 /**
  * Fixed, derived trait structure computed from an avatar's source material
- * (author input, memory documents, world context) — see EPIC 8.1.
+ * (author input, memory documents, world context).
  *
- * The seven field names are stable: they are reused by the trait generation
- * prompt and by Avatar Prompt Assembly (EPIC 8.2). Do not rename or add
- * fields without updating both.
+ * The seven field names are shared by trait preparation and Avatar Prompt Assembly.
  */
 export type AvatarComputedTraits = {
   identity: string[]
@@ -54,7 +51,6 @@ export type AvatarComputedTraits = {
   behaviouralRules: string[]
 }
 
-/** Canonical read shape for an Avatar as returned by the Core API. */
 export type AvatarSummary = AvatarAuthoredFields & {
   avatarId: string
   scenarioId: string
@@ -78,19 +74,15 @@ export type UpdateAvatarRequest = Omit<Partial<CreateAvatarRequest>, 'voiceConfi
   voiceConfig?: VoiceConfigurationUpdate
 }
 
-/** Scenario status union — matches domain Scenario['status']. */
 export type ScenarioStatus = 'draft' | 'active' | 'archived'
 
-/** Canonical lifecycle status for sessions/conversations. */
 export type LifecycleStatus = 'active' | 'closed' | 'archived'
 
-/** Session-scoped avatar availability policy for a Scenario. */
 export type ScenarioAvatarAvailability = {
   initialAvatarIds: string[]
   unlockableAvatarIds?: string[]
 }
 
-/** Canonical read shape for a Scenario as returned by the Core API. */
 export type ScenarioSummary = {
   scenarioId: string
   name: string
@@ -107,7 +99,6 @@ export type ScenarioSummary = {
   updatedAt: string
 }
 
-/** Canonical read shape for a Session as returned by the Core API. */
 export type SessionSummary = {
   sessionId: string
   userId: string
@@ -121,7 +112,6 @@ export type SessionSummary = {
   endedAt?: string
 }
 
-/** Canonical read shape for a Conversation as returned by the Core API. */
 export type ConversationSummary = {
   conversationId: string
   sessionId: string
