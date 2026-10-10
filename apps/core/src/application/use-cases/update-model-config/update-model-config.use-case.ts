@@ -13,7 +13,6 @@ import { isProviderName, PROVIDER_NAMES } from '../../../domain/model-config/ind
 import { DomainError } from '../../../domain/errors.js'
 import type { IModelConfigRepository } from '../../ports/IModelConfigRepository.js'
 
-/** Wire request body for `PUT /v1/admin/model-config`; canonical shape owned by `@gami/shared`. */
 export type UpdateModelConfigInput = UpdateModelConfigRequest
 
 export type UpdateModelConfigOutput = {

@@ -604,7 +604,6 @@ describe('MemoryMaintenanceService — prior memory continuity', () => {
   it('incorporates prior working memory summary when refreshing', async () => {
     const { service, conversationWorkingMemoryRepository } = makeService()
 
-    // First refresh — seeds the working memory
     await service.execute({
       sessionId: 'session_1',
       conversationId: 'conversation_1',
@@ -616,7 +615,6 @@ describe('MemoryMaintenanceService — prior memory continuity', () => {
       await conversationWorkingMemoryRepository.findByConversationId('conversation_1')
     expect(firstMemory).not.toBeNull()
 
-    // Second refresh — should build on the prior memory, not discard it
     await service.execute({
       sessionId: 'session_1',
       conversationId: 'conversation_1',
@@ -626,7 +624,6 @@ describe('MemoryMaintenanceService — prior memory continuity', () => {
     })
     const secondMemory =
       await conversationWorkingMemoryRepository.findByConversationId('conversation_1')
-    // The second summary should contain material from the first (prior memory preserved)
     expect(secondMemory?.summary).toContain(firstMemory?.summary)
   })
 

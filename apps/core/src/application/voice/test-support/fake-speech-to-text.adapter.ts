@@ -10,7 +10,6 @@ import type { ISpeechToTextAdapter, SpeechToTextOptions } from '../../ports/ISpe
 
 export type FakeSpeechToTextOutcome = SpeechToTextResult | SpeechToTextError
 
-/** Deterministic adapter for application, route, and cancellation tests. */
 export class FakeSpeechToTextAdapter implements ISpeechToTextAdapter {
   readonly requests: SpeechToTextInput[] = []
 

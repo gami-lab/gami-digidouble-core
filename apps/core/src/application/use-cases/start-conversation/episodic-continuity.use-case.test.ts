@@ -1,13 +1,3 @@
-/**
- * Episodic continuity integration test.
- *
- * Proves the full cross-conversation memory continuity chain:
- *   closed conversation → episodic memory generated → new conversation started →
- *   working memory seeded with prior episodic content.
- *
- * All services use real domain logic with in-memory repositories — no mocks for
- * the memory path.
- */
 import { createEmptyAvatarComputedTraits } from '@gami/shared'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InMemoryConversationMemoryRepository } from '../../../infrastructure/db/in-memory-conversation-memory.repository.js'
@@ -117,7 +107,6 @@ describe('cross-conversation episodic continuity', () => {
       new InMemoryMessageRepository([]),
     )
 
-    // Step 1: generate episodic memory from closed conversation
     await episodicService.generateForClosedConversation({
       conversationId: 'conversation_1',
       sessionId: 'session_1',
@@ -126,12 +115,10 @@ describe('cross-conversation episodic continuity', () => {
       scenarioId: 'scenario_1',
     })
 
-    // Verify episodic memory was stored
     const storedEpisodic = await conversationMemoryRepository.findByConversationId('conversation_1')
     expect(storedEpisodic).not.toBeNull()
     expect(storedEpisodic?.summary).toContain('budget')
 
-    // Step 2: start new conversation — working memory should be hydrated from the episodic memory
     const newConvWorkingMemory = new InMemoryConversationWorkingMemoryRepository()
     const useCase = new StartConversationUseCase(
       sessionRepository,
@@ -144,12 +131,10 @@ describe('cross-conversation episodic continuity', () => {
 
     await useCase.execute({ sessionId: 'session_2', avatarId: 'avatar_1' })
 
-    // Step 3: verify continuity — new conversation working memory contains prior episodic content
     const hydratedMemory = await newConvWorkingMemory.findByConversationId('conversation_2')
     expect(hydratedMemory).not.toBeNull()
     expect(hydratedMemory?.summary).toContain('budget')
 
-    // And a hydration event was emitted
     expect(appendEventMock).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'memory_hydration_succeeded' }),
     )

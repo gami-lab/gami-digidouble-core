@@ -76,7 +76,6 @@ function llmResponse(content: string): ReturnType<ILlmAdapter['complete']> {
   })
 }
 
-/** Fake LLM adapter that answers per-avatar based on `trace.metadata.avatarId`. */
 function createLlm(
   responsesByAvatarId: Record<string, string>,
 ): ILlmAdapter & { requests: LlmRequest[] } {

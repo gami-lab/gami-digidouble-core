@@ -24,7 +24,6 @@ export type SpeechToTextOptions = Readonly<{
   requestId?: string
 }>
 
-/** Provider-neutral speech-to-text capability. */
 export interface ISpeechToTextAdapter {
   transcribe(input: SpeechToTextInput, options?: SpeechToTextOptions): Promise<SpeechToTextResult>
 }

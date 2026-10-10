@@ -46,7 +46,6 @@ type VoiceTurnTrace = {
   failureCode?: VoiceTurnFailureCode
 }
 
-/** Coordinates voice input with the existing synchronous and streaming turn owners. */
 export class VoiceTurnUseCase {
   constructor(
     private readonly speechToTextAdapter: ISpeechToTextAdapter,

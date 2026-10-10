@@ -1,6 +1,5 @@
 import type { Session } from '../../domain/conversation/session.types.js'
 
-/** Port: session persistence. Infrastructure must implement this interface. */
 export interface ISessionRepository {
   findById(sessionId: string): Promise<Session | null>
   create(params: CreateSessionParams): Promise<Session>

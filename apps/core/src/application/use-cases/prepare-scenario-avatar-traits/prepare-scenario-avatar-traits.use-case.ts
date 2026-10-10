@@ -33,12 +33,7 @@ import type {
 
 const TRAIT_PREPARATION_MAX_TOKENS = 3000
 
-/**
- * Computes and persists structured avatar traits for every avatar in a
- * scenario (EPIC 8.1). This is an explicit, rerunnable preparation step —
- * not runtime prompt assembly (that's EPIC 8.2) — that derives stable data
- * from existing authored inputs and overwrites `computedTraits` only.
- */
+/** Computes and persists structured traits from authored scenario and avatar inputs. */
 export class PrepareScenarioAvatarTraitsUseCase {
   constructor(
     private readonly scenarioRepository: IScenarioRepository,

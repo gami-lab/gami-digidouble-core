@@ -1,16 +1,6 @@
-/**
- * Unit tests for SendRawMessageUseCase.
- *
- * When asserting on the observability trace, think from the consumer side:
- * what must the trace contain for it to be useful? Assert every field that
- * a downstream consumer (e.g. Langfuse dashboard, alerting) needs, not
- * only the fields the implementation happened to set at the time of writing.
- */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LlmRequest, LlmResponse } from '../../ports/ILlmAdapter.js'
 import { SendRawMessageUseCase } from './send-raw-message.use-case.js'
-
-// ── Test doubles ─────────────────────────────────────────────────────────────
 
 const completeMock = vi.fn()
 
@@ -26,8 +16,6 @@ function makeDefaultResponse(overrides: Partial<LlmResponse> = {}): LlmResponse 
     ...overrides,
   }
 }
-
-// ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('SendRawMessageUseCase', () => {
   let useCase: SendRawMessageUseCase

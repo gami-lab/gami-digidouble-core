@@ -1,6 +1,5 @@
 import type { Conversation } from '../../domain/conversation/session.types.js'
 
-/** Port: conversation persistence. Infrastructure must implement this interface. */
 export interface IConversationRepository {
   findById(conversationId: string): Promise<Conversation | null>
   /**
