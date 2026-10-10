@@ -5,9 +5,6 @@ import type {
 } from '../../application/ports/IMessageRepository.js'
 import type { Message } from '../../domain/conversation/session.types.js'
 
-/**
- * In-memory message repository for tests and local deterministic flows.
- */
 export class InMemoryMessageRepository implements IMessageRepository {
   private readonly messages: Message[]
 

@@ -12,8 +12,6 @@ import { LangfuseObservabilityAdapter } from './langfuse.adapter.js'
 import type { TraceEvent } from '../../application/ports/IObservabilityAdapter.js'
 import { expectConsoleError } from '../../test-utils/console.js'
 
-// ── SDK mock ────────────────────────────────────────────────────────────────
-
 const mockGeneration = vi.fn()
 const mockTrace = vi.fn().mockReturnValue({ generation: mockGeneration })
 const mockShutdownAsync = vi.fn().mockResolvedValue(undefined)
@@ -25,8 +23,6 @@ vi.mock('langfuse', () => {
   }))
   return { Langfuse: MockLangfuse }
 })
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 const event: TraceEvent = {
   requestId: 'req-003',
@@ -44,8 +40,6 @@ const event: TraceEvent = {
 function makeAdapter(): LangfuseObservabilityAdapter {
   return new LangfuseObservabilityAdapter('pk-test', 'sk-test', 'http://localhost:3030')
 }
-
-// ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('LangfuseObservabilityAdapter', () => {
   beforeEach(() => {

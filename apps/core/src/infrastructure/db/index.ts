@@ -1,6 +1,3 @@
-// DB adapters — infrastructure layer
-// In-memory stubs are used in unit tests (injected via ServerAdapters).
-// Postgres repositories are wired in production via apps/core/src/index.ts.
 export { InMemoryAvatarRepository } from './in-memory-avatar.repository.js'
 export { InMemoryGmStateRepository } from './in-memory-gm-state.repository.js'
 export { InMemoryEventLogRepository } from './in-memory-event-log.repository.js'

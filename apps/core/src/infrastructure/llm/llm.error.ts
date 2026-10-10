@@ -1,6 +1,3 @@
-/**
- * Error thrown by LLM adapters when a provider call fails.
- */
 export class LlmError extends Error {
   readonly provider: string
   readonly statusCode: number | undefined

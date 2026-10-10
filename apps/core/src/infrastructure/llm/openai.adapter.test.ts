@@ -3,8 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LlmError } from './llm.error.js'
 import { OpenAiAdapter } from './openai.adapter.js'
 
-// ── SDK mock ────────────────────────────────────────────────────────────────
-
 const mockCreate = vi.fn()
 
 vi.mock('openai', () => {
@@ -24,8 +22,6 @@ vi.mock('openai', () => {
 
   return { default: MockOpenAI }
 })
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function buildCompletion(content: string, model = 'gpt-5.6-luna'): OpenAI.ChatCompletion {
   return {
@@ -71,8 +67,6 @@ const request = {
   systemPrompt: 'You are a helpful assistant.',
   messages: [{ role: 'user' as const, content: 'Hello' }],
 }
-
-// ── Tests ────────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('OpenAiAdapter', () => {

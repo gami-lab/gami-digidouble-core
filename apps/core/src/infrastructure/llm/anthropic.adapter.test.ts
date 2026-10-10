@@ -3,8 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LlmError } from './llm.error.js'
 import { AnthropicAdapter } from './anthropic.adapter.js'
 
-// ── SDK mock ────────────────────────────────────────────────────────────────
-
 const mockCreate = vi.fn()
 const mockStream = vi.fn()
 
@@ -31,8 +29,6 @@ vi.mock('@anthropic-ai/sdk', () => {
   return { default: MockAnthropic }
 })
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
 function buildMessage(text: string, model = 'claude-haiku-4-5'): Anthropic.Message {
   return {
     id: 'msg_test',
@@ -50,8 +46,6 @@ const request = {
   systemPrompt: 'You are a helpful assistant.',
   messages: [{ role: 'user' as const, content: 'Hello' }],
 }
-
-// ── Tests ────────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('AnthropicAdapter', () => {

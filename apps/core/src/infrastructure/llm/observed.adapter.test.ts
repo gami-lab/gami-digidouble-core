@@ -38,7 +38,6 @@ function createObservability(): {
   }
 }
 
-// The observable stream tests intentionally live with the completion tests to protect the shared trace boundary.
 // eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('ObservedLlmAdapter', () => {
   it('traces successful completions with request context', async () => {

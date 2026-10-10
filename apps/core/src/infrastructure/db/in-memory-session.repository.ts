@@ -6,9 +6,6 @@ import type {
 } from '../../application/ports/ISessionRepository.js'
 import type { Session } from '../../domain/conversation/session.types.js'
 
-/**
- * In-memory session repository for tests and local deterministic flows.
- */
 export class InMemorySessionRepository implements ISessionRepository {
   private readonly sessions: Map<string, Session>
 

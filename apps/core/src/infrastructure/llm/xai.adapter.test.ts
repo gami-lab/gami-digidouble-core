@@ -3,8 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LlmError } from './llm.error.js'
 import { XaiAdapter } from './xai.adapter.js'
 
-// ── SDK mock ────────────────────────────────────────────────────────────────
-
 const mockCreate = vi.fn()
 
 vi.mock('openai', () => {
@@ -24,8 +22,6 @@ vi.mock('openai', () => {
 
   return { default: MockOpenAI }
 })
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function buildCompletion(content: string, model = 'grok-3'): OpenAI.ChatCompletion {
   return {
@@ -71,9 +67,6 @@ const request = {
   messages: [{ role: 'user' as const, content: 'Hello' }],
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
-
-// The adapter contract tests cover completion and streaming behavior together.
 // eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('XaiAdapter', () => {
   beforeEach(() => {

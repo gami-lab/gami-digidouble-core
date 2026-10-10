@@ -117,9 +117,6 @@ function normalizeInitialAvatar(avatar: AvatarConfig): AvatarConfig {
   }
 }
 
-/**
- * In-memory avatar repository for tests and local deterministic flows.
- */
 export class InMemoryAvatarRepository implements IAvatarRepository {
   private readonly avatars: Map<string, AvatarConfig>
 

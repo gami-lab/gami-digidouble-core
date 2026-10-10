@@ -3,8 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LlmError } from './llm.error.js'
 import { MistralAdapter } from './mistral.adapter.js'
 
-// ── SDK mocks ────────────────────────────────────────────────────────────────
-
 const mockComplete = vi.fn()
 const mockStream = vi.fn()
 
@@ -26,8 +24,6 @@ vi.mock('@mistralai/mistralai/models/errors', () => {
   }
   return { MistralError: MockMistralError }
 })
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function buildCompletion(text: string, model = 'mistral-small-4') {
   return {
@@ -51,9 +47,6 @@ const request = {
   messages: [{ role: 'user' as const, content: 'Hello' }],
 }
 
-// ── Tests ────────────────────────────────────────────────────────────────────
-
-// The adapter contract tests cover completion and streaming behavior together.
 // eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('MistralAdapter', () => {
   beforeEach(() => {
