@@ -194,8 +194,8 @@ export type ModelComparisonReport = {
 /**
  * The low-level result returned by the sequential Avatar runner.
  *
- * It intentionally contains no judge output or persisted report concerns. Prompt 03 can map
- * these records into a RunReport after applying semantic judging and aggregation.
+ * It intentionally contains no judge output or persisted report concerns. The evaluation layer
+ * maps these records into a RunReport after applying semantic judging and aggregation.
  */
 export type ConversationExecution = {
   status: 'completed' | 'api_error'
