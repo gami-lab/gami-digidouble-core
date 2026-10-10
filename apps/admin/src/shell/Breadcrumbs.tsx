@@ -5,7 +5,6 @@ import { useDocumentTitle, type Route } from '../routing/router'
 
 export type Crumb = { label: string; to?: Route }
 
-// The last crumb is the current page; earlier crumbs link to their parent pages.
 export function Breadcrumbs({ items }: { items: Crumb[] }): JSX.Element {
   useDocumentTitle(items.map((item) => item.label))
 

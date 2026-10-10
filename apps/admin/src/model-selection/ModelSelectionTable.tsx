@@ -21,7 +21,6 @@ type ModelSelectionTableProps = {
   onChange: (rowId: string, value: ModelSelectionValue) => void
 }
 
-/** Shared provider/model override editor used by global model config, scenarios, and avatars. */
 export function ModelSelectionTable({
   rows,
   providers,
