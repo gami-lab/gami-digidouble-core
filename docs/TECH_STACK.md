@@ -12,9 +12,9 @@ product code rather than in an external agent framework.
 ## Runtime
 
 - Node.js LTS, strict TypeScript, pnpm workspaces, Turborepo.
-- ESLint + `typescript-eslint`, Prettier, `simple-git-hooks` + `lint-staged`, and GitHub Actions
-  gate format/lint/typecheck/test — chosen for a boring, low-maintenance toolchain over anything
-  bespoke.
+- ESLint + `typescript-eslint` with the local comment-policy rule, Prettier, `simple-git-hooks` +
+  `lint-staged`, and GitHub Actions gate format/lint/typecheck/test — chosen for a boring,
+  low-maintenance toolchain over anything bespoke.
 - Fastify for HTTP; JSON, SSE, and bounded binary audio transports. REST-style JSON under `/v1` with
   `x-api-key` auth for Phase A (no OAuth/multi-tenant auth yet — deferred, see below).
 - PostgreSQL with pgvector; Redis for cache, coordination, and runtime idempotency.

@@ -95,8 +95,9 @@ that touches persistence, retrieval, or provider adapters.
 - EPIC 11.2 is complete: the comment baseline and decision inventory were recorded; documented
   legacy fallbacks, stale TODOs, compatibility paths, production type escapes, and unexplained
   suppressions were removed or resolved; and policy sweeps covered Core, shared contracts, clients,
-  evaluation tools, Docker/config, and workflows. Public contracts and runtime behavior remain
-  unchanged apart from the documented hack removals.
+  evaluation tools, Docker/config, and workflows. The local comment-policy rule, unused-disable
+  reporting, and warning-comment checks now run through `pnpm lint` and staged-file linting. Public
+  contracts and runtime behavior remain unchanged apart from the documented hack removals.
 - Phase A has API-key auth only (no user accounts/roles), one Core deployment unit, optional
   provider integrations, and no audio persistence — sufficient for the current prototype scope, but
   worth revisiting before multi-tenant or external-user deployment.

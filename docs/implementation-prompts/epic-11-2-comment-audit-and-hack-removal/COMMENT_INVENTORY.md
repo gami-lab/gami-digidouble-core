@@ -264,6 +264,10 @@ Counts use the same comment-bearing-line matcher at the start of prompt 05 and a
 | root config/workflows         |     119 |      30 | Cache, volume, provider, credential, and CI operational constraints.                    |
 | **Outside-Core total**        | **519** | **397** | **Noise comments removed; policy rationale retained.**                                  |
 
+The final cleaned-source counts remain 778 Core comment-bearing lines and 397 outside-Core lines;
+the guardrail implementation adds one type-annotation JSDoc line under `eslint-rules` and no
+application, package, tool, script, or configuration narration comments.
+
 ## Verification notes
 
 - Prompt 03 removed production type escapes and the in-memory corpus async suppression without
@@ -282,3 +286,12 @@ Counts use the same comment-bearing-line matcher at the start of prompt 05 and a
 - Prompt 05 reviewed shared DTO ownership and found no local client copies of the touched public
   contracts. `API_CONTRACT.md` remains consistent with the shared JSDoc; `TEST_COVERAGE_PLAN.md`
   now owns the workflow test-depth follow-ups previously embedded as CI TODO comments.
+- Prompt 06 added `eslint-rules/no-agent-comments.mjs` as an error-level local rule, enabled
+  `reportUnusedDisableDirectives`, and enabled `no-warning-comments` for TODO/FIXME/HACK/XXX. The
+  RuleTester suite covers flagged narration, attribution, epic references, unexplained disables,
+  JSDoc, why comments, and reasoned directives. The rule is exercised by `pnpm test:lint-rules`
+  and the root test command; `lint-staged` still runs ESLint on staged TypeScript files.
+- Final ownership review found no new contract duplication. `packages/shared` remains the canonical
+  owner for public DTOs, Core owns domain contracts, and the evaluation contracts remain
+  intentionally tool-owned. `API_CONTRACT.md`, `ARCHITECTURE.md`, `DATA_MODEL.md`,
+  `MEMORY_SYSTEM_SPEC.md`, and `TEST_COVERAGE_PLAN.md` remain accurate.

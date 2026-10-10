@@ -63,6 +63,9 @@ Core domain or infrastructure modules.
   docs/EPICS.md, not in code.
 - Treat comments that expose legacy fallbacks, workarounds, swallowed errors, or suppressions as a
   prompt to fix the underlying code, not merely to delete the comment.
+- The local `eslint-rules/no-agent-comments.mjs` rule enforces this policy in lint; its RuleTester
+  coverage is maintained in `eslint-rules/no-agent-comments.test.mjs` and described in
+  [docs/TEST_STRATEGY.md](docs/TEST_STRATEGY.md).
 
 ## Required documentation checks
 

@@ -238,8 +238,9 @@ provider, and runtime-order contracts remain unchanged.
 
 Completed the comment inventory, removed documented legacy fallbacks and stale TODOs, refactored
 unexplained production suppressions, and swept noise comments across Core, shared contracts,
-clients, evaluation tools, Docker/config, and workflows. Public contracts and runtime behavior are
-unchanged apart from the documented hack removals.
+clients, evaluation tools, Docker/config, and workflows. Added the local comment-policy ESLint
+rule, unused-disable reporting, warning-comment checks, and RuleTester coverage. Public contracts
+and runtime behavior are unchanged apart from the documented hack removals.
 
 ## Open Backlog
 

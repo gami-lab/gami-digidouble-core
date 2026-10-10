@@ -36,7 +36,7 @@ type AvatarMutationOptionalFields = {
 }
 
 /**
- * Fixed, derived trait structure computed from an avatar's source material
+ * Derived trait structure computed from an avatar's source material
  * (author input, memory documents, world context).
  *
  * The seven field names are shared by trait preparation and Avatar Prompt Assembly.

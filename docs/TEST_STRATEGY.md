@@ -62,6 +62,10 @@ preflight reason so audits do not fail for missing infrastructure. Set
 | Nightly   | No       | real-provider smoke, regression pack, stack-e2e               |
 | Release   | Yes      | full gate + production smoke                                  |
 
+The comment-policy guardrail is tested independently with ESLint's `RuleTester` in
+`eslint-rules/no-agent-comments.test.mjs`; `pnpm test:lint-rules` runs that suite and the root
+`pnpm test` includes it.
+
 ## Required risk coverage
 
 ### Runtime
