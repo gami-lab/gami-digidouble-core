@@ -5,14 +5,12 @@ import type {
   AdminRefreshMemoryResponse,
   AdminReplayGmResponse,
 } from '@gami/shared'
-import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
 import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IMemoryMaintenancePort } from '../../application/ports/IMemoryMaintenancePort.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
-import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import type { IUserRepository } from '../../application/ports/IUserRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
@@ -22,8 +20,6 @@ import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
 import { authenticateApiKey } from '../hooks/authenticate.js'
-import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
-import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
@@ -38,8 +34,6 @@ export type AdminRuntimeActionsRouteOptions = {
   llmAdapter: ILlmAdapter
   runGameMasterUseCase?: RunGameMasterUseCase
   userRepository?: IUserRepository
-  sessionMemoryRepository?: ISessionMemoryRepository
-  avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
   memoryMaintenance?: IMemoryMaintenancePort
   modelConfigRepository?: IModelConfigRepository
@@ -65,10 +59,6 @@ export const adminRuntimeActionsRoute: FastifyPluginCallback<AdminRuntimeActions
   app,
   options,
 ) => {
-  const sessionMemoryRepository =
-    options.sessionMemoryRepository ?? new InMemorySessionMemoryRepository()
-  const avatarSessionMemoryRepository =
-    options.avatarSessionMemoryRepository ?? new InMemoryAvatarSessionMemoryRepository()
   const conversationWorkingMemoryRepository =
     options.conversationWorkingMemoryRepository ?? new InMemoryConversationWorkingMemoryRepository()
   const memoryMaintenance =
@@ -90,8 +80,6 @@ export const adminRuntimeActionsRoute: FastifyPluginCallback<AdminRuntimeActions
     options.conversationRepository,
     options.messageRepository,
     options.eventLogRepository,
-    sessionMemoryRepository,
-    avatarSessionMemoryRepository,
     conversationWorkingMemoryRepository,
     memoryMaintenance,
     options.runGameMasterUseCase,

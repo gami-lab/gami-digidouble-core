@@ -18,7 +18,6 @@ export class GetHistoryUseCase {
 
     const messages = await this.messageRepository.findByConversationId(input.conversationId)
 
-    // TODO(EPIC-4.2): include session memory summary
     return {
       conversation: toConversationSummary(conversation),
       messages: messages.map(toMessage),

@@ -49,6 +49,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     userId: 'user_1',
     scenarioId: 'scenario_1',
     status: 'active',
+    unlockedAvatarIds: ['avatar_1'],
     startedAt: '2026-04-18T10:00:00.000Z',
     lastActivityAt: '2026-04-18T10:00:00.000Z',
     ...overrides,
@@ -187,8 +188,8 @@ describe('StartConversationUseCase', () => {
         unresolvedThreads: ['Need benchmark'],
         candidateFacts: [{ category: 'conversation_signal', key: 'k1', value: 'Need benchmark' }],
       },
-      selectedConversationIds: ['conversation_legacy_1'],
-      consideredConversationIds: ['conversation_legacy_1', 'conversation_legacy_2'],
+      selectedConversationIds: ['conversation_prior_1'],
+      consideredConversationIds: ['conversation_prior_1', 'conversation_prior_2'],
     })
     const useCase = new StartConversationUseCase(
       sessionRepository,

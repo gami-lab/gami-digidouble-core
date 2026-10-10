@@ -351,11 +351,16 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/del
       uriOrPath: '/data/world.txt',
       visibilityPolicy: 'all',
     })
-    await chunkRepo.create({
-      sourceId: created.sourceId,
-      content: 'Scenario-owned chunk',
-      chunkIndex: 0,
-    })
+    await sql`
+      INSERT INTO knowledge_chunks (source_id, content, content_hash, chunk_index, metadata)
+      VALUES (
+        ${created.sourceId.replace(/^knowledge_source_/, '')},
+        'Scenario-owned chunk',
+        repeat('0', 64),
+        0,
+        '{}'::jsonb
+      )
+    `
 
     await scenarioRepo.delete(scenarioId)
 

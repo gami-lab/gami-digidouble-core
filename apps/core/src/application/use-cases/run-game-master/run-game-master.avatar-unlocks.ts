@@ -62,7 +62,7 @@ export function resolveAvatarUnlocks(
   const { avatarIds: unlockAvatarIds, reasonById: unlockReasonById } = deriveUnlockCandidates(
     output.routing,
   )
-  if (session?.unlockedAvatarIds === undefined || unlockAvatarIds.length === 0) {
+  if (session === null || unlockAvatarIds.length === 0) {
     return null
   }
 
@@ -119,7 +119,7 @@ export function resolveAvatarUnlocks(
   if (evaluations.length === 0) return null
 
   return {
-    nextUnlockedAvatarIds: [...session.unlockedAvatarIds, ...newlyUnlockedAvatarIds],
+    nextUnlockedAvatarIds: [...(session.unlockedAvatarIds ?? []), ...newlyUnlockedAvatarIds],
     newlyUnlockedAvatarIds,
     evaluations,
   }
@@ -203,8 +203,8 @@ function buildAvailability(
   session: Session | null,
   avatarId: string,
 ): { availability?: 'available' | 'locked' } {
-  if (session?.unlockedAvatarIds === undefined) return {}
+  if (session === null) return {}
   return {
-    availability: session.unlockedAvatarIds.includes(avatarId) ? 'available' : 'locked',
+    availability: session.unlockedAvatarIds?.includes(avatarId) === true ? 'available' : 'locked',
   }
 }

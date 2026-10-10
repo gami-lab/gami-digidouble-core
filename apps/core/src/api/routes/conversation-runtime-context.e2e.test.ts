@@ -246,7 +246,7 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
     const app = makeApp(
       llm,
       makeAvatar({
-        personaPrompt: 'Legacy persona text that should not be preferred.',
+        personaPrompt: 'Previous persona text that should not be preferred.',
         computedTraits: SAMPLE_TRAITS,
       }),
       {
@@ -294,7 +294,7 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
     expect(systemPrompt).toContain('North pier ledger entries close at moonrise')
     expect(systemPrompt).toContain('Identity:')
     expect(systemPrompt).toContain('- Harbor archivist')
-    expect(systemPrompt).not.toContain('Legacy persona text that should not be preferred.')
+    expect(systemPrompt).not.toContain('Previous persona text that should not be preferred.')
 
     expect(llm.calls[0]?.messages).toContainEqual({
       role: 'assistant',

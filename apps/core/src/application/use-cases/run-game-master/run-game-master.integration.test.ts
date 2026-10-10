@@ -239,6 +239,7 @@ function createIntegrationHarness() {
       avatarId: 'avatar_1',
       summary: 'The witness already contradicted the tide log.',
       unresolvedThreads: ['Confirm dock number.'],
+      coveredTopics: [],
       candidateFacts: [],
       updatedAt: '2026-07-20T09:00:00.000Z',
     },

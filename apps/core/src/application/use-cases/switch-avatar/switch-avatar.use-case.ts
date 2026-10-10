@@ -100,8 +100,7 @@ export class SwitchAvatarUseCase {
   }
 
   private ensureAvatarIsUnlocked(session: Session, avatarId: string): void {
-    if (session.unlockedAvatarIds === undefined) return
-    if (session.unlockedAvatarIds.includes(avatarId)) return
+    if (session.unlockedAvatarIds?.includes(avatarId) === true) return
 
     throw new DomainError(
       'FORBIDDEN',

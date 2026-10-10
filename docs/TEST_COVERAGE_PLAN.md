@@ -59,7 +59,8 @@ These are easy to regress silently because they are policy, not type-level const
 - User persona: partial/empty persona handling, prompt injection only when persona data is present,
   and persona-lookup failures never breaking message delivery.
 - Runtime events (SSE): reconnect stability, session scoping with no cross-session leakage, and
-  publication failures not breaking Avatar replies.
+  publication failures not breaking Avatar replies. The stack-E2E suite still needs a live seeded
+  runtime-event frame assertion; keep this as a release-coverage gap until stack seeding supports it.
 - Metrics: turn-metric reconstruction from persisted events, and correct behavior for mixed GM/non-GM
   sessions.
 

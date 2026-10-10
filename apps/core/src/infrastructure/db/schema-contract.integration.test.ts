@@ -53,7 +53,7 @@ describe.skipIf(!DB_AVAILABLE)('canonical PostgreSQL schema', () => {
     )
   })
 
-  it('contains no legacy session summary or knowledge quarantine surface', async () => {
+  it('contains no obsolete session summary or knowledge quarantine surface', async () => {
     const sessionColumns = await sql<{ column_name: string }[]>`
       SELECT column_name
       FROM information_schema.columns

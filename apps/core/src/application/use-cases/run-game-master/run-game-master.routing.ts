@@ -28,7 +28,7 @@ export async function applyAvatarRoutingUpdates(args: {
       .map((avatar) => avatar.avatarId),
   )
   const unlockedAvatarIds = new Set([
-    ...(args.session?.unlockedAvatarIds ?? args.scenarioAvatars.map((avatar) => avatar.avatarId)),
+    ...(args.session?.unlockedAvatarIds ?? []),
     ...args.unlockResult.newlyUnlockedAvatarIds,
   ])
   const targetAvatarId = routing.avatarId

@@ -90,9 +90,7 @@ async function applyReview(reportPath: string, correction: ReviewRequest): Promi
     if (correction.runKey === undefined) {
       throw new Error('A runKey is required when reviewing a model comparison report.')
     }
-    const run = parsed.runs.find(
-      (candidate) => (candidate.runKey ?? candidate.model) === correction.runKey,
-    )
+    const run = parsed.runs.find((candidate) => candidate.runKey === correction.runKey)
     if (run === undefined) throw new Error('The selected model run was not found.')
     const updatedRun = applyHumanReview(run.report, correction.questionNumber, correction.status)
     const updatedComparison: ModelComparisonReport = {

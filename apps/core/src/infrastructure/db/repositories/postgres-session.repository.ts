@@ -13,7 +13,7 @@ interface SessionRow {
   user_id: string
   scenario_id: string
   active_avatar_id: string | null
-  unlocked_avatar_ids: string[] | null
+  unlocked_avatar_ids: string[]
   model_override: unknown
   avatar_options: unknown
   gm_notes: string | null
@@ -29,9 +29,7 @@ function rowToSession(row: SessionRow): Session {
     userId: row.user_id,
     scenarioId: `scenario_${row.scenario_id}`,
     ...(row.active_avatar_id !== null ? { activeAvatarId: `avatar_${row.active_avatar_id}` } : {}),
-    ...(row.unlocked_avatar_ids !== null
-      ? { unlockedAvatarIds: row.unlocked_avatar_ids.map((avatarId) => `avatar_${avatarId}`) }
-      : {}),
+    unlockedAvatarIds: row.unlocked_avatar_ids.map((avatarId) => `avatar_${avatarId}`),
     ...(row.model_override !== null && row.model_override !== undefined
       ? { modelOverride: row.model_override }
       : {}),
@@ -51,8 +49,9 @@ export class PostgresSessionRepository implements ISessionRepository {
 
   async create(params: CreateSessionParams): Promise<Session> {
     const scenarioUuid = stripPrefix('scenario_', params.scenarioId)
-    const unlockedAvatarUuids =
-      params.unlockedAvatarIds?.map((avatarId) => stripPrefix('avatar_', avatarId)) ?? null
+    const unlockedAvatarUuids = (params.unlockedAvatarIds ?? []).map((avatarId) =>
+      stripPrefix('avatar_', avatarId),
+    )
     const [row] = await this.sql<[SessionRow]>`
       INSERT INTO sessions (user_id, scenario_id, active_avatar_id, unlocked_avatar_ids, model_override, avatar_options)
       VALUES (${params.userId}, ${scenarioUuid}, NULL, ${unlockedAvatarUuids}::UUID[], ${this.sql.json(params.modelOverride ?? null)}::JSONB, ${this.sql.json(params.avatarOptions ?? null)}::JSONB)

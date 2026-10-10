@@ -95,7 +95,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function qualifyModel(provider: string | undefined, model: string | undefined): string | undefined {
   if (model === undefined || model.trim().length === 0) return undefined
   const normalizedModel = model.trim()
-  if (normalizedModel.includes('/') || provider === undefined || provider === 'legacy') {
+  if (normalizedModel.includes('/') || provider === undefined) {
     return normalizedModel
   }
   return `${provider}/${normalizedModel}`

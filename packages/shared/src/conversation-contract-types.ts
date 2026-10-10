@@ -1,5 +1,4 @@
 import type { AvatarSummary, ConversationSummary, SessionSummary } from './entity-types.js'
-import type { SessionMemorySummary } from './lifecycle-types.js'
 import type { LlmResponseMetrics } from './llm-contract-types.js'
 export type { LlmResponseMetrics } from './llm-contract-types.js'
 
@@ -38,7 +37,6 @@ export type SendMessageResponse = {
 export type GetHistoryResponse = {
   conversation: ConversationSummary
   messages: Message[]
-  memory?: SessionMemorySummary
 }
 
 /**

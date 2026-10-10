@@ -341,11 +341,17 @@ export async function writeJsonAtomically(outputPath: string, value: unknown): P
   } catch {
     try {
       await unlink(temporaryPath)
-    } catch {
-      // The temporary file may not have been created or may already have been renamed.
+    } catch (cleanupError: unknown) {
+      if (!isFileNotFoundError(cleanupError)) {
+        console.warn('Unable to remove the temporary evaluation report file.')
+      }
     }
     throw new ReportWriteError()
   }
+}
+
+function isFileNotFoundError(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && error.code === 'ENOENT'
 }
 
 export function renderConsoleSummary(report: RunReport): string {

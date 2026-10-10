@@ -1,10 +1,8 @@
 import crypto from 'node:crypto'
-import type { IAvatarSessionMemoryRepository } from '../../ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IMemoryMaintenancePort } from '../../ports/IMemoryMaintenancePort.js'
-import type { ISessionMemoryRepository } from '../../ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IUserRepository } from '../../ports/IUserRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../ports/IConversationWorkingMemoryRepository.js'
@@ -27,8 +25,6 @@ export class AdminRuntimeActionsUseCase {
     private readonly conversationRepository: IConversationRepository,
     private readonly messageRepository: IMessageRepository,
     private readonly eventLogRepository: IEventLogRepository,
-    private readonly sessionMemoryRepository?: ISessionMemoryRepository,
-    private readonly avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository,
     private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
     private readonly memoryMaintenance?: IMemoryMaintenancePort,
     private readonly runGameMasterUseCase?: RunGameMasterUseCase,
@@ -136,10 +132,6 @@ export class AdminRuntimeActionsUseCase {
 
   async clearMemory(input: ClearMemoryInput): Promise<ClearMemoryOutput> {
     const session = await this.requireSession(input.sessionId)
-    const deletedSessionMemory =
-      (await this.sessionMemoryRepository?.deleteBySessionId(input.sessionId)) ?? false
-    const deletedAvatarMemories =
-      (await this.avatarSessionMemoryRepository?.deleteBySessionId(input.sessionId)) ?? 0
     const deletedConversationWorkingMemories =
       (await this.conversationWorkingMemoryRepository?.deleteBySessionId(input.sessionId)) ?? 0
 
@@ -157,8 +149,6 @@ export class AdminRuntimeActionsUseCase {
         actionType: 'session.memory_clear',
         targetType: 'session',
         targetId: input.sessionId,
-        sessionWorkingMemory: deletedSessionMemory,
-        avatarWorkingMemoryCount: deletedAvatarMemories,
         conversationWorkingMemoryCount: deletedConversationWorkingMemories,
         gmNotesCleared,
         userFactsCleared: false,
@@ -169,8 +159,6 @@ export class AdminRuntimeActionsUseCase {
       sessionId: input.sessionId,
       action: 'memory.clear',
       cleared: {
-        sessionWorkingMemory: deletedSessionMemory,
-        avatarWorkingMemoryCount: deletedAvatarMemories,
         gmNotesCleared,
         userFactsCleared: false,
       },

@@ -177,10 +177,8 @@ export type RunCostEstimate = {
 
 export type ModelComparisonRun = {
   model: DeclaredModel
-  /** Stable identity for repeated selectors; omitted on legacy single-run entries. */
+  /** Stable identity for repeated selectors. */
   runKey?: string
-  /** Retained when loading legacy comparison reports that referenced per-model files. */
-  reportPath?: string
   report: RunReport
 }
 

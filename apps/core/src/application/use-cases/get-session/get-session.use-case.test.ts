@@ -41,7 +41,6 @@ describe('GetSessionUseCase', () => {
   it('omits optional fields when they are absent', async () => {
     const sessionWithoutOptionals = makeSession()
     delete sessionWithoutOptionals.activeAvatarId
-    delete sessionWithoutOptionals.unlockedAvatarIds
     delete sessionWithoutOptionals.endedAt
 
     const useCase = new GetSessionUseCase(new InMemorySessionRepository([sessionWithoutOptionals]))
@@ -49,7 +48,7 @@ describe('GetSessionUseCase', () => {
     const output = await useCase.execute({ sessionId: 'session_1' })
 
     expect(output.session.activeAvatarId).toBeUndefined()
-    expect(output.session.unlockedAvatarIds).toBeUndefined()
+    expect(output.session.unlockedAvatarIds).toEqual(['avatar_1', 'avatar_2'])
     expect(output.session.endedAt).toBeUndefined()
   })
 

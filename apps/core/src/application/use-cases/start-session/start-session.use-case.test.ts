@@ -44,6 +44,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     status: 'active',
     startedAt: '2026-04-19T10:00:00.000Z',
     lastActivityAt: '2026-04-19T10:00:00.000Z',
+    unlockedAvatarIds: [],
 
     ...overrides,
   }
@@ -118,6 +119,7 @@ describe('StartSessionUseCase', () => {
     expect(createSessionMock).toHaveBeenCalledWith({
       userId: 'user_abc',
       scenarioId: 'scenario_abc',
+      unlockedAvatarIds: [],
     })
     expect(findScenarioByIdMock).toHaveBeenCalledWith('scenario_abc')
     expect(output.session).toMatchObject({
@@ -147,6 +149,7 @@ describe('StartSessionUseCase', () => {
     expect(createSessionMock).toHaveBeenCalledWith({
       userId: 'user_1',
       scenarioId: 'scenario_1',
+      unlockedAvatarIds: [],
       avatarOptions,
     })
     expect(output.session.avatarOptions).toEqual(avatarOptions)
@@ -165,6 +168,7 @@ describe('StartSessionUseCase', () => {
     expect(createSessionMock).toHaveBeenCalledWith({
       userId: 'user_1',
       scenarioId: 'scenario_1',
+      unlockedAvatarIds: [],
       modelOverride,
     })
   })

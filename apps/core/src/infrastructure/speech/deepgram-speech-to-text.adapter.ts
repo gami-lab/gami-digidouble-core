@@ -150,11 +150,7 @@ export class DeepgramSpeechToTextAdapter implements ISpeechToTextAdapter {
     } catch (error) {
       const mapped = mapSpeechToTextError(error, options?.signal, 'during_transcription')
       if (normalizedInput === undefined) {
-        try {
-          normalizedInput = normalizeSpeechToTextInput(input)
-        } catch {
-          // Invalid input is reported through the typed failure only.
-        }
+        normalizedInput = tryNormalizeSpeechToTextInput(input)
       }
       this.trace({
         ...(options?.requestId === undefined ? {} : { requestId: options.requestId }),
@@ -246,6 +242,14 @@ export class DeepgramSpeechToTextAdapter implements ISpeechToTextAdapter {
         },
       })
       .catch(() => undefined)
+  }
+}
+
+function tryNormalizeSpeechToTextInput(input: SpeechToTextInput): SpeechToTextInput | undefined {
+  try {
+    return normalizeSpeechToTextInput(input)
+  } catch {
+    return undefined
   }
 }
 

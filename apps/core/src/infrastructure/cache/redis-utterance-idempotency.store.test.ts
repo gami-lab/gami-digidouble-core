@@ -17,6 +17,10 @@ class FakeRedis {
     return Promise.resolve('OK')
   }
 
+  pexpire(_key: string, _milliseconds: number): Promise<number> {
+    return Promise.resolve(1)
+  }
+
   del(key: string): Promise<number> {
     if (!this.values.has(key)) return Promise.resolve(0)
     this.values.delete(key)
@@ -62,8 +66,8 @@ describe('RedisUtteranceIdempotencyStore', () => {
     await expect(store.reserve(identity, 'fingerprint-a', 1_100)).resolves.toEqual({
       status: 'expired',
     })
-    await expect(store.reserve(identity, 'fingerprint-a', 2_000)).resolves.toEqual({
-      status: 'expired',
+    await expect(store.reserve(identity, 'fingerprint-a', 2_000)).resolves.toMatchObject({
+      status: 'claimed',
     })
   })
 

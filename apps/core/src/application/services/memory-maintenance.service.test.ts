@@ -1,10 +1,7 @@
 /* eslint-disable max-lines */
 import { describe, expect, it, vi } from 'vitest'
-import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
-import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
-import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import type { ILlmAdapter } from '../ports/ILlmAdapter.js'
 import { MemoryMaintenanceService } from './memory-maintenance.service.js'
@@ -112,18 +109,6 @@ function makeService() {
       createdAt: '2026-05-06T10:00:05.000Z',
     },
   ])
-  const sessionRepository = new InMemorySessionRepository([
-    {
-      sessionId: 'session_1',
-      userId: 'user_1',
-      scenarioId: 'scenario_1',
-      status: 'active',
-      startedAt: '2026-05-06T09:59:00.000Z',
-      lastActivityAt: '2026-05-06T10:00:01.000Z',
-    },
-  ])
-  const sessionMemoryRepository = new InMemorySessionMemoryRepository()
-  const avatarSessionMemoryRepository = new InMemoryAvatarSessionMemoryRepository()
   const conversationWorkingMemoryRepository = new InMemoryConversationWorkingMemoryRepository()
   const eventLogRepository = new InMemoryEventLogRepository()
 
@@ -148,9 +133,6 @@ function makeService() {
       eventLogRepository,
       defaultLlm,
     ),
-    sessionRepository,
-    sessionMemoryRepository,
-    avatarSessionMemoryRepository,
     conversationWorkingMemoryRepository,
     eventLogRepository,
   }
@@ -158,12 +140,7 @@ function makeService() {
 
 describe('MemoryMaintenanceService — persistence and events', () => {
   it('refreshes canonical conversation working memory only', async () => {
-    const {
-      service,
-      sessionMemoryRepository,
-      avatarSessionMemoryRepository,
-      conversationWorkingMemoryRepository,
-    } = makeService()
+    const { service, conversationWorkingMemoryRepository } = makeService()
 
     await service.execute({
       sessionId: 'session_1',
@@ -183,10 +160,6 @@ describe('MemoryMaintenanceService — persistence and events', () => {
       summary: 'Conversation turns: user=3, avatar=3.',
       coveredTopics: [],
     })
-    await expect(sessionMemoryRepository.findBySessionId('session_1')).resolves.toBeNull()
-    await expect(
-      avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_1', 'avatar_1'),
-    ).resolves.toBeNull()
   })
 
   it('updates existing canonical row on repeated turns rather than creating duplicates', async () => {
@@ -431,12 +404,7 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
   })
 
   it('uses validated LLM compaction output for working memory when available', async () => {
-    const {
-      sessionMemoryRepository,
-      avatarSessionMemoryRepository,
-      conversationWorkingMemoryRepository,
-      eventLogRepository,
-    } = makeService()
+    const { conversationWorkingMemoryRepository, eventLogRepository } = makeService()
     const llmCompleteMock = vi.fn().mockResolvedValue({
       content: JSON.stringify({
         summary: 'Compact clinical privacy summary.',
@@ -472,10 +440,6 @@ describe('MemoryMaintenanceService — LLM compaction', () => {
       trigger: 'post_turn',
     })
 
-    await expect(sessionMemoryRepository.findBySessionId('session_1')).resolves.toBeNull()
-    await expect(
-      avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_1', 'avatar_1'),
-    ).resolves.toBeNull()
     await expect(
       conversationWorkingMemoryRepository.findByConversationId('conversation_1'),
     ).resolves.toMatchObject({
@@ -844,7 +808,6 @@ describe('MemoryMaintenanceService — post_turn policy gate', () => {
         createdAt: '2026-05-06T10:00:01.000Z',
       },
     ])
-    const sessionMemoryRepository = new InMemorySessionMemoryRepository()
     const conversationWorkingMemoryRepository = new InMemoryConversationWorkingMemoryRepository()
     const eventLogRepository = new InMemoryEventLogRepository()
     const service = new MemoryMaintenanceService(
@@ -870,7 +833,6 @@ describe('MemoryMaintenanceService — post_turn policy gate', () => {
       trigger: 'post_turn',
     })
 
-    await expect(sessionMemoryRepository.findBySessionId('session_1')).resolves.toBeNull()
     await expect(
       conversationWorkingMemoryRepository.findByConversationId('conversation_1'),
     ).resolves.toBeNull()

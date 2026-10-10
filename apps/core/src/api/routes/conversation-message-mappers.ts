@@ -23,9 +23,7 @@ export function mapSendMessageResponse(output: SendMessageOutput): SendMessageRe
       ...(output.session.activeAvatarId !== undefined
         ? { activeAvatarId: output.session.activeAvatarId }
         : {}),
-      ...(output.session.unlockedAvatarIds !== undefined
-        ? { unlockedAvatarIds: output.session.unlockedAvatarIds }
-        : {}),
+      unlockedAvatarIds: output.session.unlockedAvatarIds ?? [],
       ...(output.session.avatarOptions !== undefined
         ? { avatarOptions: output.session.avatarOptions }
         : {}),

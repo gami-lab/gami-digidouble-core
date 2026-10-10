@@ -17,7 +17,7 @@ function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
   }
 }
 
-// The repository behavior is intentionally covered as one cohesive compatibility suite.
+// The repository behavior is intentionally covered as one cohesive suite.
 // eslint-disable-next-line max-lines-per-function
 describe('InMemoryScenarioRepository', () => {
   it('create generates scenario_ prefixed ID', async () => {

@@ -31,8 +31,8 @@ and JSON shapes are defined by `infra/postgres/init.sql` and the repository type
 
 `User -> Sessions -> Scenario`; `Scenario -> Avatars and Knowledge Sources`; `Session ->
 Conversations -> Messages`; `Conversation -> working/episodic memory`; `User -> persona/facts`;
-`Knowledge Source -> Chunks -> active Corpus Generation`. `Session -> gm_states` and `Session ->
-session_memories` are 1:1; `Embedding Profile -> Corpus Generations -> Chunks` is 1:N.
+`Knowledge Source -> Chunks -> active Corpus Generation`. `Session -> gm_states` is 1:1;
+`Embedding Profile -> Corpus Generations -> Chunks` is 1:N.
 
 Knowledge visibility is source-owned and inherited by chunks. It is not an Avatar-to-source join
 table and does not create conversational memory.

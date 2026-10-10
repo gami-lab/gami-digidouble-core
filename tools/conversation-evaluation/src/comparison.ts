@@ -139,7 +139,6 @@ function isModelComparisonReport(value: unknown): value is ModelComparisonReport
     return (
       typeof run['model'] === 'string' &&
       (run['runKey'] === undefined || typeof run['runKey'] === 'string') &&
-      (run['reportPath'] === undefined || typeof run['reportPath'] === 'string') &&
       isRecord(run['report'])
     )
   })
@@ -168,11 +167,11 @@ export function renderModelComparisonSummary(report: ModelComparisonReport): str
 export function modelRunEntry(
   model: DeclaredModel,
   report: RunReport,
-  runKey?: string,
+  runKey: string = model,
 ): ModelComparisonRun {
   return {
     model,
-    ...(runKey !== undefined ? { runKey } : {}),
+    runKey,
     report,
   }
 }

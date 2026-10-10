@@ -267,8 +267,8 @@ async function readStreamApiError(response: Response, path: string): Promise<Api
         return new ApiError(code, message, payload.error.details)
       }
     }
-  } catch {
-    // Fall through to the status-based error below.
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error
   }
 
   return new ApiError(

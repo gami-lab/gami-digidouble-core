@@ -1,9 +1,7 @@
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
-import type { IAvatarSessionMemoryRepository } from '../../ports/IAvatarSessionMemoryRepository.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
-import type { ISessionMemoryRepository } from '../../ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../ports/IConversationWorkingMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../../ports/IConversationMemoryRepository.js'
@@ -18,8 +16,6 @@ export class ResetSessionUseCase {
     private readonly avatarRepository: IAvatarRepository,
     private readonly conversationRepository: IConversationRepository,
     private readonly messageRepository: IMessageRepository,
-    private readonly sessionMemoryRepository?: ISessionMemoryRepository,
-    private readonly avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository,
     private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
     private readonly conversationMemoryRepository?: IConversationMemoryRepository,
   ) {}
@@ -49,15 +45,11 @@ export class ResetSessionUseCase {
     await this.conversationRepository.deleteBySessionId(input.sessionId)
     await this.conversationMemoryRepository?.deleteBySessionId(input.sessionId)
     await this.conversationWorkingMemoryRepository?.deleteBySessionId(input.sessionId)
-    await this.sessionMemoryRepository?.deleteBySessionId(input.sessionId)
-    await this.avatarSessionMemoryRepository?.deleteBySessionId(input.sessionId)
 
     try {
       const updated = await this.sessionRepository.update(input.sessionId, {
         activeAvatarId: null,
-        ...(initialUnlockedAvatarIds !== undefined
-          ? { unlockedAvatarIds: initialUnlockedAvatarIds }
-          : {}),
+        unlockedAvatarIds: initialUnlockedAvatarIds,
         gmNotes: null,
         status: 'active',
         lastActivityAt: new Date().toISOString(),

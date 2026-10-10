@@ -2,7 +2,6 @@ import type { FastifyPluginCallback } from 'fastify'
 import { fail, MODEL_SELECTION_PROVIDER_NAMES, ok } from '@gami/shared'
 import type { SendMessageRequest, SendMessageResponse } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
-import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
 import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
@@ -12,7 +11,6 @@ import type { ISpeechToTextAdapter } from '../../application/ports/ISpeechToText
 import type { TextToSpeechProviders } from '../../application/voice/text-to-speech-providers.js'
 import type { IUtteranceIdempotencyStore } from '../../application/ports/IUtteranceIdempotencyStore.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
-import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import type { IUserRepository } from '../../application/ports/IUserRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
@@ -71,8 +69,6 @@ type ConversationsRouteOptions = {
   messageRepository?: IMessageRepository
   runGameMasterUseCase?: RunGameMasterUseCase
   userRepository?: IUserRepository
-  sessionMemoryRepository?: ISessionMemoryRepository
-  avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
   conversationMemoryRepository?: IConversationMemoryRepository
   knowledgeSourceRepository?: IKnowledgeSourceRepository
@@ -290,8 +286,6 @@ type ConversationPersistenceDeps = {
   eventLogRepository: IEventLogRepository
   messageRepository: IMessageRepository
   userRepository: IUserRepository
-  sessionMemoryRepository: ISessionMemoryRepository
-  avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository
   conversationMemoryRepository: IConversationMemoryRepository
   knowledgeSourceRepository: IKnowledgeSourceRepository

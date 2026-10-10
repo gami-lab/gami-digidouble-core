@@ -14,7 +14,6 @@ export class StartSessionUseCase {
   ) {}
 
   async execute(input: StartSessionInput): Promise<StartSessionOutput> {
-    // TODO(EPIC-4.2): expand to full StartSessionRequest shape (nested user, initialContext)
     const userId = input.userId.trim()
     const scenarioId = input.scenarioId.trim()
 
@@ -38,7 +37,7 @@ export class StartSessionUseCase {
     const session = await this.sessionRepository.create({
       userId,
       scenarioId,
-      ...(unlockedAvatarIds !== undefined ? { unlockedAvatarIds } : {}),
+      unlockedAvatarIds,
       ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
       ...(input.avatarOptions !== undefined ? { avatarOptions: input.avatarOptions } : {}),
     })

@@ -150,45 +150,4 @@ describe('GetAvailableAvatarsUseCase availability semantics — unlock filter', 
     expect(output.avatars).toHaveLength(1)
     expect(output.avatars[0]?.avatarId).toBe('avatar_active')
   })
-
-  it('returns all active scenario avatars for legacy sessions without unlock state', async () => {
-    const useCase = new GetAvailableAvatarsUseCase(
-      new InMemorySessionRepository([
-        {
-          sessionId: 'session_legacy',
-          userId: 'user_1',
-          scenarioId: 'scenario_1',
-          status: 'active',
-          startedAt: '2026-04-23T10:00:00.000Z',
-          lastActivityAt: '2026-04-23T10:01:00.000Z',
-        },
-      ]),
-      new InMemoryAvatarRepository([
-        {
-          avatarId: 'avatar_1',
-          scenarioId: 'scenario_1',
-          name: 'A',
-          status: 'active',
-          personaPrompt: 'A',
-          config: {},
-          createdAt: '2026-04-23T10:00:00.000Z',
-          updatedAt: '2026-04-23T10:00:00.000Z',
-        },
-        {
-          avatarId: 'avatar_2',
-          scenarioId: 'scenario_1',
-          name: 'B',
-          status: 'active',
-          personaPrompt: 'B',
-          config: {},
-          createdAt: '2026-04-23T10:00:00.000Z',
-          updatedAt: '2026-04-23T10:00:00.000Z',
-        },
-      ]),
-    )
-
-    const output = await useCase.execute({ sessionId: 'session_legacy' })
-
-    expect(output.avatars.map((avatar) => avatar.avatarId)).toEqual(['avatar_1', 'avatar_2'])
-  })
 })

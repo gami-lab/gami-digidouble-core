@@ -16,9 +16,13 @@ import { fileURLToPath } from 'node:url'
   const envFile = fileURLToPath(new URL('../../.env', import.meta.url))
   try {
     process.loadEnvFile(envFile)
-  } catch {
-    // .env is optional — CI and Docker inject secrets as env vars directly
+  } catch (error) {
+    if (!isMissingEnvFileError(error)) throw error
   }
+}
+
+function isMissingEnvFileError(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && error.code === 'ENOENT'
 }
 
 // ── Console guards ────────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ import { RunGameMasterUseCase } from './run-game-master.use-case.js'
 
 const findBySessionIdMock = vi.fn()
 const saveGmStateMock = vi.fn()
+const findSessionByIdMock = vi.fn()
 const updateSessionMock = vi.fn()
 const listAvatarsByScenarioIdMock = vi.fn()
 const completeMock = vi.fn()
@@ -17,7 +18,7 @@ const gmStateRepository = {
 }
 
 const sessionRepository = {
-  findById: vi.fn(),
+  findById: findSessionByIdMock,
   create: vi.fn(),
   update: updateSessionMock,
   delete: vi.fn(),
@@ -77,6 +78,7 @@ function createUseCase(eventLog?: {
 beforeEach(() => {
   findBySessionIdMock.mockReset()
   saveGmStateMock.mockReset()
+  findSessionByIdMock.mockReset()
   updateSessionMock.mockReset()
   listAvatarsByScenarioIdMock.mockReset()
   completeMock.mockReset()
@@ -84,6 +86,7 @@ beforeEach(() => {
 
   findBySessionIdMock.mockResolvedValue(makeState())
   saveGmStateMock.mockResolvedValue(undefined)
+  findSessionByIdMock.mockResolvedValue(null)
   updateSessionMock.mockResolvedValue(undefined)
   listAvatarsByScenarioIdMock.mockResolvedValue([makeAvatar()])
   completeMock.mockResolvedValue({

@@ -24,7 +24,7 @@ function rowToConversationWorkingMemory(
     avatarId: `avatar_${row.avatar_id}`,
     summary: row.summary,
     unresolvedThreads: readStringArray(row.unresolved_threads),
-    coveredTopics: readStringArray(row.covered_topics),
+    coveredTopics: readRequiredStringArray(row.covered_topics),
     candidateFacts: candidateFacts
       .filter((fact) => isRecord(fact))
       .map((fact) => ({
@@ -122,4 +122,11 @@ function toStringOrEmpty(value: unknown): string {
 function readStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
   return value.filter((item): item is string => typeof item === 'string')
+}
+
+function readRequiredStringArray(value: unknown): string[] {
+  if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
+    throw new Error('Conversation working memory covered_topics must be a string array.')
+  }
+  return value
 }

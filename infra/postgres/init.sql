@@ -206,7 +206,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   user_id          TEXT        NOT NULL,
   scenario_id      UUID        NOT NULL REFERENCES scenarios(id),
   active_avatar_id UUID        REFERENCES avatars(id) ON DELETE SET NULL,
-  unlocked_avatar_ids UUID[],
+  unlocked_avatar_ids UUID[] NOT NULL DEFAULT '{}',
   model_override   JSONB,
   avatar_options   JSONB,
   gm_notes         TEXT,
@@ -217,21 +217,6 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 -- ── Working Memory ────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS session_memories (
-  session_id  UUID        PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
-  summary     TEXT        NOT NULL,
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS avatar_session_memories (
-  session_id  UUID        NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-  avatar_id   UUID        NOT NULL REFERENCES avatars(id) ON DELETE CASCADE,
-  summary     TEXT        NOT NULL,
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (session_id, avatar_id)
-);
-
 
 -- ── Game Master States ────────────────────────────────────────────────────────
 
@@ -358,8 +343,6 @@ CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation
 CREATE INDEX IF NOT EXISTS idx_messages_created_at   ON messages(conversation_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_event_log_session_id ON event_log(session_id);
 CREATE INDEX IF NOT EXISTS idx_event_log_type ON event_log(type);
-CREATE INDEX IF NOT EXISTS idx_avatar_session_memories_session_id
-  ON avatar_session_memories(session_id);
 CREATE INDEX IF NOT EXISTS idx_conversation_working_memories_session_id
   ON conversation_working_memories(session_id);
 CREATE INDEX IF NOT EXISTS idx_conversation_memories_scope

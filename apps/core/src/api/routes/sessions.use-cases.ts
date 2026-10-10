@@ -1,5 +1,4 @@
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
-import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../../application/ports/IConversationMemoryRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
@@ -9,7 +8,6 @@ import type { IMessageRepository } from '../../application/ports/IMessageReposit
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { IGmStateRepository } from '../../application/ports/IGmStateRepository.js'
 import type { ISessionEventPublisher } from '../../application/ports/ISessionEventPublisher.js'
-import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
 import { EpisodicMemoryService } from '../../application/services/episodic-memory.service.js'
@@ -45,7 +43,6 @@ export type SessionRouteUseCases = {
   deleteSessionUseCase: DeleteSessionUseCase
 }
 
-// eslint-disable-next-line max-lines-per-function
 export function createSessionRouteUseCases(deps: {
   sessionRepository: ISessionRepository
   scenarioRepository: IScenarioRepository
@@ -53,8 +50,6 @@ export function createSessionRouteUseCases(deps: {
   conversationRepository: IConversationRepository
   gmStateRepository: IGmStateRepository
   messageRepository: IMessageRepository
-  sessionMemoryRepository: ISessionMemoryRepository
-  avatarSessionMemoryRepository: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository: IConversationWorkingMemoryRepository
   conversationMemoryRepository: IConversationMemoryRepository
   eventLogRepository: IEventLogRepository
@@ -96,8 +91,6 @@ export function createSessionRouteUseCases(deps: {
       deps.avatarRepository,
       deps.conversationRepository,
       deps.messageRepository,
-      deps.sessionMemoryRepository,
-      deps.avatarSessionMemoryRepository,
       deps.conversationWorkingMemoryRepository,
       deps.conversationMemoryRepository,
     ),

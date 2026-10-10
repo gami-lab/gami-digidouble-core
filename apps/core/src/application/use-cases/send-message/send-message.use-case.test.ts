@@ -463,7 +463,7 @@ describe('SendMessageUseCase — llm request payload', () => {
     findAvatarByIdMock.mockResolvedValue(
       makeAvatar({
         name: 'Ava',
-        personaPrompt: 'Legacy persona text that should not be used when traits exist.',
+        personaPrompt: 'Previous persona text that should not be used when traits exist.',
         adjustments: ['Use short paragraphs.'],
         computedTraits: SAMPLE_TRAITS,
       }),
@@ -545,7 +545,7 @@ describe('SendMessageUseCase — llm request payload', () => {
     expect(llmArg.systemPrompt).toContain('Identity:')
     expect(llmArg.systemPrompt).toContain('- Harbor archivist')
     expect(llmArg.systemPrompt).not.toContain(
-      'Legacy persona text that should not be used when traits exist.',
+      'Previous persona text that should not be used when traits exist.',
     )
     expect(llmArg.messages).toEqual([
       {
@@ -1075,7 +1075,7 @@ describe('SendMessageUseCase — validation and GM integration', () => {
     )
     findAvatarByIdMock.mockResolvedValue(
       makeAvatar({
-        personaPrompt: 'Legacy secret persona text.',
+        personaPrompt: 'Previous secret persona text.',
         computedTraits: {
           ...SAMPLE_TRAITS,
           identity: ['Hidden trait identity'],
@@ -1092,7 +1092,7 @@ describe('SendMessageUseCase — validation and GM integration', () => {
     const serializedPayload = JSON.stringify(eventArg.payload)
 
     expect(serializedPayload).not.toContain(llmRequest.systemPrompt)
-    expect(serializedPayload).not.toContain('Legacy secret persona text.')
+    expect(serializedPayload).not.toContain('Previous secret persona text.')
     expect(serializedPayload).not.toContain('Hidden trait identity')
     expect(serializedPayload).not.toContain('Never reveal the vault code.')
     expect(serializedPayload).toContain('Visible retrieval text.')

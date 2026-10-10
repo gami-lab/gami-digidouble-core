@@ -7,7 +7,6 @@ import type {
   StartSessionRequest,
 } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
-import type { IAvatarSessionMemoryRepository } from '../../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../application/ports/IEventLogRepository.js'
 import type { IGmStateRepository } from '../../application/ports/IGmStateRepository.js'
@@ -15,7 +14,6 @@ import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IMessageRepository } from '../../application/ports/IMessageRepository.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
-import type { ISessionMemoryRepository } from '../../application/ports/ISessionMemoryRepository.js'
 import type { ISessionEventPublisher } from '../../application/ports/ISessionEventPublisher.js'
 import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../../application/ports/IConversationMemoryRepository.js'
@@ -70,8 +68,6 @@ export type SessionsRouteOptions = {
   messageRepository?: IMessageRepository
   llmAdapter?: ILlmAdapter
   observabilityAdapter?: IObservabilityAdapter
-  sessionMemoryRepository?: ISessionMemoryRepository
-  avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
   conversationMemoryRepository?: IConversationMemoryRepository
   eventLogRepository?: IEventLogRepository
@@ -196,8 +192,6 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     conversationRepository,
     gmStateRepository,
     messageRepository,
-    sessionMemoryRepository,
-    avatarSessionMemoryRepository,
     conversationWorkingMemoryRepository,
     conversationMemoryRepository,
     eventLogRepository,
@@ -223,8 +217,6 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     conversationRepository,
     gmStateRepository,
     messageRepository,
-    sessionMemoryRepository,
-    avatarSessionMemoryRepository,
     conversationWorkingMemoryRepository,
     conversationMemoryRepository,
     eventLogRepository,
@@ -274,12 +266,8 @@ function resolveRouteDependencies(options: SessionsRouteOptions) {
     options.conversationRepository ?? new InMemoryConversationRepository()
   const gmStateRepository = options.gmStateRepository ?? new InMemoryGmStateRepository()
   const messageRepository = options.messageRepository ?? new InMemoryMessageRepository()
-  const {
-    sessionMemoryRepository,
-    avatarSessionMemoryRepository,
-    conversationWorkingMemoryRepository,
-    conversationMemoryRepository,
-  } = resolveWorkingMemoryRepositories(options)
+  const { conversationWorkingMemoryRepository, conversationMemoryRepository } =
+    resolveWorkingMemoryRepositories(options)
   const eventLogRepository = options.eventLogRepository ?? new InMemoryEventLogRepository()
   const sessionEventPublisher = options.sessionEventPublisher ?? new InMemorySessionEventPublisher()
 
@@ -290,8 +278,6 @@ function resolveRouteDependencies(options: SessionsRouteOptions) {
     conversationRepository,
     gmStateRepository,
     messageRepository,
-    sessionMemoryRepository,
-    avatarSessionMemoryRepository,
     conversationWorkingMemoryRepository,
     conversationMemoryRepository,
     eventLogRepository,

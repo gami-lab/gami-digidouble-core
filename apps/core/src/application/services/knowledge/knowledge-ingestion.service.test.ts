@@ -699,12 +699,7 @@ describe('KnowledgeIngestionService — missing active corpus', () => {
     )
     const input = await createQueuedJob(sourceRepository, jobRepository)
 
-    const result = await service.execute(input)
-
-    expect(result).toMatchObject({
-      status: 'failed',
-      errorMessage: 'No active embedding profile is available for ingestion.',
-    })
-    expect((await jobRepository.findById(input.ingestionJobId))?.status).toBe('failed')
+    await expect(service.execute(input)).rejects.toThrow('bootstrap failed')
+    expect((await jobRepository.findById(input.ingestionJobId))?.status).toBe('queued')
   })
 })

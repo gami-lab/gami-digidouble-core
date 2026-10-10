@@ -233,7 +233,7 @@ function Composer({ data, onSent }: { data: SessionData; onSent: () => void }): 
   if (active === undefined) {
     const candidates = data.avatars.filter(
       (avatar) =>
-        avatar.status === 'active' && (session.unlockedAvatarIds ?? []).includes(avatar.avatarId),
+        avatar.status === 'active' && session.unlockedAvatarIds.includes(avatar.avatarId),
     )
     return (
       <form

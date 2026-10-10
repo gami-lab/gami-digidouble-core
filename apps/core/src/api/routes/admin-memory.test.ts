@@ -4,18 +4,14 @@ import type { FastifyInstance } from 'fastify'
 import type { Conversation } from '../../domain/conversation/session.types.js'
 import type { Session } from '../../domain/conversation/session.types.js'
 import type {
-  AvatarSessionMemory,
   ConversationMemory,
   ConversationWorkingMemory,
-  SessionMemory,
 } from '../../domain/memory/memory.types.js'
-import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryConversationMemoryRepository } from '../../infrastructure/db/in-memory-conversation-memory.repository.js'
 import { InMemoryConversationRepository } from '../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
-import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
@@ -52,10 +48,6 @@ type SeedConversation = {
   endedAt?: string
 }
 
-type SeedSessionMemory = SessionMemory
-
-type SeedAvatarMemory = AvatarSessionMemory
-
 type SeedConversationMessage = {
   messageId: string
   conversationId: string
@@ -79,8 +71,6 @@ type SeedEvent = {
 type AppSeedParams = {
   sessions?: Session[]
   conversations?: SeedConversation[]
-  sessionMemories?: SeedSessionMemory[]
-  avatarMemories?: SeedAvatarMemory[]
   conversationMessages?: SeedConversationMessage[]
   conversationMemories?: SeedConversationMemory[]
   conversationWorkingMemories?: SeedConversationWorkingMemory[]
@@ -101,10 +91,6 @@ function buildAdapters(params?: AppSeedParams) {
   }
   return {
     sessionRepository: new InMemorySessionRepository(resolved.sessions),
-    sessionMemoryRepository: new InMemorySessionMemoryRepository(resolved.sessionMemories),
-    avatarSessionMemoryRepository: new InMemoryAvatarSessionMemoryRepository(
-      resolved.avatarMemories,
-    ),
     conversationRepository: new InMemoryConversationRepository(resolved.conversations),
     messageRepository: new InMemoryMessageRepository(resolved.conversationMessages),
     conversationWorkingMemoryRepository: new InMemoryConversationWorkingMemoryRepository(
@@ -121,8 +107,6 @@ function resolveParams(params: AppSeedParams = {}) {
   const defaults: Required<AppSeedParams> = {
     sessions: [makeSession()],
     conversations: [makeConversation()],
-    sessionMemories: [],
-    avatarMemories: [],
     conversationMessages: [],
     conversationMemories: [],
     conversationWorkingMemories: [],
@@ -333,16 +317,9 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers', () => {
     expect(response.body).not.toContain('OPENAI_API_KEY')
   })
 
-  it('prefers canonical working memory of the latest conversation over the legacy session mirror', async () => {
+  it('returns canonical working memory of the latest conversation', async () => {
     const response = await makeApp({
       sessions: [makeSession()],
-      sessionMemories: [
-        {
-          sessionId: 'session_1',
-          summary: 'Legacy session mirror',
-          updatedAt: '2026-05-01T10:10:00.000Z',
-        },
-      ],
       conversationWorkingMemories: [
         {
           conversationId: 'conversation_1',

@@ -51,6 +51,7 @@ describe('useScenarioAvatarDiscovery behavior', () => {
       sessionId: 'session_1',
       userId: identity.userId,
       scenarioId: 'scenario_1',
+      unlockedAvatarIds: [],
       status: 'active',
       startedAt: '2026-06-01T00:00:00.000Z',
       lastActivityAt: '2026-06-01T00:00:00.000Z',

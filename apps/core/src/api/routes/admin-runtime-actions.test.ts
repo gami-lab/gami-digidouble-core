@@ -8,8 +8,6 @@ import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-ev
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
-import { InMemorySessionMemoryRepository } from '../../infrastructure/db/in-memory-session-memory.repository.js'
-import { InMemoryAvatarSessionMemoryRepository } from '../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
 import { TEST_CONFIG } from './test-config.js'
@@ -98,21 +96,6 @@ function makeApp() {
         updatedAt: '2026-05-01T10:00:00.000Z',
       },
     ]),
-    sessionMemoryRepository: new InMemorySessionMemoryRepository([
-      {
-        sessionId: 'session_1',
-        summary: 'session summary',
-        updatedAt: '2026-05-01T10:05:00.000Z',
-      },
-    ]),
-    avatarSessionMemoryRepository: new InMemoryAvatarSessionMemoryRepository([
-      {
-        sessionId: 'session_1',
-        avatarId: 'avatar_1',
-        summary: 'avatar summary',
-        updatedAt: '2026-05-01T10:05:00.000Z',
-      },
-    ]),
   })
   appsToClose.push(app)
   return { app, eventLogRepository, runGameMasterExecute }
@@ -188,16 +171,12 @@ describe('admin runtime actions behavior', () => {
       ApiResponse<{
         action: string
         cleared: {
-          sessionWorkingMemory: boolean
-          avatarWorkingMemoryCount: number
           userFactsCleared: false
           gmNotesCleared: boolean
         }
       }>
     >()
     expect(body.data?.action).toBe('memory.clear')
-    expect(body.data?.cleared.sessionWorkingMemory).toBe(true)
-    expect(body.data?.cleared.avatarWorkingMemoryCount).toBe(1)
     expect(body.data?.cleared.userFactsCleared).toBe(false)
     const events = await eventLogRepository.findBySessionId('session_1')
     expect(events.some((event) => event.type === 'admin_action.memory_clear')).toBe(true)

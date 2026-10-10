@@ -77,7 +77,7 @@ describe('webRequest', () => {
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => Promise.reject(new Error('invalid JSON')),
+        json: () => Promise.reject(new SyntaxError('invalid JSON')),
       })
     vi.stubGlobal('fetch', fetchMock)
 

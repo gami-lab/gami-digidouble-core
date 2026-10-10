@@ -9,6 +9,7 @@ import {
 type RedisStringStore = {
   get(key: string): Promise<string | null>
   set(key: string, value: string, mode?: 'NX' | 'XX'): Promise<'OK' | null>
+  pexpire(key: string, milliseconds: number): Promise<number>
   del(key: string): Promise<number>
 }
 
@@ -22,12 +23,14 @@ type StoredReservation = {
 }
 
 const DEFAULT_IN_FLIGHT_TTL_MS = 30_000
+const COMPLETED_RETENTION_MS = 24 * 60 * 60 * 1_000
 
 /**
  * Redis-backed utterance idempotency for multi-instance voice processing.
  *
- * Entries are stored as one JSON value per utterance identity. Completed and
- * expired records are retained until an explicit lifecycle policy is added.
+ * Entries are stored as one JSON value per utterance identity. In-flight
+ * records expire after the reservation TTL and completed records are retained
+ * for one day to prevent replay without unbounded Redis growth.
  */
 export class RedisUtteranceIdempotencyStore implements IUtteranceIdempotencyStore {
   constructor(
@@ -49,7 +52,7 @@ export class RedisUtteranceIdempotencyStore implements IUtteranceIdempotencyStor
         if (existing.fingerprint !== fingerprint) return { status: 'conflict' }
         if (existing.state === 'completed') return { status: 'completed' }
         if (existing.state === 'expired' || nowMs >= existing.expiresAt) {
-          await this.writeEntry(key, { ...existing, state: 'expired' })
+          await this.redis.del(key)
           return { status: 'expired' }
         }
         return { status: 'in_flight' }
@@ -63,6 +66,7 @@ export class RedisUtteranceIdempotencyStore implements IUtteranceIdempotencyStor
         'NX',
       )
       if (created === 'OK') {
+        await this.redis.pexpire(key, this.inFlightTtlMs)
         return { status: 'claimed', reservationId, expiresAt }
       }
     }
@@ -82,6 +86,7 @@ export class RedisUtteranceIdempotencyStore implements IUtteranceIdempotencyStor
       serializeEntry({ ...entry, state: 'completed' }),
       'XX',
     )
+    if (updated === 'OK') await this.redis.pexpire(key, COMPLETED_RETENTION_MS)
     return updated === 'OK'
   }
 
@@ -105,10 +110,6 @@ export class RedisUtteranceIdempotencyStore implements IUtteranceIdempotencyStor
 
     await this.redis.del(key)
     return null
-  }
-
-  private async writeEntry(key: string, entry: StoredReservation): Promise<void> {
-    await this.redis.set(key, serializeEntry(entry))
   }
 }
 

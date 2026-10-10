@@ -1,4 +1,5 @@
-import type { Sql } from 'postgres'
+import type { JSONValue, Sql } from 'postgres'
+import type { CreateKnowledgeChunkParams } from '../../../application/ports/IKnowledgeChunkRepository.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_EMBEDDING_DIMENSIONS } from '../../../config.js'
 import type { RetrievalQueryEmbeddingResult } from './knowledge-query-embedding.service.js'
@@ -12,6 +13,7 @@ import {
   createTestSql,
   truncateAllTables,
 } from '../../../infrastructure/db/test-helpers.js'
+import { hashKnowledgeChunkContent } from '../../../domain/knowledge/knowledge-content-hash.js'
 
 const profile = {
   provider: 'test-provider',
@@ -21,6 +23,25 @@ const profile = {
 
 function vector(first: number, second: number): number[] {
   return [first, second, ...Array.from({ length: profile.dimensions - 2 }, () => 0)]
+}
+
+async function insertChunk(sql: Sql, params: CreateKnowledgeChunkParams): Promise<void> {
+  const sourceId = params.sourceId.replace(/^knowledge_source_/, '')
+  const profileId = params.embeddingProfileId?.replace(/^embedding_profile_/, '') ?? null
+  const generationId = params.corpusGenerationId?.replace(/^corpus_generation_/, '') ?? null
+  const embedding =
+    params.embedding === undefined ? sql`NULL` : sql`${JSON.stringify(params.embedding)}::vector`
+
+  await sql`
+    INSERT INTO knowledge_chunks (
+      source_id, content, content_hash, chunk_index, embedding, embedding_profile_id,
+      corpus_generation_id, metadata, visible_to_avatar_ids
+    ) VALUES (
+      ${sourceId}, ${params.content}, ${params.contentHash ?? hashKnowledgeChunkContent(params.content)},
+      ${params.chunkIndex}, ${embedding}, ${profileId}, ${generationId},
+      ${sql.json((params.metadata ?? {}) as JSONValue)}, ${params.visibleToAvatarIds ?? null}
+    )
+  `
 }
 
 describe.skipIf(!DB_AVAILABLE)('TypedRetrievalService with PostgreSQL retrieval', () => {
@@ -67,7 +88,7 @@ describe.skipIf(!DB_AVAILABLE)('TypedRetrievalService with PostgreSQL retrieval'
       sourceIds: [source.sourceId],
     })
 
-    await chunkRepository.create({
+    await insertChunk(sql, {
       sourceId: source.sourceId,
       content: 'A generic clue without a named entity.',
       chunkIndex: 0,
@@ -75,7 +96,7 @@ describe.skipIf(!DB_AVAILABLE)('TypedRetrievalService with PostgreSQL retrieval'
       embeddingProfileId: operation.embeddingProfileId,
       corpusGenerationId: operation.corpusGenerationId,
     })
-    await chunkRepository.create({
+    await insertChunk(sql, {
       sourceId: source.sourceId,
       content: 'Marquis de Lune keeps the key in the winter garden.',
       chunkIndex: 1,

@@ -1,9 +1,7 @@
 import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
 import type { ConversationWorkingMemory } from '../../domain/memory/memory.types.js'
 
-type StoredConversationWorkingMemory = Omit<ConversationWorkingMemory, 'coveredTopics'> & {
-  coveredTopics?: string[]
-}
+type StoredConversationWorkingMemory = ConversationWorkingMemory
 
 export class InMemoryConversationWorkingMemoryRepository implements IConversationWorkingMemoryRepository {
   private readonly memories: Map<string, ConversationWorkingMemory>
@@ -52,7 +50,6 @@ function normalizeConversationWorkingMemory(
 ): ConversationWorkingMemory {
   return {
     ...memory,
-    coveredTopics: memory.coveredTopics ?? [],
     updatedAt: 'updatedAt' in memory ? memory.updatedAt : new Date(0).toISOString(),
   }
 }

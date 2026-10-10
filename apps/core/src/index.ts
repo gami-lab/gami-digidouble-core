@@ -9,9 +9,13 @@ import { fileURLToPath } from 'node:url'
   const envFile = fileURLToPath(new URL('../../../.env', import.meta.url))
   try {
     process.loadEnvFile(envFile)
-  } catch {
-    // .env is optional — CI and Docker inject secrets as env vars directly
+  } catch (error) {
+    if (!isMissingEnvFileError(error)) throw error
   }
+}
+
+function isMissingEnvFileError(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && error.code === 'ENOENT'
 }
 
 import { loadConfig } from './config.js'
@@ -45,8 +49,6 @@ import {
   PostgresSessionRepository,
   PostgresConversationRepository,
   PostgresMessageRepository,
-  PostgresSessionMemoryRepository,
-  PostgresAvatarSessionMemoryRepository,
   PostgresUserRepository,
   PostgresConversationWorkingMemoryRepository,
   PostgresConversationMemoryRepository,
@@ -180,8 +182,6 @@ function buildCoreRepositories(sql: ReturnType<typeof getDbClient>) {
     eventLogRepository: new PostgresEventLogRepository(sql),
     conversationRepository: new PostgresConversationRepository(sql),
     messageRepository: new PostgresMessageRepository(sql),
-    sessionMemoryRepository: new PostgresSessionMemoryRepository(sql),
-    avatarSessionMemoryRepository: new PostgresAvatarSessionMemoryRepository(sql),
     userRepository: new PostgresUserRepository(sql),
     conversationWorkingMemoryRepository: new PostgresConversationWorkingMemoryRepository(sql),
     conversationMemoryRepository: new PostgresConversationMemoryRepository(sql),

@@ -113,7 +113,7 @@ export type SessionSummary = {
   userId: string
   scenarioId: string
   activeAvatarId?: string
-  unlockedAvatarIds?: string[]
+  unlockedAvatarIds: string[]
   status: LifecycleStatus
   avatarOptions?: AvatarRequestOptions
   startedAt: string

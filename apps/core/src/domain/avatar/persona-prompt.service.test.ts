@@ -137,7 +137,7 @@ describe('assemblePersonaPrompt', () => {
     expect(prompt).toContain('Resolve the contradiction before progressing.')
     expect(prompt).toContain('1. User: Where do I start?')
     expect(prompt).toContain('- Session: The user is planning a quick visit.')
-    expect(prompt).not.toContain('Legacy persona')
+    expect(prompt).not.toContain('Previous persona')
   })
 
   it('formats the complete preselected retrieval set without applying a second default limit', () => {

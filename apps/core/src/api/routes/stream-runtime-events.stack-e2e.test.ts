@@ -139,8 +139,6 @@ describe('Stack E2E — GET /v1/sessions/:sessionId/events/stream behavior', () 
       expect(streamResult.statusCode).toBe(200)
       expect(streamResult.contentType).toContain('text/event-stream')
       expect(streamResult.firstChunk).toContain(': keepalive')
-
-      // TODO(epic-4-5): add full live event frame assertion by triggering a GM runtime event in stack-e2e.
     } finally {
       await cleanupScenario({ sessionId, scenarioId })
     }

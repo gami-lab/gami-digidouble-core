@@ -50,6 +50,9 @@ schemas belong to `packages/shared/src/` and route schemas; do not copy them her
 - `POST /v1/conversations/{conversationId}/voice-messages/stream` — bounded raw-audio SSE turn.
 - `POST /v1/conversations/{conversationId}/messages/{messageId}/audio` — optional audio for a completed Avatar message.
 
+Session projections always include `unlockedAvatarIds`; an empty array means the scenario currently
+has no unlocked Avatar for that session.
+
 ### Runtime
 
 - `GET /v1/sessions/{sessionId}/runtime-state`

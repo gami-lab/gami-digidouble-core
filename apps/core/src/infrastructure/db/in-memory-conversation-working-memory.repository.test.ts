@@ -63,22 +63,4 @@ describe('InMemoryConversationWorkingMemoryRepository', () => {
       sessionId: 'session_2',
     })
   })
-
-  it('defaults covered topics for legacy seeded rows', async () => {
-    const repository = new InMemoryConversationWorkingMemoryRepository([
-      {
-        conversationId: 'conversation_legacy',
-        sessionId: 'session_1',
-        avatarId: 'avatar_1',
-        summary: 'Legacy row',
-        unresolvedThreads: [],
-        candidateFacts: [],
-        updatedAt: '2026-05-08T10:00:00.000Z',
-      },
-    ])
-
-    await expect(repository.findByConversationId('conversation_legacy')).resolves.toMatchObject({
-      coveredTopics: [],
-    })
-  })
 })

@@ -489,8 +489,6 @@ export type AdminClearMemoryResponse = {
   sessionId: string
   action: 'memory.clear'
   cleared: {
-    sessionWorkingMemory: boolean
-    avatarWorkingMemoryCount: number
     gmNotesCleared: boolean
     userFactsCleared: false
   }

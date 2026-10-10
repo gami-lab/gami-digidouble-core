@@ -1,4 +1,5 @@
-import type { Sql } from 'postgres'
+import type { JSONValue, Sql } from 'postgres'
+import type { CreateKnowledgeChunkParams } from '../../../application/ports/IKnowledgeChunkRepository.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { DEFAULT_EMBEDDING_DIMENSIONS } from '../../../config.js'
 import { DB_AVAILABLE, createTestSql, truncateAllTables } from '../test-helpers.js'
@@ -6,9 +7,33 @@ import { PostgresKnowledgeChunkRepository } from './postgres-knowledge-chunk.rep
 import { PostgresKnowledgeCorpusRepository } from './postgres-knowledge-corpus.repository.js'
 import { PostgresKnowledgeSourceRepository } from './postgres-knowledge-source.repository.js'
 import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
+import { hashKnowledgeChunkContent } from '../../../domain/knowledge/knowledge-content-hash.js'
 
 function vectorForCurrentProfile(first: number, second: number): number[] {
   return [first, second, ...Array.from({ length: DEFAULT_EMBEDDING_DIMENSIONS - 2 }, () => 0)]
+}
+
+async function insertChunk(sql: Sql, params: CreateKnowledgeChunkParams): Promise<void> {
+  const sourceId = params.sourceId.replace(/^knowledge_source_/, '')
+  const profileId = params.embeddingProfileId?.replace(/^embedding_profile_/, '') ?? null
+  const generationId = params.corpusGenerationId?.replace(/^corpus_generation_/, '') ?? null
+  const embedding =
+    params.embedding === undefined ? sql`NULL` : sql`${JSON.stringify(params.embedding)}::vector`
+  const visibleToAvatarIds =
+    params.visibleToAvatarIds === undefined || params.visibleToAvatarIds.length === 0
+      ? null
+      : params.visibleToAvatarIds
+
+  await sql`
+    INSERT INTO knowledge_chunks (
+      source_id, content, content_hash, chunk_index, embedding, embedding_profile_id,
+      corpus_generation_id, metadata, visible_to_avatar_ids
+    ) VALUES (
+      ${sourceId}, ${params.content}, ${params.contentHash ?? hashKnowledgeChunkContent(params.content)},
+      ${params.chunkIndex}, ${embedding}, ${profileId}, ${generationId},
+      ${sql.json((params.metadata ?? {}) as JSONValue)}, ${visibleToAvatarIds}
+    )
+  `
 }
 
 // eslint-disable-next-line max-lines-per-function
@@ -71,7 +96,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       await sourceRepo.updateStatus(currentSourceId, 'ready')
       const sourceChunks = chunksBySource.get(currentSourceId) ?? []
       for (const chunk of sourceChunks) {
-        await chunkRepo.create({
+        await insertChunk(sql, {
           sourceId: currentSourceId,
           content: chunk.content,
           chunkIndex: chunk.chunkIndex,
@@ -105,7 +130,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       sourceIds: [sourceId],
     })
 
-    await chunkRepo.create({
+    await insertChunk(sql, {
       sourceId,
       content: 'Chunk 2',
       chunkIndex: 2,
@@ -113,7 +138,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       embeddingProfileId: profile.embeddingProfileId,
       corpusGenerationId: operation.corpusGenerationId,
     })
-    await chunkRepo.create({
+    await insertChunk(sql, {
       sourceId,
       content: 'Chunk 0',
       chunkIndex: 0,
@@ -144,13 +169,13 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
   it('persists explicit visibleToAvatarIds and keeps empty list as default visibility', async () => {
     await seedSource()
 
-    await chunkRepo.create({
+    await insertChunk(sql, {
       sourceId,
       content: 'Private chunk',
       chunkIndex: 0,
       visibleToAvatarIds: ['avatar_1', 'avatar_2'],
     })
-    await chunkRepo.create({
+    await insertChunk(sql, {
       sourceId,
       content: 'Public chunk',
       chunkIndex: 1,
@@ -165,8 +190,8 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
   it('deleteBySourceId returns deleted row count', async () => {
     await seedSource()
 
-    await chunkRepo.create({ sourceId, content: 'A', chunkIndex: 0 })
-    await chunkRepo.create({ sourceId, content: 'B', chunkIndex: 1 })
+    await insertChunk(sql, { sourceId, content: 'A', chunkIndex: 0 })
+    await insertChunk(sql, { sourceId, content: 'B', chunkIndex: 1 })
 
     const deleted = await chunkRepo.deleteBySourceId(sourceId)
     const remaining = await chunkRepo.listBySourceId(sourceId)
@@ -191,8 +216,8 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       visibilityPolicy: 'all',
     })
 
-    await chunkRepo.create({ sourceId, content: 'World chunk', chunkIndex: 0 })
-    await chunkRepo.create({
+    await insertChunk(sql, { sourceId, content: 'World chunk', chunkIndex: 0 })
+    await insertChunk(sql, {
       sourceId: secondSource.sourceId,
       content: 'Media chunk',
       chunkIndex: 0,

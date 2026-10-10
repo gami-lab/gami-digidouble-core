@@ -34,9 +34,13 @@ type CliOptions = Readonly<{
 function loadRootEnv(): void {
   try {
     process.loadEnvFile(resolve(ROOT_DIRECTORY, '.env'))
-  } catch {
-    // Shell and CI environment variables remain the source of truth when .env is absent.
+  } catch (error) {
+    if (!isMissingEnvFileError(error)) throw error
   }
+}
+
+function isMissingEnvFileError(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && error.code === 'ENOENT'
 }
 
 function parseArgs(argv: readonly string[]): CliOptions {

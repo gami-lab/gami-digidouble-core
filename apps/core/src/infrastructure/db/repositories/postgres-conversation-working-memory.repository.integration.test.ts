@@ -7,7 +7,6 @@ import { PostgresConversationWorkingMemoryRepository } from './postgres-conversa
 import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
 import { PostgresSessionRepository } from './postgres-session.repository.js'
 
-// eslint-disable-next-line max-lines-per-function
 describe.skipIf(!DB_AVAILABLE)('PostgresConversationWorkingMemoryRepository', () => {
   let sql!: Sql
   let scenarioId = ''
@@ -88,34 +87,5 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationWorkingMemoryRepository', ()
     expect(updated.unresolvedThreads).toEqual(['Need technical fit details'])
     expect(updated.coveredTopics).toEqual(['technical_fit_review'])
     expect(Date.parse(updated.updatedAt)).toBeGreaterThanOrEqual(Date.parse(created.updatedAt))
-  })
-
-  it('defaults covered topics to an empty array for legacy rows', async () => {
-    const conversationUuid = conversationId.replace('conversation_', '')
-    const sessionUuid = sessionId.replace('session_', '')
-    const avatarUuid = avatarId.replace('avatar_', '')
-
-    await sql`
-      INSERT INTO conversation_working_memories (
-        conversation_id,
-        session_id,
-        avatar_id,
-        summary,
-        unresolved_threads,
-        candidate_facts
-      )
-      VALUES (
-        ${conversationUuid},
-        ${sessionUuid},
-        ${avatarUuid},
-        ${'Legacy summary'},
-        ${['Need follow up']},
-        ${sql.json([])}
-      )
-    `
-
-    await expect(repository.findByConversationId(conversationId)).resolves.toMatchObject({
-      coveredTopics: [],
-    })
   })
 })

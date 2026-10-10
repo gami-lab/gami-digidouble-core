@@ -227,8 +227,10 @@ export class VoiceTurnUseCase {
           reservation.reservationId,
         )
       }
-    } catch {
-      // Leaving the reservation in-flight fails safe until its store-defined expiry.
+    } catch (error) {
+      console.warn('[voice-turn] idempotency reservation cleanup failed', {
+        error: error instanceof Error ? error.message : 'unknown error',
+      })
     }
   }
 

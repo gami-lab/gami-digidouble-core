@@ -31,6 +31,7 @@ const session = {
   sessionId: 'session_1',
   userId: 'evaluation-user',
   scenarioId: 'scenario_1',
+  unlockedAvatarIds: [],
   status: 'active' as const,
   startedAt: '2026-07-29T00:00:00.000Z',
   lastActivityAt: '2026-07-29T00:00:00.000Z',

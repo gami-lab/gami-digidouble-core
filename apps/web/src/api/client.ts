@@ -35,7 +35,8 @@ export async function webRequest<T>(method: HttpMethod, path: string, body?: unk
   let payload: unknown
   try {
     payload = await response.json()
-  } catch {
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error
     throw new ApiError('NETWORK_ERROR', `Invalid JSON response from ${normalizedPath}`)
   }
 
@@ -107,8 +108,8 @@ async function readApiError(response: Response, path: string): Promise<ApiError>
     ) {
       return createApiError(payload.error)
     }
-  } catch {
-    // Fall through to the status-based error below.
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error
   }
 
   return new ApiError(

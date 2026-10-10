@@ -48,8 +48,6 @@ describe('sessions runtime inspector action API wrappers', () => {
       sessionId: 'session_1',
       action: 'memory.clear',
       cleared: {
-        sessionWorkingMemory: true,
-        avatarWorkingMemoryCount: 1,
         gmNotesCleared: true,
         userFactsCleared: false,
       },

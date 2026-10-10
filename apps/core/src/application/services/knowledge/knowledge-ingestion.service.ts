@@ -178,11 +178,7 @@ export class KnowledgeIngestionService {
     if (corpusRepository === undefined) return null
     const activeCorpus = await corpusRepository.getActiveCorpus()
     if (activeCorpus !== null || this.corpusBootstrapper === undefined) return activeCorpus
-    try {
-      await this.corpusBootstrapper.ensureActiveCorpus()
-    } catch {
-      // Fall through: the job then fails with the retryable `no_active_corpus` error.
-    }
+    await this.corpusBootstrapper.ensureActiveCorpus()
     return corpusRepository.getActiveCorpus()
   }
 

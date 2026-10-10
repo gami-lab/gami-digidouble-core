@@ -4,10 +4,9 @@ import type { AvatarComputedTraits } from '@gami/shared'
 /**
  * Parses raw LLM output into the fixed trait shape.
  *
- * Lenient by design: only the seven allowed fields are ever read (any other
- * key the model invents is silently dropped), and a missing/invalid field
- * defaults to `[]` rather than failing the whole parse — an LLM omitting a
- * field it has no signal for is expected, not an error.
+ * Provider responses may omit a trait when they have no signal for it. The
+ * shared coercion keeps the structured-output boundary total by representing
+ * those omitted or malformed fields as empty arrays.
  *
  * Returns `null` only when the response isn't parseable JSON at all.
  */

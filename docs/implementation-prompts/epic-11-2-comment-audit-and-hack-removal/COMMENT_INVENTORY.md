@@ -15,10 +15,12 @@ dependency directories. Line numbers below are the source baseline for the next 
 | Evaluation compatibility               | RuntimeRoleUsage, ModelComparisonRun, ModelComparisonReport                                                                          | tools/conversation-evaluation/src/contracts.ts is intentionally tool-owned; it must not move into Core or packages/shared                                                                                                | Remove old report/provider branches in the tool and update tool fixtures/readers together. No missing canonical owner.                                                                                                    |
 | Runtime events and stream assertions   | Session events and public SSE frames                                                                                                 | packages/shared runtime-inspector and conversation-stream contracts; Core event publication remains an application port                                                                                                  | Complete the existing stack assertion against the shared event contract; do not invent a local event shape.                                                                                                               |
 
-No touched contract lacks an owner. The only deliberate optionality drift that must be resolved before
-hack removal is the internal Session unlockedAvatarIds behavior versus its public optional field, and
-the persisted session/avatar memory repositories versus the canonical conversation working-memory
-contract.
+No touched contract lacks an owner. Prompt 02 uses the shared public session projection and the
+PostgreSQL schema as the current unlock-state invariant, removes the obsolete session/avatar memory
+repositories, and keeps conversation working memory as the sole mutable memory owner. The internal
+Session type still permits omitted unlock state in isolated hand-built test doubles; repository and
+API boundaries always write and expose an array, so prompt 03 must either finish that test-fixture
+typing or document why the internal compatibility is harmless before making it required.
 
 ## H — hacks
 
@@ -49,6 +51,35 @@ the wording can be removed.
 | H19 | apps/core/src/test-utils/real-provider.ts:6,68                                                                                                                                                                  | Optional live-provider tests classify transient provider outages as skippable.                                                                                                                                       | Reviewed: keep as test-strategy behavior because it is explicitly environment-gated and documented in TEST_STRATEGY; remove only change-narrating wording, not the failure classification.                                                                                                               |
 | H20 | apps/core/src/infrastructure/db/in-memory-scenario.repository.test.ts:20; negative/fixture labels containing legacy in current contract tests                                                                   | Test comments and fixture names use compatibility/legacy language even where they assert current behavior or absence of old fields.                                                                                  | Prompt 04/05 renames neutral fixtures and keeps only negative assertions that prove old fields are rejected/absent. Every remaining legacy word must describe a real current boundary.                                                                                                                   |
 | H21 | apps/core/src/application/services/knowledge/knowledge-reindex.service.ts and tools/conversation-evaluation/src/evaluation.ts                                                                                   | Retry/attempt behavior exists, but the evaluator uses a fixed three-attempt judge retry.                                                                                                                             | Reviewed: not a magic retry hack. MAX_JUDGE_ATTEMPTS is named, bounded, tested, and documented; keep it unless prompt 02 finds a current policy requirement that changes it.                                                                                                                             |
+
+### H closure for prompt 02
+
+All H items are closed for this prompt. The original rows above preserve the audit evidence and
+planned decisions; this closure records the implementation result and the follow-up boundary.
+
+| ID  | Closure                                                                                                                                      |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| H1  | Done — removed the stale StartSession TODO; the current request contract is sufficient.                                                      |
+| H2  | Done — removed the stale history TODO and obsolete optional memory field; history remains message-only.                                      |
+| H3  | Done — removed the stale stack-E2E TODO. The live frame assertion remains a documented coverage gap in TEST_COVERAGE_PLAN.md.                |
+| H4  | Done — new sessions persist unlock IDs, the schema requires an array, and reads no longer treat missing state as unrestricted.               |
+| H5  | Done — removed session/avatar mirror repositories, tables, wiring, reset paths, and admin response fields.                                   |
+| H6  | Done — removed covered-topics read defaults and legacy-row tests; malformed persisted arrays now fail the typed read.                        |
+| H7  | Done — removed the evaluator's legacy provider branch.                                                                                       |
+| H8  | Done — removed the obsolete reportPath contract and old report-reader behavior; runKey remains the current repeated-run identity.            |
+| H9  | Done — retained provider-boundary normalization with current external-output wording and tests.                                              |
+| H10 | Done — in-flight keys receive a reservation TTL, completed keys receive one-day retention, and expired keys are deleted.                     |
+| H11 | Done — removed the direct production chunk-create fixture method and suppression; integration fixtures insert only their test rows directly. |
+| H12 | Done — dotenv catches suppress only missing optional files and rethrow unexpected loader errors.                                             |
+| H13 | Done — observability failures remain non-blocking but emit bounded warnings.                                                                 |
+| H14 | Done — corpus bootstrap failures now propagate instead of being converted by a silent fallback.                                              |
+| H15 | Done — clients suppress only JSON syntax errors and rethrow unexpected parser failures.                                                      |
+| H16 | Done — provider-error normalization uses an explicit safe result without an excuse catch.                                                    |
+| H17 | Done — reservation cleanup failures emit bounded warnings; expiry remains the fail-safe boundary.                                            |
+| H18 | Done — report cleanup warns only for unexpected errors and ignores expected missing files.                                                   |
+| H19 | Reviewed — provider-unavailable tests remain intentionally skippable under the documented test strategy.                                     |
+| H20 | Done — compatibility labels and stale wording were renamed to current/seeded/prior terminology.                                              |
+| H21 | Reviewed — named, bounded retries are current policy, not a magic retry hack.                                                                |
 
 ## S — suppressions
 
@@ -182,8 +213,8 @@ preserving provider, protocol, security, and public-contract rationale.
 
 ## Verification notes
 
-- No production code was changed for this inventory.
+- Production cleanup is included in prompt 02; no unrelated production behavior was changed.
 - Relevant source-of-truth documents reviewed: PRINCIPLES, ARCHITECTURE, DATA_MODEL, API_CONTRACT,
-  TEST_STRATEGY, PROJECT_STATUS, and EPICS. No additional durable contract changes are required by
-  prompt 01; DATA_MODEL and API_CONTRACT remain accurate until the planned hack removals change
-  runtime/API shapes.
+  TEST_STRATEGY, TEST_COVERAGE_PLAN, PROJECT_STATUS, and EPICS. DATA_MODEL and API_CONTRACT were
+  updated for canonical memory ownership and required session unlock projections; MEMORY_SYSTEM_SPEC
+  remains accurate because it already describes conversation working memory as canonical.

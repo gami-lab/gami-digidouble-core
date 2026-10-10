@@ -1,6 +1,5 @@
-import type { JSONValue, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type {
-  CreateKnowledgeChunkParams,
   IKnowledgeChunkRepository,
   TextSearchRequest,
   TextSearchResult,
@@ -16,9 +15,7 @@ import type {
   LexicalRetrievalCandidate,
   VectorRetrievalCandidate,
 } from '../../../domain/knowledge/knowledge.types.js'
-import { hashKnowledgeChunkContent } from '../../../domain/knowledge/knowledge-content-hash.js'
-import { assertStaticMetadataAllowed } from '../../../domain/knowledge/static-knowledge-validation.js'
-import { extractUuid, stripPrefix } from './id-prefix.js'
+import { extractUuid } from './id-prefix.js'
 
 type KnowledgeChunkDbRow = {
   id: string
@@ -92,66 +89,6 @@ function rowToKnowledgeChunk(row: KnowledgeChunkRow): KnowledgeChunk {
 
 export class PostgresKnowledgeChunkRepository implements IKnowledgeChunkRepository {
   constructor(private readonly sql: Sql) {}
-
-  // Production ingestion and reindex writes go through PostgresKnowledgeCorpusRepository's
-  // generation-aware replacement methods. This direct method is retained only for repository-level
-  // fixtures and integration setup; it is not part of the application write port.
-  // eslint-disable-next-line complexity
-  async create(params: CreateKnowledgeChunkParams): Promise<KnowledgeChunk> {
-    assertStaticMetadataAllowed(params.metadata, 'chunk')
-    const sourceUuid = stripPrefix('knowledge_source_', params.sourceId)
-    const visibleToAvatarIds = normalizeVisibleToAvatarIds(params.visibleToAvatarIds)
-    validateEmbeddingIdentity(params)
-
-    const embeddingExpression =
-      params.embedding === undefined
-        ? this.sql`NULL`
-        : this.sql`${JSON.stringify(params.embedding)}::vector`
-    const profileUuid =
-      params.embeddingProfileId === undefined
-        ? null
-        : extractUuid('embedding_profile_', params.embeddingProfileId)
-    const generationUuid =
-      params.corpusGenerationId === undefined
-        ? null
-        : extractUuid('corpus_generation_', params.corpusGenerationId)
-    if (params.embedding !== undefined && (profileUuid === null || generationUuid === null)) {
-      throw new Error('Embedding profile and corpus generation ids must be valid UUIDs.')
-    }
-
-    const [row] = await this.sql<[KnowledgeChunkDbRow?]>`
-      INSERT INTO knowledge_chunks (
-        source_id,
-        content,
-        content_hash,
-        chunk_index,
-        embedding,
-        embedding_profile_id,
-        corpus_generation_id,
-        metadata,
-        visible_to_avatar_ids
-      )
-      VALUES (
-        ${sourceUuid},
-        ${params.content},
-        ${params.contentHash ?? hashKnowledgeChunkContent(params.content)},
-        ${params.chunkIndex},
-        ${embeddingExpression},
-        ${profileUuid},
-        ${generationUuid},
-        ${this.sql.json((params.metadata ?? {}) as JSONValue)},
-        ${visibleToAvatarIds ?? null}
-      )
-      RETURNING id, source_id, content, chunk_index, embedding::text, embedding_profile_id,
-        content_hash, corpus_generation_id, metadata, visible_to_avatar_ids, created_at
-    `
-
-    if (row === undefined) {
-      throw new Error(`Knowledge chunk create failed for sourceId=${params.sourceId}.`)
-    }
-
-    return rowToKnowledgeChunk(normalizeEmbeddingRow(row))
-  }
 
   async listBySourceId(sourceId: string): Promise<KnowledgeChunk[]> {
     const sourceUuid = extractUuid('knowledge_source_', sourceId)
@@ -467,20 +404,6 @@ function lexicalSearchRowToCandidate(
     ...(request.queryIndex !== undefined ? { queryIndex: request.queryIndex } : {}),
     ...(metadata !== undefined ? { metadata } : {}),
     ...(visibleToAvatarIds !== undefined ? { visibleToAvatarIds } : {}),
-  }
-}
-
-function validateEmbeddingIdentity(params: CreateKnowledgeChunkParams): void {
-  const hasEmbedding = params.embedding !== undefined
-  const hasIdentity =
-    params.embeddingProfileId !== undefined || params.corpusGenerationId !== undefined
-  if (hasEmbedding && (!params.embeddingProfileId || !params.corpusGenerationId)) {
-    throw new Error(
-      'Vectorized knowledge chunks require an embedding profile and corpus generation.',
-    )
-  }
-  if (!hasEmbedding && hasIdentity) {
-    throw new Error('Embedding profile and corpus generation require a vectorized chunk.')
   }
 }
 

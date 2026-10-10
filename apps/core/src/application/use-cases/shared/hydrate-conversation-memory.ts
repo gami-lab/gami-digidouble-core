@@ -63,7 +63,9 @@ export async function hydrateConversationMemoryForNewConversation(args: {
         selectedCount: hydrationWithMetadata.selectedConversationIds.length,
       },
     })
-  } catch {
-    // Hydration observability is intentionally non-blocking.
+  } catch (error) {
+    console.warn('[memory] hydration observability write failed', {
+      error: error instanceof Error ? error.message : 'unknown error',
+    })
   }
 }

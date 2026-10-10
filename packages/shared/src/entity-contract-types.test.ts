@@ -36,6 +36,7 @@ describe('canonical entity contracts', () => {
       sessionId: 'session_1',
       userId: 'user_1',
       scenarioId: scenario.scenarioId,
+      unlockedAvatarIds: [],
       status: 'active',
       startedAt: '2026-09-13T00:00:00.000Z',
       lastActivityAt: '2026-09-13T00:00:00.000Z',

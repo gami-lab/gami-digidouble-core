@@ -68,6 +68,7 @@ beforeEach(() => {
     userId: 'user_1',
     scenarioId: 'scenario_1',
     status: 'active',
+    unlockedAvatarIds: ['avatar_1'],
     startedAt: '2026-05-01T10:00:00.000Z',
     lastActivityAt: '2026-05-01T10:00:00.000Z',
   })
@@ -103,6 +104,7 @@ describe('cross-conversation episodic continuity', () => {
         avatarId: 'avatar_1',
         summary: 'Discussed budget and onboarding timeline.',
         unresolvedThreads: ['Need budget approval'],
+        coveredTopics: [],
         candidateFacts: [
           { category: 'conversation_signal', key: 'budget', value: 'pending_approval' },
         ],

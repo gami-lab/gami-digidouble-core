@@ -2,9 +2,8 @@ import type { TestContext } from 'vitest'
 import { LlmError } from '../infrastructure/llm/llm.error.js'
 
 /**
- * Live-provider smoke tests should not fail the suite when a provider is
- * temporarily unavailable or its test account is out of quota. Other errors
- * still surface as test failures so the smoke tests retain useful coverage.
+ * Live-provider smoke tests classify quota and availability failures as skips;
+ * other errors still surface as test failures.
  */
 export function skipIfTransientProviderError(
   context: TestContext,

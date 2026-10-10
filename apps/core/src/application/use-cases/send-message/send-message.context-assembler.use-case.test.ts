@@ -301,8 +301,8 @@ describe('SendMessageUseCase — context assembler dependency', () => {
   it('respects selected avatar traits instead of raw avatar config when prepared traits are present', async () => {
     const assembleMock = vi.fn().mockReturnValue(makeAssembledContext())
     const systemPrompt = await executeWithContext(assembleMock, {
-      personaPrompt: 'Legacy authored persona that should not appear.',
-      adjustments: ['Legacy rule that should not appear.'],
+      personaPrompt: 'Previous authored persona that should not appear.',
+      adjustments: ['Previous rule that should not appear.'],
       computedTraits: {
         ...SAMPLE_TRAITS,
         identity: ['Raw config trait that should not appear'],
@@ -311,8 +311,8 @@ describe('SendMessageUseCase — context assembler dependency', () => {
 
     expect(systemPrompt).toContain('- Archivist of the north wing')
     expect(systemPrompt).not.toContain('Raw config trait that should not appear')
-    expect(systemPrompt).not.toContain('Legacy authored persona that should not appear.')
-    expect(systemPrompt).not.toContain('Legacy rule that should not appear.')
+    expect(systemPrompt).not.toContain('Previous authored persona that should not appear.')
+    expect(systemPrompt).not.toContain('Previous rule that should not appear.')
   })
 
   it('rejects an avatar context without prepared traits', async () => {

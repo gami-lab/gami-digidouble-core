@@ -513,7 +513,9 @@ async function appendKnowledgeEvent(
 ): Promise<void> {
   try {
     await useCases.eventLogRepository.append(args)
-  } catch {
-    // Avoid coupling admin-debug endpoint availability to observability writes.
+  } catch (error) {
+    console.warn('[knowledge] observability write failed', {
+      error: error instanceof Error ? error.message : 'unknown error',
+    })
   }
 }

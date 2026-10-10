@@ -10,9 +10,7 @@ import type { IGmStateRepository } from '../application/ports/IGmStateRepository
 import type { IScenarioRepository } from '../application/ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../application/ports/ISessionRepository.js'
 import type { IMessageRepository } from '../application/ports/IMessageRepository.js'
-import type { ISessionMemoryRepository } from '../application/ports/ISessionMemoryRepository.js'
 import type { IUserRepository } from '../application/ports/IUserRepository.js'
-import type { IAvatarSessionMemoryRepository } from '../application/ports/IAvatarSessionMemoryRepository.js'
 import type { IDependencyProbe } from '../application/ports/IDependencyProbe.js'
 import type { ISessionEventPublisher } from '../application/ports/ISessionEventPublisher.js'
 import type { IConversationWorkingMemoryRepository } from '../application/ports/IConversationWorkingMemoryRepository.js'
@@ -34,8 +32,6 @@ import { InMemoryEventLogRepository } from '../infrastructure/db/in-memory-event
 import { InMemoryGmStateRepository } from '../infrastructure/db/in-memory-gm-state.repository.js'
 import { InMemorySessionRepository } from '../infrastructure/db/in-memory-session.repository.js'
 import { InMemoryUserRepository } from '../infrastructure/db/in-memory-user.repository.js'
-import { InMemorySessionMemoryRepository } from '../infrastructure/db/in-memory-session-memory.repository.js'
-import { InMemoryAvatarSessionMemoryRepository } from '../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryConversationRepository } from '../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryAvatarRepository } from '../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryScenarioRepository } from '../infrastructure/db/in-memory-scenario.repository.js'
@@ -81,8 +77,6 @@ export interface ServerAdapters {
   scenarioRepository?: IScenarioRepository
   sessionRepository?: ISessionRepository
   messageRepository?: IMessageRepository
-  sessionMemoryRepository?: ISessionMemoryRepository
-  avatarSessionMemoryRepository?: IAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository
   conversationMemoryRepository?: IConversationMemoryRepository
   userRepository?: IUserRepository
@@ -457,14 +451,6 @@ function buildAdminRuntimeActionsRouteOptions(config: Config, adapters: ServerAd
       ? { runGameMasterUseCase: adapters.runGameMasterUseCase }
       : {}),
     userRepository: withDefault(adapters.userRepository, new InMemoryUserRepository()),
-    sessionMemoryRepository: withDefault(
-      adapters.sessionMemoryRepository,
-      new InMemorySessionMemoryRepository(),
-    ),
-    avatarSessionMemoryRepository: withDefault(
-      adapters.avatarSessionMemoryRepository,
-      new InMemoryAvatarSessionMemoryRepository(),
-    ),
     conversationWorkingMemoryRepository: withDefault(
       adapters.conversationWorkingMemoryRepository,
       new InMemoryConversationWorkingMemoryRepository(),

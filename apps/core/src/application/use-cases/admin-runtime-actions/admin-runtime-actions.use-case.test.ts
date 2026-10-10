@@ -1,10 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { DomainError } from '../../../domain/errors.js'
-import { InMemoryAvatarSessionMemoryRepository } from '../../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryConversationRepository } from '../../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryEventLogRepository } from '../../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryMessageRepository } from '../../../infrastructure/db/in-memory-message.repository.js'
-import { InMemorySessionMemoryRepository } from '../../../infrastructure/db/in-memory-session-memory.repository.js'
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
 import { InMemoryUserRepository } from '../../../infrastructure/db/in-memory-user.repository.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
@@ -17,10 +15,6 @@ function buildUseCase() {
   const conversationRepository = new InMemoryConversationRepository([fixtures.conversation])
   const messageRepository = new InMemoryMessageRepository(fixtures.messages)
   const eventLogRepository = new InMemoryEventLogRepository()
-  const sessionMemoryRepository = new InMemorySessionMemoryRepository([fixtures.sessionMemory])
-  const avatarSessionMemoryRepository = new InMemoryAvatarSessionMemoryRepository([
-    fixtures.avatarSessionMemory,
-  ])
   const conversationWorkingMemoryRepository = new InMemoryConversationWorkingMemoryRepository([
     {
       conversationId: 'conversation_1',
@@ -28,6 +22,7 @@ function buildUseCase() {
       avatarId: 'avatar_1',
       summary: 'Conversation summary',
       unresolvedThreads: ['Need pricing'],
+      coveredTopics: [],
       candidateFacts: [{ category: 'conversation_signal', key: 'thread_1', value: 'Need pricing' }],
       updatedAt: '2026-05-07T10:03:00.000Z',
     },
@@ -45,8 +40,6 @@ function buildUseCase() {
     conversationRepository,
     messageRepository,
     eventLogRepository,
-    sessionMemoryRepository,
-    avatarSessionMemoryRepository,
     conversationWorkingMemoryRepository,
     memoryMaintenance,
     runGameMasterUseCase as never,
@@ -220,7 +213,7 @@ describe('AdminRuntimeActionsUseCase refresh', () => {
 })
 
 describe('AdminRuntimeActionsUseCase clear', () => {
-  it('reports pre-cleared flags correctly when gm notes and legacy summary are absent', async () => {
+  it('reports pre-cleared flags correctly when gm notes are absent', async () => {
     const sessionRepository = new InMemorySessionRepository([
       {
         sessionId: 'session_2',
@@ -236,8 +229,6 @@ describe('AdminRuntimeActionsUseCase clear', () => {
       new InMemoryConversationRepository([]),
       new InMemoryMessageRepository([]),
       new InMemoryEventLogRepository(),
-      new InMemorySessionMemoryRepository([]),
-      new InMemoryAvatarSessionMemoryRepository([]),
       new InMemoryConversationWorkingMemoryRepository([]),
     )
 
@@ -247,13 +238,11 @@ describe('AdminRuntimeActionsUseCase clear', () => {
     expect(output.cleared.gmNotesCleared).toBe(false)
   })
 
-  it('clears session and avatar memory and reports cleared flags when values existed', async () => {
+  it('clears conversation working memory and reports the session flag when values existed', async () => {
     const { useCase, sessionRepository } = buildUseCase()
 
     const output = await useCase.clearMemory({ sessionId: 'session_1' })
 
-    expect(output.cleared.sessionWorkingMemory).toBe(true)
-    expect(output.cleared.avatarWorkingMemoryCount).toBe(1)
     expect(output.cleared.gmNotesCleared).toBe(true)
     expect(output.cleared.userFactsCleared).toBe(false)
 

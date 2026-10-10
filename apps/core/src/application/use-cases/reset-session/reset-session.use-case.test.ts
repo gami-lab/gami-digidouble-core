@@ -9,8 +9,6 @@ import { InMemoryConversationWorkingMemoryRepository } from '../../../infrastruc
 import { InMemoryMessageRepository } from '../../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
-import { InMemorySessionMemoryRepository } from '../../../infrastructure/db/in-memory-session-memory.repository.js'
-import { InMemoryAvatarSessionMemoryRepository } from '../../../infrastructure/db/in-memory-avatar-session-memory.repository.js'
 import { InMemoryKnowledgeChunkRepository } from '../../../infrastructure/db/in-memory-knowledge-chunk.repository.js'
 import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { ResetSessionUseCase } from './reset-session.use-case.js'
@@ -69,8 +67,6 @@ type UseCaseFactoryOptions = {
   avatars?: AvatarConfig[]
   conversationRepository?: InMemoryConversationRepository
   messageRepository?: InMemoryMessageRepository
-  sessionMemoryRepository?: InMemorySessionMemoryRepository
-  avatarSessionMemoryRepository?: InMemoryAvatarSessionMemoryRepository
   conversationWorkingMemoryRepository?: InMemoryConversationWorkingMemoryRepository
   conversationMemoryRepository?: InMemoryConversationMemoryRepository
 }
@@ -82,8 +78,6 @@ function makeUseCase(options: UseCaseFactoryOptions = {}): ResetSessionUseCase {
     avatars: [] as AvatarConfig[],
     conversationRepository: new InMemoryConversationRepository(),
     messageRepository: new InMemoryMessageRepository(),
-    sessionMemoryRepository: new InMemorySessionMemoryRepository(),
-    avatarSessionMemoryRepository: new InMemoryAvatarSessionMemoryRepository(),
     ...options,
   }
 
@@ -93,68 +87,9 @@ function makeUseCase(options: UseCaseFactoryOptions = {}): ResetSessionUseCase {
     new InMemoryAvatarRepository(config.avatars),
     config.conversationRepository,
     config.messageRepository,
-    config.sessionMemoryRepository,
-    config.avatarSessionMemoryRepository,
     config.conversationWorkingMemoryRepository,
     config.conversationMemoryRepository,
   )
-}
-
-function makeSessionMemoryRepository() {
-  return new InMemorySessionMemoryRepository([
-    {
-      sessionId: 'session_1',
-      summary: 'Session one memory',
-      updatedAt: '2026-04-21T08:00:00.000Z',
-    },
-    {
-      sessionId: 'session_2',
-      summary: 'Session two memory',
-      updatedAt: '2026-04-21T08:00:00.000Z',
-    },
-  ])
-}
-
-function makeAvatarSessionMemoryRepository() {
-  return new InMemoryAvatarSessionMemoryRepository([
-    {
-      sessionId: 'session_1',
-      avatarId: 'avatar_1',
-      summary: 'Session one avatar one memory',
-      updatedAt: '2026-04-21T08:00:00.000Z',
-    },
-    {
-      sessionId: 'session_1',
-      avatarId: 'avatar_2',
-      summary: 'Session one avatar two memory',
-      updatedAt: '2026-04-21T08:00:00.000Z',
-    },
-    {
-      sessionId: 'session_2',
-      avatarId: 'avatar_1',
-      summary: 'Session two avatar one memory',
-      updatedAt: '2026-04-21T08:00:00.000Z',
-    },
-  ])
-}
-
-async function expectSessionWorkingMemoryCleared(
-  sessionMemoryRepository: InMemorySessionMemoryRepository,
-  avatarSessionMemoryRepository: InMemoryAvatarSessionMemoryRepository,
-) {
-  await expect(sessionMemoryRepository.findBySessionId('session_1')).resolves.toBeNull()
-  await expect(sessionMemoryRepository.findBySessionId('session_2')).resolves.toMatchObject({
-    summary: 'Session two memory',
-  })
-  await expect(
-    avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_1', 'avatar_1'),
-  ).resolves.toBeNull()
-  await expect(
-    avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_1', 'avatar_2'),
-  ).resolves.toBeNull()
-  await expect(
-    avatarSessionMemoryRepository.findBySessionIdAndAvatarId('session_2', 'avatar_1'),
-  ).resolves.toMatchObject({ summary: 'Session two avatar one memory' })
 }
 
 function makeConversationWorkingMemoryRepository() {
@@ -165,6 +100,7 @@ function makeConversationWorkingMemoryRepository() {
       avatarId: 'avatar_1',
       summary: 'Session one working memory',
       unresolvedThreads: ['thread-1'],
+      coveredTopics: [],
       candidateFacts: [],
       updatedAt: '2026-04-21T08:00:00.000Z',
     },
@@ -174,6 +110,7 @@ function makeConversationWorkingMemoryRepository() {
       avatarId: 'avatar_1',
       summary: 'Session two working memory',
       unresolvedThreads: ['thread-2'],
+      coveredTopics: [],
       candidateFacts: [],
       updatedAt: '2026-04-21T08:00:00.000Z',
     },
@@ -385,20 +322,6 @@ describe('ResetSessionUseCase memory isolation', () => {
       sourceId: source.sourceId,
     })
     await expect(chunkRepository.listBySourceId(source.sourceId)).resolves.toHaveLength(1)
-  })
-
-  it('clears session and avatar working memory for the reset session', async () => {
-    const sessionMemoryRepository = makeSessionMemoryRepository()
-    const avatarSessionMemoryRepository = makeAvatarSessionMemoryRepository()
-    const useCase = makeUseCase({
-      sessions: [makeSession({ sessionId: 'session_1' })],
-      sessionMemoryRepository,
-      avatarSessionMemoryRepository,
-    })
-
-    await useCase.execute({ sessionId: 'session_1' })
-
-    await expectSessionWorkingMemoryCleared(sessionMemoryRepository, avatarSessionMemoryRepository)
   })
 
   it('clears conversation working memory and episodic memory for the reset session', async () => {

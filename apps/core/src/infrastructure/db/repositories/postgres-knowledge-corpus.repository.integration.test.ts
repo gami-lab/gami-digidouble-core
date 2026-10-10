@@ -202,14 +202,6 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
 
   it('rejects unprofiled vectors and preserves the prior active generation on failure', async () => {
     const [firstSource] = await seedSources()
-    await expect(
-      chunkRepository.create({
-        sourceId: firstSource,
-        content: 'legacy vector',
-        chunkIndex: 0,
-        embedding: vectorForCurrentProfile(1, 0),
-      }),
-    ).rejects.toThrow('require an embedding profile')
 
     const profile = await corpusRepository.createEmbeddingProfile({
       provider: 'test',

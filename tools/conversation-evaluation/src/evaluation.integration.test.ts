@@ -22,6 +22,7 @@ const session = {
   sessionId: 'session_scripted',
   userId: 'evaluation-user',
   scenarioId: 'murder-party-villa-miralac',
+  unlockedAvatarIds: [],
   status: 'active' as const,
   startedAt: '2026-07-29T00:00:00.000Z',
   lastActivityAt: '2026-07-29T00:00:00.000Z',

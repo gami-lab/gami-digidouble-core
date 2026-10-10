@@ -58,6 +58,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     userId: 'user_1',
     scenarioId: 'scenario_1',
     status: 'active',
+    unlockedAvatarIds: ['avatar_1'],
     startedAt: '2026-04-18T10:00:00.000Z',
     lastActivityAt: '2026-04-18T10:00:00.000Z',
     ...overrides,
@@ -393,7 +394,7 @@ describe('conversation message/history API', () => {
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',
       headers: { 'x-api-key': 'test-secret' },
-      payload: { message: { content: 'Legacy JSON message' } },
+      payload: { message: { content: 'Previous JSON message' } },
     })
 
     expect(response.statusCode).toBe(200)
@@ -404,7 +405,7 @@ describe('conversation message/history API', () => {
       userMessage: {
         conversationId: 'conversation_1',
         role: 'user',
-        content: 'Legacy JSON message',
+        content: 'Previous JSON message',
       },
       avatarMessage: {
         conversationId: 'conversation_1',

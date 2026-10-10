@@ -9,8 +9,8 @@ import { assertTestDatabaseUrl } from './src/infrastructure/db/test-helpers.js'
 export default async function globalSetup(): Promise<void> {
   try {
     process.loadEnvFile(fileURLToPath(new URL('../../.env', import.meta.url)))
-  } catch {
-    // .env is optional — CI injects TEST_DATABASE_URL directly.
+  } catch (error) {
+    if (!isMissingEnvFileError(error)) throw error
   }
   const testUrl = process.env['TEST_DATABASE_URL']
   if (testUrl === undefined || testUrl.length === 0) return
@@ -37,4 +37,8 @@ export default async function globalSetup(): Promise<void> {
   } finally {
     await test.end()
   }
+}
+
+function isMissingEnvFileError(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && error.code === 'ENOENT'
 }

@@ -84,15 +84,18 @@ that touches persistence, retrieval, or provider adapters.
   1536-dimensional profile, while MRR improved from 0.722222 to 0.916667. The comparison records
   mixed per-fixture rank movement honestly; bounded lexical fusion addresses exact-entity fallback,
   same-profile reindexing skips unchanged chunk embeds, Context Engine owns final Avatar selection,
-  unmeasurable visibility-exclusion counts are no longer emitted, and the direct Postgres chunk-write
-  method is documented as a fixture/in-memory compatibility path.
+  unmeasurable visibility-exclusion counts are no longer emitted, and PostgreSQL integration
+  fixtures seed rows directly at the test boundary rather than exposing a production chunk-write
+  compatibility method.
 - EPIC 11.1 is complete: the code audit, contract-ownership prerequisite, D1-D4 dead-code removal,
   R1-R7 client/mapper/composition/normalization/memory-window/provider/stream-helper cleanup, and
   final hardening verification are finished. The ownership matrix in `CODE_AUDIT.md` records the
   canonical owners and explicit keep-separate boundaries. The cleanup is behavior-preserving and
   does not change runtime ordering or public API contracts.
-- EPIC 11.2 is in progress: prompt 01 has measured the comment baseline and inventoried hacks,
-  suppressions, ownership, and planned fixes. No production code cleanup has started yet.
+- EPIC 11.2 is in progress: prompt 01 measured the comment baseline and inventoried hacks,
+  suppressions, ownership, and planned fixes; prompt 02 removed the documented legacy fallbacks,
+  stale TODOs, compatibility paths, and obsolete session/avatar memory mirrors. Prompt 03 still
+  owns lint-suppression and production type-escape cleanup, followed by the comment sweeps.
 - Phase A has API-key auth only (no user accounts/roles), one Core deployment unit, optional
   provider integrations, and no audio persistence — sufficient for the current prototype scope, but
   worth revisiting before multi-tenant or external-user deployment.
