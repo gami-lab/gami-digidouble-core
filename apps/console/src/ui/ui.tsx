@@ -22,7 +22,6 @@ type SectionProps = {
   children: ReactNode
 }
 
-/** A collapsible block: the summary line says what is inside, the body holds the details. */
 export function Section({
   title,
   aside,
