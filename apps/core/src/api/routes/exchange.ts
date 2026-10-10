@@ -87,7 +87,7 @@ export const exchangeRoute: FastifyPluginCallback<ExchangeRouteOptions> = (app, 
       schema: { body: exchangeBodySchema },
       preHandler: authenticateApiKey(options.config.apiKeySecret),
     },
-    // eslint-disable-next-line complexity
+    // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
     async (request, reply) => {
       const requestedProvider = request.body.model?.provider
       const requestLlmAdapter =

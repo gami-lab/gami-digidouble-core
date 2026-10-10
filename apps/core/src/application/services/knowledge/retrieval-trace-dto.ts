@@ -25,7 +25,7 @@ export function toRetrievalTraceDto(trace: RetrievalTrace): RetrievalTraceDto {
   }
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 export function parseRetrievalTraceDto(value: unknown): RetrievalTraceDto | undefined {
   if (!isRecord(value)) return undefined
   const query = readOptionalString(value['query'])

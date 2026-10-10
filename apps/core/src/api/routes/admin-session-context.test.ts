@@ -125,7 +125,7 @@ function makeWorkingMemory(): ConversationWorkingMemory {
   }
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('GET /v1/admin/sessions/:sessionId/context', () => {
   it('returns 401 without API key', async () => {
     const response = await makeApp().inject({

@@ -131,7 +131,7 @@ export async function streamMessageAndReconcile(
   }
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function handleMessageStreamEvent(
   event: MessageStreamEvent,
   pendingMessageId: string,

@@ -54,7 +54,7 @@ const request = {
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 // The adapter contract tests cover completion and streaming behavior together.
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('MistralAdapter', () => {
   beforeEach(() => {
     mockComplete.mockReset()
@@ -101,7 +101,7 @@ describe('MistralAdapter', () => {
   })
 
   it('wraps MistralError in LlmError with status code', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call -- vendor SDK constructor is untyped at this test boundary
     const mistralErr = new (MistralError as any)('quota exceeded', 429) as MistralError
     mockComplete.mockRejectedValue(mistralErr)
     const adapter = new MistralAdapter('test-key')

@@ -157,7 +157,7 @@ function expectError(
   expect(body.error?.code).toBe(code)
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('conversation message audio route', () => {
   it.each([
     [{}, 401],

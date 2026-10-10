@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* eslint-disable max-lines -- retained cohesive module boundary; splitting would obscure ownership */
 import { describe, expect, it, vi } from 'vitest'
 import { InMemoryEventLogRepository } from '../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-message.repository.js'
@@ -228,7 +228,7 @@ describe('MemoryMaintenanceService — skipped post-turn refresh', () => {
   })
 })
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('MemoryMaintenanceService — LLM compaction', () => {
   it('sends a deterministic compaction prompt and input contract to the LLM', async () => {
     const conversationWorkingMemoryRepository = new InMemoryConversationWorkingMemoryRepository([
@@ -599,7 +599,7 @@ describe('MemoryMaintenanceService — event payload contract', () => {
   })
 })
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('MemoryMaintenanceService — prior memory continuity', () => {
   it('incorporates prior working memory summary when refreshing', async () => {
     const { service, conversationWorkingMemoryRepository } = makeService()

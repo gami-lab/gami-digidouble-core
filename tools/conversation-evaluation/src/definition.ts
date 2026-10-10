@@ -137,7 +137,7 @@ function readOptionalStringArray(
   return value.map((item) => (item as string).trim())
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 export function validateTestDefinition(value: unknown): TestDefinition {
   if (!isRecord(value)) {
     throw new DefinitionValidationError(['The root value must be a JSON object.'])
@@ -180,7 +180,7 @@ type DefinitionFields = {
   avatarOptions?: TestDefinition['avatarOptions']
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function readDefinitionFields(value: Record<string, unknown>, issues: string[]): DefinitionFields {
   if (value['version'] !== 1) issues.push('version must be 1.')
   const name = readRequiredString(value, 'name', issues)

@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* eslint-disable max-lines -- retained cohesive module boundary; splitting would obscure ownership */
 
 import crypto from 'node:crypto'
 import { INGESTION_CHUNK_HARD_MAX, INGESTION_CHUNK_SIZE_DEFAULT } from '@gami/shared'

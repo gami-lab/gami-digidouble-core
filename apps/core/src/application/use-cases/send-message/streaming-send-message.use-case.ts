@@ -7,7 +7,7 @@ import type { StreamingSendMessageEvent } from './streaming-send-message.types.j
 export class StreamingSendMessageUseCase {
   constructor(private readonly sendMessageUseCase: SendMessageUseCase) {}
 
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
   async *execute(
     input: SendMessageInput,
     options?: LlmStreamOptions,

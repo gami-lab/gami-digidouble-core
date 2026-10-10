@@ -26,7 +26,6 @@ export function mapCreateScenarioInput(body: CreateScenarioRequest): CreateScena
   }
 }
 
-// eslint-disable-next-line complexity
 export function mapUpdateScenarioInput(
   scenarioId: string,
   body: UpdateScenarioRequest,
@@ -34,6 +33,22 @@ export function mapUpdateScenarioInput(
   const normalizedModelSelection = normalizeUpdateScenarioModelSelection(body.modelSelection)
   const input: UpdateScenarioInput = {
     scenarioId,
+    ...mapUpdateScenarioFields(body),
+  }
+
+  if (normalizedModelSelection !== undefined) {
+    input.modelSelection = normalizedModelSelection
+  } else if (body.modelSelection === null) {
+    input.modelSelection = null
+  }
+
+  return input
+}
+
+function mapUpdateScenarioFields(
+  body: UpdateScenarioRequest,
+): Omit<UpdateScenarioInput, 'scenarioId' | 'modelSelection'> {
+  return {
     ...(body.name !== undefined ? { name: body.name } : {}),
     ...(body.status !== undefined ? { status: body.status } : {}),
     ...(body.language !== undefined ? { language: body.language } : {}),
@@ -45,14 +60,6 @@ export function mapUpdateScenarioInput(
     ...(body.voiceConfig !== undefined ? { voiceConfig: body.voiceConfig } : {}),
     ...(body.config !== undefined ? { config: body.config } : {}),
   }
-
-  if (normalizedModelSelection !== undefined) {
-    input.modelSelection = normalizedModelSelection
-  } else if (body.modelSelection === null) {
-    input.modelSelection = null
-  }
-
-  return input
 }
 
 export function mapCreateAvatarInput(

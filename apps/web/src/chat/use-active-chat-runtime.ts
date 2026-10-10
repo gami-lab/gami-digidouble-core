@@ -65,7 +65,7 @@ type ActiveChatRuntimeOptions = {
   initialConversationId?: string | null
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 export function useActiveChatRuntime(
   session: SessionSummary | null,
   options?: ActiveChatRuntimeOptions,

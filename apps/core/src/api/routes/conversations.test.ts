@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* eslint-disable max-lines -- retained cohesive module boundary; splitting would obscure ownership */
 
 import { describe, expect, it, vi } from 'vitest'
 import { createEmptyAvatarComputedTraits, processSseFrames } from '@gami/shared'
@@ -88,7 +88,7 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
   }
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function makeApp({
   scenarios = [makeScenario()],
   avatars = [makeAvatar()],
@@ -338,7 +338,7 @@ describe('session API', () => {
   })
 })
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('conversation message/history API', () => {
   it('sends message using conversationId and gets isolated history', async () => {
     const app = makeApp({

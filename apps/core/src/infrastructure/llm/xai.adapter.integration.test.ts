@@ -6,7 +6,7 @@ const apiKey = process.env['XAI_API_KEY']
 
 describe.skipIf(!apiKey)('XaiAdapter — real grok-3 integration', () => {
   it('returns a valid LlmResponse from the live API', async (context) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- integration preflight guarantees the credential
     const adapter = new XaiAdapter(apiKey!)
 
     try {

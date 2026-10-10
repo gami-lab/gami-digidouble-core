@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* eslint-disable max-lines -- retained cohesive module boundary; splitting would obscure ownership */
 import { describe, expect, it } from 'vitest'
 import { INGESTION_CHUNK_HARD_MAX } from '@gami/shared'
 import { InMemoryIngestionJobRepository } from '../../../infrastructure/db/in-memory-ingestion-job.repository.js'
@@ -142,7 +142,7 @@ describe('KnowledgeIngestionService — completion flow', () => {
   })
 })
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('KnowledgeIngestionService — paragraph chunking', () => {
   it('uses the default chunk size when the ingestion job does not specify one', async () => {
     const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
@@ -431,7 +431,7 @@ describe('KnowledgeIngestionService — header-aware chunking', () => {
   })
 })
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('KnowledgeIngestionService — failure and retry behavior', () => {
   it('marks job as failed and supports deterministic retry idempotency', async () => {
     const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =

@@ -60,7 +60,7 @@ beforeEach(() => {
   findMessagesByConversationIdMock.mockResolvedValue([])
 })
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('RunGameMasterUseCase model resolution', () => {
   it('uses scenario Game Master override before global role config', async () => {
     const completeMock = vi.fn().mockResolvedValue({

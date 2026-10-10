@@ -38,7 +38,7 @@ const sessionResponse = {
   },
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('CoreApiClient', () => {
   it('normalizes the base URL, sends the API key, and decodes the standard envelope', async () => {
     const fetchMock = vi

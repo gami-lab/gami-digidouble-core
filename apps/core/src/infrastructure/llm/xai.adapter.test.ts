@@ -74,7 +74,7 @@ const request = {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 // The adapter contract tests cover completion and streaming behavior together.
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('XaiAdapter', () => {
   beforeEach(() => {
     mockCreate.mockReset()

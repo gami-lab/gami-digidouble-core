@@ -9,7 +9,7 @@ import {
   reconcileSendSuccess,
 } from './use-active-chat-runtime'
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('active chat runtime state helpers', () => {
   it('resets thread state when a new avatar is selected (current-chat-only behavior)', () => {
     expect(createThreadStateForAvatarSelection('avatar_9')).toEqual({

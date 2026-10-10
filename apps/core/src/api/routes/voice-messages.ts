@@ -35,7 +35,7 @@ const voiceConversationParamsSchema = {
 } as const
 
 /** Raw voice parsing is isolated to this plugin and never applies to JSON routes. */
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 export const voiceMessagesRoute: FastifyPluginCallback<VoiceMessagesRouteOptions> = (
   app,
   options,
@@ -86,7 +86,7 @@ export const voiceMessagesRoute: FastifyPluginCallback<VoiceMessagesRouteOptions
       config: { rawBody: true },
       schema: { params: voiceConversationParamsSchema, response: {} },
     },
-    // eslint-disable-next-line complexity
+    // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
     async (request, reply) => {
       if (options.voiceTurnUseCase === undefined) {
         return await reply

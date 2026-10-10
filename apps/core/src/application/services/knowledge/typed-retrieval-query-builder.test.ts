@@ -5,7 +5,7 @@ import {
   flattenTypedRetrievalQueries,
 } from './typed-retrieval-query-builder.js'
 
-/* eslint-disable max-lines-per-function */
+/* eslint-disable max-lines-per-function -- retained fixture or orchestration setup is clearer together */
 describe('typed retrieval query builder', () => {
   it('builds avatar retrieval queries from GM notes, user input, and working memory', () => {
     const queries = buildAvatarTypedRetrievalQueries({

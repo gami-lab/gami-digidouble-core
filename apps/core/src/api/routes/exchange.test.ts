@@ -93,7 +93,7 @@ describe('POST /v1/exchange — auth and validation', () => {
   })
 })
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('POST /v1/exchange — error handling and response shaping', () => {
   it('returns 502 when the LLM adapter throws a LlmError', async () => {
     const failingLlm = {

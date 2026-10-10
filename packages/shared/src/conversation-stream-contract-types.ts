@@ -51,38 +51,45 @@ export function parseMessageStreamEvent(value: unknown): MessageStreamEvent | nu
   return isMessageStreamEvent(value) ? value : null
 }
 
-// eslint-disable-next-line complexity
 export function isMessageStreamEvent(value: unknown): value is MessageStreamEvent {
-  if (
-    !isRecord(value) ||
-    !isNonEmptyString(value.requestId) ||
-    !isNonEmptyString(value.conversationId)
-  ) {
-    return false
-  }
+  if (!isMessageStreamEventBase(value)) return false
+  return isMessageStreamEventBody(value)
+}
 
+function isMessageStreamEventBody(value: Record<string, unknown>): boolean {
   switch (value.type) {
     case 'conversation.message.started':
       return isMessage(value.userMessage)
     case 'conversation.message.delta':
-      return (
-        typeof value.sequence === 'number' &&
-        Number.isInteger(value.sequence) &&
-        value.sequence >= 0 &&
-        typeof value.delta === 'string'
-      )
+      return isMessageDelta(value)
     case 'conversation.message.completed':
       return isSendMessageResponse(value.response)
     case 'conversation.message.interrupted':
-      return value.reason === 'client_aborted' || value.reason === 'provider_aborted'
+      return isMessageInterruption(value.reason)
     case 'conversation.message.error':
-      return typeof value.message === 'string' && value.message.length > 0
+      return isMessageError(value.message)
     default:
       return false
   }
 }
 
-// eslint-disable-next-line complexity
+function isMessageDelta(value: Record<string, unknown>): boolean {
+  return (
+    typeof value.sequence === 'number' &&
+    Number.isInteger(value.sequence) &&
+    value.sequence >= 0 &&
+    typeof value.delta === 'string'
+  )
+}
+
+function isMessageInterruption(value: unknown): boolean {
+  return value === 'client_aborted' || value === 'provider_aborted'
+}
+
+function isMessageError(value: unknown): boolean {
+  return typeof value === 'string' && value.length > 0
+}
+
 function isSendMessageResponse(value: unknown): value is SendMessageResponse {
   if (!isRecord(value)) return false
   return (
@@ -90,13 +97,25 @@ function isSendMessageResponse(value: unknown): value is SendMessageResponse {
     isSessionSummary(value.session) &&
     isMessage(value.userMessage) &&
     isAvatarMessage(value.avatarMessage) &&
-    isRecord(value.debug) &&
-    isNonEmptyString(value.debug.requestId) &&
-    isNonEmptyString(value.debug.model) &&
-    isNonNegativeNumber(value.debug.latencyMs) &&
-    isNonNegativeNumber(value.debug.inputTokens) &&
-    isNonNegativeNumber(value.debug.outputTokens)
+    isMessageDebug(value.debug)
   )
+}
+
+function isMessageStreamEventBase(value: unknown): value is Record<string, unknown> {
+  return (
+    isRecord(value) && isNonEmptyString(value.requestId) && isNonEmptyString(value.conversationId)
+  )
+}
+
+function isMessageDebug(value: unknown): boolean {
+  if (!isRecord(value)) return false
+  return [
+    isNonEmptyString(value.requestId),
+    isNonEmptyString(value.model),
+    isNonNegativeNumber(value.latencyMs),
+    isNonNegativeNumber(value.inputTokens),
+    isNonNegativeNumber(value.outputTokens),
+  ].every(Boolean)
 }
 
 function isMessage(value: unknown): value is Message {
@@ -123,18 +142,17 @@ function isAvatarMessage(value: unknown): boolean {
   )
 }
 
-// eslint-disable-next-line complexity
 function isMessageMetadata(value: unknown): boolean {
   if (!isRecord(value)) return false
-  return (
+  return [
     (value.model === undefined || typeof value.model === 'string') &&
-    (value.latencyMs === undefined || isNonNegativeNumber(value.latencyMs)) &&
-    (value.inputTokens === undefined || isNonNegativeNumber(value.inputTokens)) &&
-    (value.outputTokens === undefined || isNonNegativeNumber(value.outputTokens)) &&
-    (value.totalTokens === undefined || isNonNegativeNumber(value.totalTokens)) &&
-    (value.costUsd === undefined || isNonNegativeNumber(value.costUsd)) &&
-    (value.triggerSource === undefined || typeof value.triggerSource === 'string')
-  )
+      (value.latencyMs === undefined || isNonNegativeNumber(value.latencyMs)),
+    value.inputTokens === undefined || isNonNegativeNumber(value.inputTokens),
+    value.outputTokens === undefined || isNonNegativeNumber(value.outputTokens),
+    value.totalTokens === undefined || isNonNegativeNumber(value.totalTokens),
+    value.costUsd === undefined || isNonNegativeNumber(value.costUsd),
+    value.triggerSource === undefined || typeof value.triggerSource === 'string',
+  ].every(Boolean)
 }
 
 function isConversationSummary(value: unknown): boolean {
@@ -150,7 +168,6 @@ function isConversationSummary(value: unknown): boolean {
   )
 }
 
-// eslint-disable-next-line complexity
 function isSessionSummary(value: unknown): boolean {
   if (!isRecord(value)) return false
   return (
@@ -160,11 +177,20 @@ function isSessionSummary(value: unknown): boolean {
     isLifecycleStatus(value.status) &&
     isNonEmptyString(value.startedAt) &&
     isNonEmptyString(value.lastActivityAt) &&
-    (value.activeAvatarId === undefined || typeof value.activeAvatarId === 'string') &&
-    (value.unlockedAvatarIds === undefined ||
-      (Array.isArray(value.unlockedAvatarIds) &&
-        value.unlockedAvatarIds.every((avatarId) => typeof avatarId === 'string'))) &&
-    (value.endedAt === undefined || typeof value.endedAt === 'string')
+    isOptionalString(value.activeAvatarId) &&
+    isOptionalStringArray(value.unlockedAvatarIds) &&
+    isOptionalString(value.endedAt)
+  )
+}
+
+function isOptionalString(value: unknown): boolean {
+  return value === undefined || typeof value === 'string'
+}
+
+function isOptionalStringArray(value: unknown): boolean {
+  return (
+    value === undefined ||
+    (Array.isArray(value) && value.every((entry) => typeof entry === 'string'))
   )
 }
 

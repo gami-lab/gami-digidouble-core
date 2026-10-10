@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* eslint-disable max-lines -- retained cohesive module boundary; splitting would obscure ownership */
 
 import type { JSONValue, Sql } from 'postgres'
 import type { EmbeddingProfile } from '../../../application/ports/IEmbeddingAdapter.js'
@@ -320,7 +320,7 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     const operationUuid = extractUuid('reindex_operation_', reindexOperationId)
     const sourceUuid = extractUuid('knowledge_source_', sourceId)
     if (operationUuid === null || sourceUuid === null) return null
-    // eslint-disable-next-line complexity
+    // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
     return this.sql.begin(async (tx) => {
       const [row] = await tx<ReindexSourceProgressRow[]>`
         UPDATE reindex_operation_sources
@@ -372,7 +372,7 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
   ): Promise<number> {
     const operationUuid = requireUuid('reindex_operation_', reindexOperationId)
     const sourceUuid = requireUuid('knowledge_source_', sourceId)
-    // eslint-disable-next-line complexity
+    // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
     return this.sql.begin(async (tx) => {
       const [operation] = await tx<{ generation_id: string; profile_id: string }[]>`
         SELECT corpus_generation_id AS generation_id, embedding_profile_id AS profile_id
@@ -454,7 +454,7 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
       }
     }
 
-    // eslint-disable-next-line complexity
+    // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
     return this.sql.begin(async (tx) => {
       const [active] = await tx<
         {
@@ -515,7 +515,7 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     })
   }
 
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
   async validateCorpusGeneration(reindexOperationId: string): Promise<CorpusValidation> {
     const operationUuid = requireUuid('reindex_operation_', reindexOperationId)
     const [row] = await this.sql<
@@ -592,7 +592,7 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     }
   }
 
-  /* eslint-disable max-lines-per-function, complexity */
+  /* eslint-disable max-lines-per-function, complexity -- retained fixture or orchestration setup is clearer together */
   async promoteCorpusGeneration(reindexOperationId: string): Promise<ActiveCorpus> {
     const operationUuid = requireUuid('reindex_operation_', reindexOperationId)
     return this.sql.begin(async (tx) => {
@@ -823,7 +823,7 @@ function rowToSourceProgress(row: ReindexSourceProgressRow): ReindexSourceProgre
   }
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function rowToKnowledgeChunk(row: ChunkRow): KnowledgeChunk {
   const metadata =
     typeof row.metadata === 'object' && row.metadata !== null && !Array.isArray(row.metadata)

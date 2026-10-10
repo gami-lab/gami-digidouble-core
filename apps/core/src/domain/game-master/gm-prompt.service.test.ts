@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildGameMasterSystemPrompt, type GmPromptAvatarContext } from './gm-prompt.service.js'
 
-/* eslint-disable max-lines-per-function */
+/* eslint-disable max-lines-per-function -- retained fixture or orchestration setup is clearer together */
 const SINGLE_AVATAR: GmPromptAvatarContext = { activeAvatarCount: 1, hasLockedAvatars: false }
 const MULTI_NO_LOCKED: GmPromptAvatarContext = { activeAvatarCount: 2, hasLockedAvatars: false }
 const MULTI_WITH_LOCKED: GmPromptAvatarContext = { activeAvatarCount: 2, hasLockedAvatars: true }

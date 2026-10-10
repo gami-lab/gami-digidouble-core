@@ -40,7 +40,7 @@ function registerRepositoryLifecycle(state: RepositoryTestState): void {
   })
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — create/find', () => {
   let sql: Sql
   let scenarioRepo: PostgresScenarioRepository
@@ -221,7 +221,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — list/statu
   })
 })
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — update/delete', () => {
   let sql: Sql
   let scenarioRepo: PostgresScenarioRepository

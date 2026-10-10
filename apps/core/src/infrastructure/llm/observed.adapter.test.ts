@@ -39,7 +39,7 @@ function createObservability(): {
 }
 
 // The observable stream tests intentionally live with the completion tests to protect the shared trace boundary.
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('ObservedLlmAdapter', () => {
   it('traces successful completions with request context', async () => {
     const inner = createInnerAdapter()
@@ -251,7 +251,7 @@ describe('ObservedLlmAdapter', () => {
 
   it('classifies provider aborts separately from client cancellation', async () => {
     const inner = createInnerAdapter({
-      // eslint-disable-next-line @typescript-eslint/require-await, require-yield
+      // eslint-disable-next-line @typescript-eslint/require-await, require-yield -- implementation preserves the async port shape
       stream: async function* (): AsyncIterable<LlmStreamEvent> {
         throw Object.assign(new Error('provider aborted'), { name: 'AbortError' })
       },

@@ -177,7 +177,7 @@ export class KnowledgeReindexService {
     }
   }
 
-  // eslint-disable-next-line max-lines-per-function
+  // eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
   private async processSource(
     operation: ReindexOperation,
     profile: { embeddingProfileId: string; provider: string; model: string; dimensions: number },

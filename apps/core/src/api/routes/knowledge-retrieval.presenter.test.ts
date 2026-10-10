@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { presentKnowledgeRetrieval } from './knowledge-retrieval.presenter.js'
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('presentKnowledgeRetrieval', () => {
   it('truncates long retrieved content while preserving item structure', () => {
     const output = presentKnowledgeRetrieval(

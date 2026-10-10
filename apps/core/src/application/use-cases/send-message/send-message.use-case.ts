@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* eslint-disable max-lines -- retained cohesive module boundary; splitting would obscure ownership */
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
@@ -339,7 +339,7 @@ export class SendMessageUseCase {
     return await this.gmStateRepository.findBySessionId(sessionId)
   }
 
-  // eslint-disable-next-line complexity, max-lines-per-function
+  // eslint-disable-next-line complexity, max-lines-per-function -- retained fixture or orchestration setup is clearer together
   private async buildTurnPromptContext(args: {
     session: Session
     conversation: Conversation

@@ -1,4 +1,4 @@
-import type { JSONValue, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import {
   isModelSelectionProviderName,
   SCENARIO_MODEL_SLOTS,
@@ -21,6 +21,7 @@ import {
   readVoiceConfiguration,
   withoutVoiceConfiguration,
 } from '../../../domain/voice/voice-configuration.js'
+import { toJsonValue } from '../json-value.js'
 
 interface ScenarioRow {
   id: string
@@ -171,8 +172,8 @@ export class PostgresScenarioRepository implements IScenarioRepository {
         ${params.language ?? null},
         ${params.objectives ?? []},
         ${params.worldContext ?? ''},
-        ${this.sql.json((params.avatarAvailability ?? { initialAvatarIds: [] }) as unknown as JSONValue)},
-        ${this.sql.json(config as JSONValue)},
+        ${this.sql.json(toJsonValue(params.avatarAvailability ?? { initialAvatarIds: [] }))},
+        ${this.sql.json(toJsonValue(config))},
         ${this.sql.json(params.modelSelection ?? null)}
       )
       RETURNING id, name, status, language, objectives, world_context, avatar_availability, config, model_selection, created_at, updated_at

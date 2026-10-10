@@ -11,7 +11,7 @@ function clientFor(events: AdminSessionEventsResponse['events']): CoreApiClient 
   } as unknown as CoreApiClient
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('runtime usage collection', () => {
   it('aggregates Game Master and memory tokens and qualifies provider models', async () => {
     const usage = await collectRuntimeUsage(

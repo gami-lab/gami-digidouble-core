@@ -29,7 +29,7 @@ const ROUTING_ACTIONS = new Set<RoutingDecision['action']>([
 const PROGRESSION_STATES = new Set<ProgressionUpdate['progression']>(['none', 'increase'])
 
 /** Deserialize only the current JSONB orchestration shape. */
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- validates the complete persisted orchestration boundary together
 export function parsePersistedGameMasterOrchestration(
   value: unknown,
 ): GameMasterOrchestrationState | undefined {
@@ -101,7 +101,6 @@ function readDialogueControl(value: unknown): DialogueControl | undefined {
     : undefined
 }
 
-// eslint-disable-next-line complexity
 function readRetrievalPlan(value: unknown): RetrievalPlan | undefined {
   if (!isRecord(value) || !hasOnlyKeys(value, ['required', 'queries', 'requiredFacts', 'scopes'])) {
     return undefined
@@ -110,13 +109,7 @@ function readRetrievalPlan(value: unknown): RetrievalPlan | undefined {
   const queries = readOptionalTextArray(value['queries'])
   const requiredFacts = readOptionalTextArray(value['requiredFacts'])
   const scopes = readOptionalScopes(value['scopes'])
-  if (
-    (value['queries'] !== undefined && queries === undefined) ||
-    (value['requiredFacts'] !== undefined && requiredFacts === undefined) ||
-    (value['scopes'] !== undefined && scopes === undefined)
-  ) {
-    return undefined
-  }
+  if (hasInvalidRetrievalPlanFields(value, queries, requiredFacts, scopes)) return undefined
   return {
     required: value['required'],
     ...(queries !== undefined ? { queries } : {}),
@@ -125,7 +118,19 @@ function readRetrievalPlan(value: unknown): RetrievalPlan | undefined {
   }
 }
 
-// eslint-disable-next-line complexity
+function hasInvalidRetrievalPlanFields(
+  value: Record<string, unknown>,
+  queries: string[] | undefined,
+  requiredFacts: string[] | undefined,
+  scopes: RetrievalScope[] | undefined,
+): boolean {
+  return (
+    (value['queries'] !== undefined && queries === undefined) ||
+    (value['requiredFacts'] !== undefined && requiredFacts === undefined) ||
+    (value['scopes'] !== undefined && scopes === undefined)
+  )
+}
+
 function readProgressionUpdate(value: unknown): ProgressionUpdate | undefined {
   if (!isRecord(value) || !hasOnlyKeys(value, ['progression', 'objectiveId', 'reason'])) {
     return undefined
@@ -139,12 +144,7 @@ function readProgressionUpdate(value: unknown): ProgressionUpdate | undefined {
   }
   const objectiveId = readOptionalText(value['objectiveId'])
   const reason = readOptionalText(value['reason'])
-  if (
-    (value['objectiveId'] !== undefined && objectiveId === undefined) ||
-    (value['reason'] !== undefined && reason === undefined)
-  ) {
-    return undefined
-  }
+  if (hasInvalidProgressionFields(value, objectiveId, reason)) return undefined
   return {
     progression: progression as ProgressionUpdate['progression'],
     ...(objectiveId !== undefined ? { objectiveId } : {}),
@@ -152,7 +152,17 @@ function readProgressionUpdate(value: unknown): ProgressionUpdate | undefined {
   }
 }
 
-// eslint-disable-next-line complexity
+function hasInvalidProgressionFields(
+  value: Record<string, unknown>,
+  objectiveId: string | undefined,
+  reason: string | undefined,
+): boolean {
+  return (
+    (value['objectiveId'] !== undefined && objectiveId === undefined) ||
+    (value['reason'] !== undefined && reason === undefined)
+  )
+}
+
 function readRouting(value: unknown): RoutingDecision | undefined {
   if (value === undefined) return undefined
   if (
@@ -168,19 +178,26 @@ function readRouting(value: unknown): RoutingDecision | undefined {
   const avatarId = readOptionalText(value['avatarId'])
   const reason = readOptionalText(value['reason'])
   const unlockDecisions = readOptionalUnlockDecisions(value['unlockDecisions'])
-  if (
-    (value['avatarId'] !== undefined && avatarId === undefined) ||
-    (value['reason'] !== undefined && reason === undefined) ||
-    (value['unlockDecisions'] !== undefined && unlockDecisions === undefined)
-  ) {
-    return undefined
-  }
+  if (hasInvalidRoutingFields(value, avatarId, reason, unlockDecisions)) return undefined
   return {
     action: action as RoutingDecision['action'],
     ...(avatarId !== undefined ? { avatarId } : {}),
     ...(reason !== undefined ? { reason } : {}),
     ...(unlockDecisions !== undefined ? { unlockDecisions } : {}),
   }
+}
+
+function hasInvalidRoutingFields(
+  value: Record<string, unknown>,
+  avatarId: string | undefined,
+  reason: string | undefined,
+  unlockDecisions: RoutingDecision['unlockDecisions'] | undefined,
+): boolean {
+  return (
+    (value['avatarId'] !== undefined && avatarId === undefined) ||
+    (value['reason'] !== undefined && reason === undefined) ||
+    (value['unlockDecisions'] !== undefined && unlockDecisions === undefined)
+  )
 }
 
 function readOptionalUnlockDecisions(

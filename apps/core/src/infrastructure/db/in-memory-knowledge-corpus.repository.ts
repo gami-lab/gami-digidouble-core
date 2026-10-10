@@ -83,7 +83,7 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     return Promise.resolve(this.profiles.get(embeddingProfileId) ?? null)
   }
 
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
   createReindexOperation(params: CreateReindexOperationParams): Promise<ReindexOperation> {
     const profile = this.profiles.get(params.embeddingProfileId)
     if (profile === undefined) throw new Error('Embedding profile not found.')
@@ -267,8 +267,14 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     return chunks.length
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await, complexity
   async replaceActiveSourceChunks(replacement: ActiveSourceChunkReplacement): Promise<number> {
+    return await this.replaceActiveSourceChunksNow(replacement)
+  }
+
+  // eslint-disable-next-line complexity -- retained validation boundary keeps active-corpus invariants together
+  private async replaceActiveSourceChunksNow(
+    replacement: ActiveSourceChunkReplacement,
+  ): Promise<number> {
     const active = this.activeCorpus
     if (active === null) throw new Error('No active knowledge corpus is configured.')
     if (
@@ -290,10 +296,12 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
         throw new Error('Active source chunk does not match the active embedding profile.')
       }
     }
-    return this.chunkRepository.replaceChunksForGeneration(
-      replacement.sourceId,
-      active.corpusGenerationId,
-      replacement.chunks,
+    return Promise.resolve(
+      this.chunkRepository.replaceChunksForGeneration(
+        replacement.sourceId,
+        active.corpusGenerationId,
+        replacement.chunks,
+      ),
     )
   }
 
@@ -346,7 +354,7 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     return validation
   }
 
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
   async promoteCorpusGeneration(reindexOperationId: string): Promise<ActiveCorpus> {
     const operation = this.operations.get(reindexOperationId)
     if (operation === undefined) throw new Error('Reindex operation not found.')

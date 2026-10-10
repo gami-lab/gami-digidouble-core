@@ -252,7 +252,7 @@ function readStringArray(value: unknown, field: string): string[] {
   return value.map((item) => item as string)
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 export function parseJudgeResult(reply: string): JudgeResult {
   if (reply.length > MAX_JUDGE_REPLY_LENGTH) {
     throw createError(
@@ -349,7 +349,7 @@ export class SemanticJudgeClient {
     this.fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis)
   }
 
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
   async evaluate(input: JudgeInput, options?: JudgeRequestOptions): Promise<JudgeEvaluation> {
     const message = serializeJudgeInput(input)
     if (JUDGE_SYSTEM_PROMPT.length > MAX_EXCHANGE_SYSTEM_PROMPT_LENGTH) {
@@ -392,7 +392,7 @@ export class SemanticJudgeClient {
           }),
         })
       } catch {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- retained because the boundary is clearer as one unit
         if (timedOut) throw createError('TIMEOUT', 'Judge request timed out.', 'transport_error')
         if (isSignalAborted(options?.signal)) {
           throw createError('ABORTED', 'Judge request was aborted.', 'transport_error')

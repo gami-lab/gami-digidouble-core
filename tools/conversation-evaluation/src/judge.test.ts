@@ -35,7 +35,7 @@ function exchange(reply: string): RawExchangeResponse {
   }
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('semantic judge', () => {
   it('accepts paraphrases and preserves empty diagnostic arrays', () => {
     expect(

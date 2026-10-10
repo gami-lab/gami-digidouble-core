@@ -18,7 +18,7 @@ function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
 }
 
 // The repository behavior is intentionally covered as one cohesive suite.
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('InMemoryScenarioRepository', () => {
   it('create generates scenario_ prefixed ID', async () => {
     const repository = new InMemoryScenarioRepository()

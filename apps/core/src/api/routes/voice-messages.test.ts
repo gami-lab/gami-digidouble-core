@@ -113,7 +113,7 @@ function parseEvents(body: string): MessageStreamEvent[] {
   return events
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('voice message HTTP routes', () => {
   it('returns a safe provider error when voice is unavailable while text remains usable', async () => {
     const { app } = makeApp(null)

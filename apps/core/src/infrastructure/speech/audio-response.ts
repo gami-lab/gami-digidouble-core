@@ -52,7 +52,7 @@ export async function streamAudioResponse(
   })
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 async function* readBoundedChunks(
   body: ReadableStream<Uint8Array>,
   bounds: {

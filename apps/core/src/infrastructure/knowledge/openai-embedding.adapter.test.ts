@@ -97,7 +97,7 @@ function createAdapter(
   }
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('OpenAiEmbeddingAdapter', () => {
   it('splits batches and restores provider items to global input order', async () => {
     const { adapter, create } = createAdapter([

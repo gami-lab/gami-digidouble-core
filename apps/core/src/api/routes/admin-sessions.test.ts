@@ -156,7 +156,7 @@ describe('GET /v1/admin/sessions/:sessionId/inspect', () => {
     expect(response.json<ApiResponse<null>>().error?.code).toBe('NOT_FOUND')
   })
 
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
   it('returns the inspect snapshot without message or prompt content', async () => {
     const app = makeApp()
 

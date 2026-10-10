@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* eslint-disable max-lines -- retained cohesive module boundary; splitting would obscure ownership */
 export const REPORT_VIEWER_HTML = String.raw`<!doctype html>
 <html lang="en">
 <head>

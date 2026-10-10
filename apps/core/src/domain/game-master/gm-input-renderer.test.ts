@@ -15,8 +15,8 @@ type InputOverrides = {
   }
 }
 
-/* eslint-disable max-lines-per-function */
-// eslint-disable-next-line complexity
+/* eslint-disable max-lines-per-function -- retained fixture or orchestration setup is clearer together */
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function makeInput(overrides: InputOverrides = {}): GameMasterInput {
   const recentMessages = [
     { role: 'user' as const, content: 'What happened at the harbor?' },

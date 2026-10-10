@@ -38,7 +38,7 @@ function retrieval(items: RetrievedKnowledgeItem[]): TypedRetrievalResult {
   }
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('retrieval-quality scorer', () => {
   it('scores a hit at every requested cutoff and uses the first relevant rank for MRR', () => {
     const fixture = {

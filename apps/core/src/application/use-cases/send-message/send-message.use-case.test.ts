@@ -1,4 +1,4 @@
-/* eslint-disable max-lines, max-lines-per-function */
+/* eslint-disable max-lines, max-lines-per-function -- retained fixture or orchestration setup is clearer together */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createEmptyAvatarComputedTraits } from '@gami/shared'
 import type { ConversationEndReason } from '@gami/shared'

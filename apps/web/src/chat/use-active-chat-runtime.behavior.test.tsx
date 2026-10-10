@@ -28,7 +28,7 @@ const session: SessionSummary = {
   lastActivityAt: '2026-06-01T00:00:00.000Z',
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('useActiveChatRuntime behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -45,7 +45,7 @@ describe('useActiveChatRuntime behavior', () => {
     })
   })
 
-  // eslint-disable-next-line max-lines-per-function
+  // eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
   it('shows optimistic pending state, accumulates deltas, and reconciles the completed response', async () => {
     vi.mocked(startConversation).mockResolvedValue({
       conversationId: 'conversation_1',

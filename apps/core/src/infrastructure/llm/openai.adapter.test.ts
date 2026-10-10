@@ -74,7 +74,7 @@ const request = {
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('OpenAiAdapter', () => {
   beforeEach(() => {
     mockCreate.mockReset()

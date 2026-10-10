@@ -147,7 +147,7 @@ function isFastifyBodyParsingError(
   )
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 export function createServer(config: Config, adapters: ServerAdapters = {}): FastifyInstance {
   const resolvedAdapters = resolveServerAdapters(adapters)
 

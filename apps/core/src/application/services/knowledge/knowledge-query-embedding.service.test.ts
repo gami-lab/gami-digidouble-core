@@ -21,7 +21,7 @@ import {
   type RetrievalQueryEmbeddingResult,
 } from './knowledge-query-embedding.service.js'
 
-/* eslint-disable max-lines-per-function */
+/* eslint-disable max-lines-per-function -- retained fixture or orchestration setup is clearer together */
 
 const activeCorpus: ActiveCorpus = {
   corpusGenerationId: 'corpus_generation_active',

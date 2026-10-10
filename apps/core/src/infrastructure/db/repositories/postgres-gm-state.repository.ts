@@ -1,8 +1,9 @@
-import type { JSONValue, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { IGmStateRepository } from '../../../application/ports/IGmStateRepository.js'
 import type { GameMasterState } from '../../../domain/game-master/game-master.types.js'
 import { parsePersistedGameMasterOrchestration } from '../../../domain/game-master/gm-state-parser.js'
 import { extractUuid, stripPrefix } from './id-prefix.js'
+import { toJsonValue } from '../json-value.js'
 
 interface GmStateRow {
   session_id: string
@@ -49,7 +50,7 @@ export class PostgresGmStateRepository implements IGmStateRepository {
         ${sessionUuid},
         ${state.progression},
         ${state.interactionCount},
-        ${state.nextTurnOrchestration === undefined ? null : this.sql.json(state.nextTurnOrchestration as unknown as JSONValue)}
+        ${state.nextTurnOrchestration === undefined ? null : this.sql.json(toJsonValue(state.nextTurnOrchestration))}
       )
       ON CONFLICT (session_id)
       DO UPDATE SET

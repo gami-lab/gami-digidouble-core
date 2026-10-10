@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* eslint-disable max-lines -- retained cohesive module boundary; splitting would obscure ownership */
 import type { RetrievalTrace, RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
 import { selectBalancedRetrievedItems } from '../knowledge/retrieval-selection.js'
 import type { ContextEngineInput, ContextEngineOutput } from './context-engine.types.js'
@@ -145,7 +145,7 @@ function pushResponseRulesCandidate(candidates: CandidateSegment[], responseRule
   })
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function pushWorkingMemoryCandidates(
   candidates: CandidateSegment[],
   memory: ContextEngineInput['extensions']['memory'],
@@ -580,7 +580,7 @@ function buildTracePolicy(policy: ContextEnginePolicy): ContextEngineOutput['tra
   }
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function buildTraceSelectedInputs(
   input: ContextEngineInput,
 ): ContextEngineOutput['trace']['selectedInputs'] {

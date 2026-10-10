@@ -134,7 +134,7 @@ async function makeService(
   }
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('KnowledgeReindexService', () => {
   it('bootstraps an empty active corpus without calling the embedding provider', async () => {
     const sourceRepository = new InMemoryKnowledgeSourceRepository()
@@ -324,7 +324,7 @@ describe('KnowledgeReindexService', () => {
     expect(chunks.every((chunk) => chunk.embedding?.[0] !== 9)).toBe(true)
   })
 
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
   it('reuses duplicate starts and retries failed sources without replacing the old corpus', async () => {
     const adapter = new CountingEmbeddingAdapter(true)
     const { service, corpusRepository } = await makeService(adapter)

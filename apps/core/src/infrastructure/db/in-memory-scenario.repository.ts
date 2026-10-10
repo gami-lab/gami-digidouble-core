@@ -28,25 +28,21 @@ function resolveNextModelSelection(
 }
 
 function resolveNextConfig(existing: Scenario, updates: UpdateScenarioParams): Scenario['config'] {
-  const baseConfig = (updates.config !== undefined
-    ? updates.config
-    : existing.config) as unknown as Record<string, unknown>
+  const baseConfig = updates.config !== undefined ? updates.config : existing.config
   const voiceConfig = updates.voiceConfig === undefined ? existing.voiceConfig : updates.voiceConfig
   return withoutVoiceConfiguration(applyVoiceConfiguration(baseConfig, voiceConfig))
 }
 
 function normalizeInitialScenario(scenario: Scenario): Scenario {
-  const voiceConfig =
-    scenario.voiceConfig ??
-    readVoiceConfiguration(scenario.config as unknown as Record<string, unknown>)
+  const voiceConfig = scenario.voiceConfig ?? readVoiceConfiguration(scenario.config)
   return {
     ...scenario,
     ...(voiceConfig !== undefined ? { voiceConfig } : {}),
-    config: withoutVoiceConfiguration(scenario.config as unknown as Record<string, unknown>),
+    config: withoutVoiceConfiguration(scenario.config),
   }
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function buildUpdatedScenario(existing: Scenario, updates: UpdateScenarioParams): Scenario {
   const nextModelSelection = resolveNextModelSelection(existing, updates)
   const existingWithoutVoiceConfig = withoutModelSelection(existing)

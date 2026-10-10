@@ -160,7 +160,7 @@ function createUseCase(
   }
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('SynthesizeMessageAudioUseCase', () => {
   it('passes the persisted cleaned Avatar content exactly and does not persist audio', async () => {
     const { useCase, messages, adapter } = createUseCase()
@@ -407,7 +407,7 @@ describe('SynthesizeMessageAudioUseCase', () => {
   })
 })
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('SynthesizeMessageAudioUseCase debug events', () => {
   function createWithEvents(adapter: ITextToSpeechAdapter): {
     useCase: SynthesizeMessageAudioUseCase

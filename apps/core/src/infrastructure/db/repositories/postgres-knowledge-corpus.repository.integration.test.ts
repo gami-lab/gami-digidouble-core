@@ -11,7 +11,7 @@ function vectorForCurrentProfile(first: number, second: number): number[] {
   return [first, second, ...Array.from({ length: DEFAULT_EMBEDDING_DIMENSIONS - 2 }, () => 0)]
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeCorpusRepository', () => {
   let sql: Sql
   let scenarioRepository: PostgresScenarioRepository

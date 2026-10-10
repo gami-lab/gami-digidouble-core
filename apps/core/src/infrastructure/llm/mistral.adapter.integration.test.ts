@@ -6,7 +6,7 @@ const apiKey = process.env['MISTRAL_API_KEY']
 
 describe.skipIf(!apiKey)('MistralAdapter — real mistral-small-4 integration', () => {
   it('returns a valid LlmResponse from the live API', async (context) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- integration preflight guarantees the credential
     const adapter = new MistralAdapter(apiKey!)
 
     try {

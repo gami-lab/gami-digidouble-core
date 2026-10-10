@@ -39,7 +39,7 @@ function send(
   response.end(body)
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 async function handleRequest(
   request: IncomingMessage,
   response: ServerResponse,
@@ -133,7 +133,7 @@ async function readRequestBody(request: IncomingMessage): Promise<string> {
   })
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function parseReviewRequest(value: unknown): ReviewRequest {
   if (!isRecord(value)) throw new Error('Review request must be a JSON object.')
   const questionNumber = value['questionNumber']

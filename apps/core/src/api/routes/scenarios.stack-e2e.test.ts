@@ -236,7 +236,7 @@ describe('Stack E2E — PATCH /v1/scenarios/:id — validation', () => {
   })
 })
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('Stack E2E — PATCH /v1/scenarios/:id — success', () => {
   it('updates scenario name and returns 200 with updated scenario', async () => {
     const createRes = await fetch(ENDPOINT, {

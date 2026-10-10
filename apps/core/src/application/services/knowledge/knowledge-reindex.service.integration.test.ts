@@ -80,7 +80,7 @@ class BlockingContentLoader implements IKnowledgeSourceContentLoader {
   }
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe.skipIf(!DB_AVAILABLE)('KnowledgeReindexService with PostgreSQL persistence', () => {
   let sql: Sql
   let scenarioRepository: PostgresScenarioRepository

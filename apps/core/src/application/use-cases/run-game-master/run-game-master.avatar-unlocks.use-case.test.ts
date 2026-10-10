@@ -147,7 +147,7 @@ beforeEach(() => {
   traceMock.mockResolvedValue(undefined)
 })
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('RunGameMasterUseCase — avatar unlock decisions', () => {
   it('updates session unlockedAvatarIds from valid GM unlock output without duplicates', async () => {
     const eventLog = new InMemoryEventLogRepository()

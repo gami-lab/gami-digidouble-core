@@ -4,7 +4,7 @@ import type { GameMasterState } from '../../../domain/game-master/game-master.ty
 import { readRenderedGameMasterPrompt } from '../../../test-utils/game-master.js'
 import { RunGameMasterUseCase } from './run-game-master.use-case.js'
 
-/* eslint-disable max-lines-per-function */
+/* eslint-disable max-lines-per-function -- retained fixture or orchestration setup is clearer together */
 const findBySessionIdMock = vi.fn()
 const saveGmStateMock = vi.fn()
 const findSessionByIdMock = vi.fn()

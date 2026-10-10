@@ -98,7 +98,7 @@ export class VoiceTurnUseCase {
     }
   }
 
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
   async *executeStream(
     input: VoiceTurnInput,
     options?: VoiceTurnOptions,

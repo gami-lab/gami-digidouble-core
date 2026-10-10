@@ -6,7 +6,7 @@ import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
 import { PostgresSessionRepository } from './postgres-session.repository.js'
 import { PostgresGmStateRepository } from './postgres-gm-state.repository.js'
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe.skipIf(!DB_AVAILABLE)('PostgresGmStateRepository', () => {
   let sql: Sql
   let scenarioRepo: PostgresScenarioRepository

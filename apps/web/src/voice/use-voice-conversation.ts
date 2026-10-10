@@ -57,7 +57,7 @@ export function isVoiceCaptureSupported(): boolean {
  * Hands-free voice loop: records while listening, auto-sends on a pause, pauses the microphone
  * while the reply streams and plays, then listens again.
  */
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 export function useVoiceConversation(chat: ActiveChatRuntimeState): VoiceConversationState {
   const [supported] = useState(isVoiceCaptureSupported)
   const [enabled, setEnabled] = useState(false)

@@ -94,8 +94,9 @@ that touches persistence, retrieval, or provider adapters.
   does not change runtime ordering or public API contracts.
 - EPIC 11.2 is in progress: prompt 01 measured the comment baseline and inventoried hacks,
   suppressions, ownership, and planned fixes; prompt 02 removed the documented legacy fallbacks,
-  stale TODOs, compatibility paths, and obsolete session/avatar memory mirrors. Prompt 03 still
-  owns lint-suppression and production type-escape cleanup, followed by the comment sweeps.
+  stale TODOs, compatibility paths, and obsolete session/avatar memory mirrors; prompt 03 removed
+  production type escapes, fixed the async port suppression, and recorded the remaining
+  reasoned lint keeps. Prompts 04 and 05 own the remaining comment sweeps.
 - Phase A has API-key auth only (no user accounts/roles), one Core deployment unit, optional
   provider integrations, and no audio persistence — sufficient for the current prototype scope, but
   worth revisiting before multi-tenant or external-user deployment.

@@ -36,7 +36,7 @@ const AUTOPLAY_UNLOCK_MS = 300
  * Streams reply audio as raw PCM and plays each chunk as it arrives, so the voice starts with the
  * first synthesized words instead of after the whole clip.
  */
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 export function useMessageAudioPlayback(conversationId: string | null): MessageAudioPlayback {
   const [audio, setAudio] = useState<AudioPlaybackState>(INITIAL_AUDIO_STATE)
   const mountedRef = useRef(true)

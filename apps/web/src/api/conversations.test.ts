@@ -2,7 +2,7 @@ import type { MessageStreamEvent } from '@gami/shared'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { sendMessageStream } from './conversations'
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('message stream API client', () => {
   afterEach(() => {
     vi.restoreAllMocks()

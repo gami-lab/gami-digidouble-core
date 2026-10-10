@@ -170,7 +170,7 @@ function createClients(
   }
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('runEvaluation', () => {
   it('judges ordered responses, preserves mismatches, and writes incremental snapshots', async () => {
     const clients = createClients()

@@ -96,7 +96,7 @@ async function waitForOperation(app: FastifyInstance, operationId: string, statu
   throw new Error(`Timed out waiting for ${status}`)
 }
 
-/* eslint-disable max-lines-per-function */
+/* eslint-disable max-lines-per-function -- retained fixture or orchestration setup is clearer together */
 describe('Admin knowledge reindex routes', () => {
   it('requires auth on start', async () => {
     const { app } = await makeApp()

@@ -55,7 +55,7 @@ function createViewerReport() {
   })
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('report viewer', () => {
   it('serves the dashboard and the current report without exposing other paths', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'conversation-evaluation-viewer-'))

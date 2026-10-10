@@ -29,7 +29,7 @@ const identity: LocalWebIdentity = {
   updatedAt: '2026-06-01T00:00:00.000Z',
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('useScenarioAvatarDiscovery behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks()

@@ -203,7 +203,7 @@ describe('GET /v1/admin/sessions/:id/events — validation', () => {
 })
 
 describe('GET /v1/admin/sessions/:id/inspect — happy path', () => {
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
   it('returns an admin-safe inspect snapshot', async () => {
     const response = await makeApp().inject({
       method: 'GET',

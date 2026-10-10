@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { MemorySelectionService } from './memory-selection.service.js'
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('MemorySelectionService', () => {
   it('selects bounded episodic memories with deterministic reasons', async () => {
     const service = new MemorySelectionService(

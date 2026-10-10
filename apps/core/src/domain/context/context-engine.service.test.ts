@@ -1,4 +1,4 @@
-/* eslint-disable max-lines, max-lines-per-function */
+/* eslint-disable max-lines, max-lines-per-function -- retained fixture or orchestration setup is clearer together */
 import { describe, expect, it } from 'vitest'
 import type { AvatarComputedTraits } from '../avatar/avatar.types.js'
 import type { TypedRetrievalResult } from '../knowledge/knowledge.types.js'

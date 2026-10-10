@@ -104,7 +104,7 @@ export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceReposi
     return Promise.resolve(normalizeSource(updated))
   }
 
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
   update(sourceId: string, updates: UpdateKnowledgeSourceParams): Promise<KnowledgeSource | null> {
     const existing = this.sources.get(sourceId)
     if (existing === undefined) return Promise.resolve(null)

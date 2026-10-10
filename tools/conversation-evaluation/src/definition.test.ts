@@ -44,7 +44,7 @@ const validDefinition = {
   ],
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('evaluation definition validation', () => {
   it('accepts a valid definition and preserves criteria text', () => {
     expect(validateTestDefinition(validDefinition)).toEqual(validDefinition)

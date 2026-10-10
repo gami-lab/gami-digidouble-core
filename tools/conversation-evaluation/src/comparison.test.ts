@@ -84,7 +84,7 @@ function report(model: string): RunReport {
   }
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('model comparison reports', () => {
   it('creates an independent run definition and stable run keys', () => {
     expect(createModelRunDefinition(definition, 'openai/gpt-5.4')).toEqual({

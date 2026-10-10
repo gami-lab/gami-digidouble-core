@@ -113,7 +113,7 @@ async function synthesizeAll(
   return { audio, metadata: stream.metadata }
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('GradiumTextToSpeechAdapter', () => {
   it('maps the provider-neutral request to the official Gradium JSON fields', async () => {
     const response = createResponse(Uint8Array.from([1, 2, 3]), {
@@ -297,7 +297,7 @@ describe('GradiumTextToSpeechAdapter', () => {
   })
 })
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('GradiumTextToSpeechAdapter cancellation and timeout', () => {
   it('propagates caller cancellation and maps it without provider details', async () => {
     let request: GradiumTransportRequest | undefined

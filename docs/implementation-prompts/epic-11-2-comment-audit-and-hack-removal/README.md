@@ -33,13 +33,13 @@ matching root config files; generated and dependency directories are excluded.
 | root config                      |                   128 |
 | **Total**                        |             **1,553** |
 
-- `eslint-disable`: 172 directives (83 outside tests), mostly `complexity` (74 rule uses) and
-  `max-lines-per-function` (82 rule uses), plus `max-lines` (14),
+- `eslint-disable`: 169 directives (81 outside tests), mostly `complexity` (73 rule uses) and
+  `max-lines-per-function` (80 rule uses), plus `max-lines` (14),
   `@typescript-eslint/no-non-null-assertion` (5), `@typescript-eslint/require-await` (3),
   `@typescript-eslint/no-explicit-any` (1), `@typescript-eslint/no-unsafe-call` (1),
   `@typescript-eslint/no-unnecessary-condition` (1), and `require-yield` (1). Combined directives
   are counted once as directives and once per listed rule in the rule-use totals.
-- `as unknown as`: 59 (6 outside tests); `as any`: 1 (test-only); non-null assertions: 5
+- `as unknown as`: 53 (none outside tests); `as any`: 1 (test-only); non-null assertions: 5
   (test-only); `@ts-ignore` / `@ts-expect-error`: 0.
 - Confirmed hack markers include the three stale TODOs, undefined unlock-state and missing
   working-memory-field fallbacks, session/avatar memory mirrors, legacy evaluation provider/report

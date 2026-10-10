@@ -35,7 +35,7 @@ function makeCompactionResponse(model: string) {
   })
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('MemoryMaintenanceService model resolution', () => {
   it('uses the session model override before scenario and role configuration', async () => {
     const resolvedAdapterCompleteMock = makeCompactionResponse('gpt-5.6-luna')

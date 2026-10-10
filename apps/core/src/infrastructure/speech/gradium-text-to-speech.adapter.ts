@@ -202,7 +202,7 @@ export class GradiumTextToSpeechAdapter implements ITextToSpeechAdapter {
   }
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function validateConfig(config: GradiumTextToSpeechConfig): void {
   if (config.apiKey.trim().length === 0) {
     throw new Error('Missing GRADIUM_API_KEY.')

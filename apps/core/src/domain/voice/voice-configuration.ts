@@ -29,18 +29,18 @@ export function normalizeVoiceConfiguration(
 }
 
 export function normalizeVoiceConfigurationMutation(
-  config: Record<string, unknown> | undefined,
+  config: object | undefined,
   value: unknown,
   allowClear: false,
 ): VoiceConfiguration | undefined
 export function normalizeVoiceConfigurationMutation(
-  config: Record<string, unknown> | undefined,
+  config: object | undefined,
   value: unknown,
   allowClear: true,
 ): VoiceConfiguration | null | undefined
 
 export function normalizeVoiceConfigurationMutation(
-  config: Record<string, unknown> | undefined,
+  config: object | undefined,
   value: unknown,
   allowClear: boolean,
 ): VoiceConfiguration | null | undefined {
@@ -48,10 +48,8 @@ export function normalizeVoiceConfigurationMutation(
   return normalizeVoiceConfiguration(value, { allowClear })
 }
 
-export function assertVoiceConfigurationIsNotEmbedded(
-  config: Record<string, unknown> | undefined,
-): void {
-  if (config?.[VOICE_CONFIGURATION_CONFIG_KEY] !== undefined) {
+export function assertVoiceConfigurationIsNotEmbedded(config: object | undefined): void {
+  if (config !== undefined && configRecord(config)[VOICE_CONFIGURATION_CONFIG_KEY] !== undefined) {
     throw new DomainError(
       'INVALID_INPUT',
       'voiceConfig must be provided as a top-level field, not inside config',
@@ -59,23 +57,19 @@ export function assertVoiceConfigurationIsNotEmbedded(
   }
 }
 
-export function readVoiceConfiguration(
-  config: Record<string, unknown>,
-): VoiceConfiguration | undefined {
-  const value = config[VOICE_CONFIGURATION_CONFIG_KEY]
+export function readVoiceConfiguration(config: object): VoiceConfiguration | undefined {
+  const value = configRecord(config)[VOICE_CONFIGURATION_CONFIG_KEY]
   return isVoiceConfiguration(value) ? value : undefined
 }
 
-export function withoutVoiceConfiguration(
-  config: Record<string, unknown>,
-): Record<string, unknown> {
-  const result = { ...config }
+export function withoutVoiceConfiguration(config: object): Record<string, unknown> {
+  const result = configRecord(config)
   Reflect.deleteProperty(result, VOICE_CONFIGURATION_CONFIG_KEY)
   return result
 }
 
 export function applyVoiceConfiguration(
-  config: Record<string, unknown>,
+  config: object,
   voiceConfig: VoiceConfiguration | null | undefined,
 ): Record<string, unknown> {
   if (voiceConfig === undefined) return { ...config }
@@ -85,6 +79,10 @@ export function applyVoiceConfiguration(
     ...withoutVoiceConfiguration(config),
     [VOICE_CONFIGURATION_CONFIG_KEY]: voiceConfig,
   }
+}
+
+function configRecord(config: object): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(config))
 }
 
 /**

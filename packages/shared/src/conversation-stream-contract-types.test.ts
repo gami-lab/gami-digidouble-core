@@ -5,7 +5,7 @@ import {
   type MessageStreamEvent,
 } from './conversation-stream-contract-types.js'
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('MessageStreamEvent contract decoder', () => {
   it('accepts valid started, delta, interruption, and error events', () => {
     const events: MessageStreamEvent[] = [

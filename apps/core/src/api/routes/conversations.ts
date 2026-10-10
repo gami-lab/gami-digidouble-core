@@ -120,7 +120,7 @@ const sendMessageBodySchema = {
   additionalProperties: false,
 } as const
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions> = (
   app,
   options,
@@ -182,7 +182,7 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
       config: { rawBody: true },
       schema: { params: conversationParamsSchema, body: sendMessageBodySchema, response: {} },
     },
-    // eslint-disable-next-line complexity
+    // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
     async (request, reply) => {
       const abortController = new AbortController()
       const onClose = (): void => {

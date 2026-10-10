@@ -1,4 +1,4 @@
-import type { JSONValue, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { IModelConfigRepository } from '../../../application/ports/IModelConfigRepository.js'
 import {
   isProviderName,
@@ -7,6 +7,7 @@ import {
   type RoleOverrides,
 } from '../../../domain/model-config/index.js'
 import { isAllowedModelForProvider, isModelSelectionProviderName } from '@gami/shared'
+import { toJsonValue } from '../json-value.js'
 
 interface ModelConfigRow {
   config: unknown
@@ -128,7 +129,7 @@ export class PostgresModelConfigRepository implements IModelConfigRepository {
   async upsert(config: ModelConfig): Promise<ModelConfig> {
     const [row] = await this.sql<[ModelConfigRow]>`
       INSERT INTO model_config (id, config)
-      VALUES (1, ${this.sql.json(config as unknown as JSONValue)})
+      VALUES (1, ${this.sql.json(toJsonValue(config))})
       ON CONFLICT (id)
       DO UPDATE SET
         config = EXCLUDED.config,

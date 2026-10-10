@@ -23,7 +23,7 @@ export class CreateScenarioUseCase {
   }
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function buildCreateParams(input: CreateScenarioInput): CreateScenarioParams {
   const name = input.name.trim()
   if (name.length === 0) {

@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+/* eslint-disable max-lines -- retained cohesive module boundary; splitting would obscure ownership */
 import type { IEventLogRepository, StoredEvent } from '../../ports/IEventLogRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import { isRetrievalQuerySource } from '@gami/shared'
@@ -136,7 +136,7 @@ function toSafePayload(payload: Record<string, unknown>): GmSessionEventPayload 
   }
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function toSafeMemoryRefreshPayload(payload: Record<string, unknown>): MemoryRefreshEventPayload {
   const base: MemoryRefreshEventPayload = {
     sessionId: readString(payload['sessionId']),
@@ -797,7 +797,7 @@ function hasRecordedKnowledge(
   return value.avatar_knowledge.length > 0 || value.world.length > 0 || value.media.length > 0
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function readRecordedKnowledgeReference(entry: unknown): RecordedKnowledgeReference | null {
   if (!isRecord(entry)) return null
   const sourceId = readOptionalString(entry['sourceId'])

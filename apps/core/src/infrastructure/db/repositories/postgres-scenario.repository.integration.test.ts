@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { DB_AVAILABLE, createTestSql, truncateAllTables } from '../test-helpers.js'
 import { PostgresScenarioRepository } from './postgres-scenario.repository.js'
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe.skipIf(!DB_AVAILABLE)('PostgresScenarioRepository', () => {
   let sql: Sql
   let repo: PostgresScenarioRepository

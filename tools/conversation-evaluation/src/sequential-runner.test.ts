@@ -120,7 +120,7 @@ function definitionWithAvatarName(name: string, questions = definition.questions
 
 // The deferred first response is intentional: it proves the second message is not requested
 // until the first Avatar response has completed.
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('runSequentialConversation', () => {
   it('sends the selected model when creating the session and Avatar messages', async () => {
     const firstQuestion = definition.questions[0]

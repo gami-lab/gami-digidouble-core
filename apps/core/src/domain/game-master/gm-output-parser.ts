@@ -129,7 +129,7 @@ function toOptionalScopes(value: unknown): RetrievalScope[] | undefined | null {
   return [...new Set(value)]
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function toRoutingDecision(value: unknown): RoutingDecision | undefined {
   if (value === undefined) return undefined
   if (!isRecord(value)) return { action: 'stay' }

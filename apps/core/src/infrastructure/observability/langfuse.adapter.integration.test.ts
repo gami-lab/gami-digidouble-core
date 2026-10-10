@@ -18,7 +18,7 @@ describe.skipIf(!secretKey || !publicKey)(
   'LangfuseObservabilityAdapter — real API integration',
   () => {
     it('sends a trace and flushes without error', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- integration preflight guarantees the credential
       const adapter = new LangfuseObservabilityAdapter(publicKey!, secretKey!, host)
 
       await adapter.trace({

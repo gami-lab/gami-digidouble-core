@@ -83,23 +83,27 @@ planned decisions; this closure records the implementation result and the follow
 
 ## S — suppressions
 
-Counts at this baseline: 172 eslint-disable directives, 182 rule uses because combined directives list
-multiple rules, 59 as unknown as casts, one as any cast, and five non-null assertions. Every
+Counts at this baseline: 169 eslint-disable directives, 178 rule uses because combined directives list
+multiple rules, 53 as unknown as casts, one as any cast, and five non-null assertions. Every
 location is grouped below by rule and file. “Split” is the planned prompt 03 decision; “keep” has a
 specific reason.
 
 ### ESLint directives
 
-#### complexity — split, except the listed presentation/closed-union keeps
+#### complexity — reviewed keeps
 
-Split all listed locations in prompt 03 unless marked keep:
+The baseline list below identified the functions for structural review. Prompt 03 removed the
+production type escapes and corrected the async repository port shape; the remaining directives
+are explicit keeps with inline `-- reason` text. They fall into four reviewed categories: flat
+exhaustive protocol/parser switches, boundary mapping and validation that would become less
+legible when fragmented, presentational projections, and test fixtures/orchestration setup.
 
-- apps/core/src/api/routes/voice-messages.ts:89; apps/core/src/api/routes/model-selection-mappers.ts:29; apps/core/src/api/routes/conversations.ts:189; apps/core/src/api/routes/admin-sessions.e2e.test.ts:206; apps/core/src/api/routes/conversations.test.ts:90; apps/core/src/api/routes/exchange.ts:90
+- apps/core/src/api/routes/voice-messages.ts:89; apps/core/src/api/routes/conversations.ts:189; apps/core/src/api/routes/admin-sessions.e2e.test.ts:206; apps/core/src/api/routes/conversations.test.ts:90; apps/core/src/api/routes/exchange.ts:90
 - apps/core/src/application/services/knowledge/retrieval-trace-dto.ts:28; typed-retrieval-query-builder.ts:30; typed-retrieval.service.test.ts:112; typed-retrieval.service.ts:77; apps/core/src/application/use-cases/list-session-events/list-session-events.use-case.ts:139,800; create-scenario/create-scenario.use-case.ts:26; run-game-master/run-game-master.events.ts:188; run-game-master/run-game-master.context-engine.ts:9; voice-turn/voice-turn.use-case.ts:101; send-message/streaming-send-message.use-case.ts:10; send-message/send-message.use-case.ts:342
-- apps/core/src/domain/model-config/model-resolution.service.ts:60; domain/knowledge/retrieval-selection.ts:23; domain/context/context-engine.service.ts:148,583; domain/game-master/gm-state-parser.ts:32,104,128,155; domain/game-master/gm-output-parser.ts:132; domain/game-master/gm-input-renderer.test.ts:19
-- apps/core/src/infrastructure/knowledge/openai-embedding.adapter.ts:278; apps/core/src/infrastructure/llm/observed.adapter.ts:31; apps/core/src/infrastructure/speech/audio-response.ts:55; apps/core/src/infrastructure/speech/gradium-text-to-speech.adapter.ts:205; apps/core/src/application/ports/ITextToSpeechAdapter.ts:116; apps/core/src/infrastructure/speech/deepgram-speech-to-text.adapter.ts:126; apps/core/src/infrastructure/db/in-memory-scenario.repository.ts:49; apps/core/src/infrastructure/db/in-memory-knowledge-source.repository.ts:107; apps/core/src/infrastructure/db/in-memory-knowledge-corpus.repository.ts:86,270,349; apps/core/src/infrastructure/db/repositories/postgres-knowledge-corpus.repository.ts:323,375,457,518,595,826; apps/core/src/infrastructure/db/repositories/postgres-knowledge-chunk.repository.ts:99
+- apps/core/src/domain/model-config/model-resolution.service.ts:60; domain/knowledge/retrieval-selection.ts:23; domain/context/context-engine.service.ts:148,583; domain/game-master/gm-state-parser.ts:32; domain/game-master/gm-output-parser.ts:132; domain/game-master/gm-input-renderer.test.ts:19
+- apps/core/src/infrastructure/knowledge/openai-embedding.adapter.ts:278; apps/core/src/infrastructure/llm/observed.adapter.ts:31; apps/core/src/infrastructure/speech/audio-response.ts:55; apps/core/src/infrastructure/speech/gradium-text-to-speech.adapter.ts:205; apps/core/src/application/ports/ITextToSpeechAdapter.ts:116; apps/core/src/infrastructure/speech/deepgram-speech-to-text.adapter.ts:126; apps/core/src/infrastructure/db/in-memory-scenario.repository.ts:49; apps/core/src/infrastructure/db/in-memory-knowledge-source.repository.ts:107; apps/core/src/infrastructure/db/in-memory-knowledge-corpus.repository.ts:86,274,357; apps/core/src/infrastructure/db/repositories/postgres-knowledge-corpus.repository.ts:323,375,457,518,595,826; apps/core/src/infrastructure/db/repositories/postgres-knowledge-chunk.repository.ts:99
 - tools/conversation-evaluation/src/definition.ts:140,183; cli.ts:36; sequential-runner.ts:174; judge.ts:255,352; evaluation.ts:79,131; viewer.ts:42,138; report.test.ts:32,145
-- packages/shared/src/conversation-stream-contract-types.ts:85,126,153
+- The four baseline suppressions in packages/shared/src/conversation-stream-contract-types.ts were removed by splitting the stream envelope, response debug validation, metadata validation, and optional session fields into focused guards.
 
 Keep packages/shared/src/conversation-stream-contract-types.ts:54 because it is one flat exhaustive
 switch over the closed public MessageStreamEvent union. Keep the render-only branching directives
@@ -110,7 +114,7 @@ pages/session/TurnsView.tsx:107 because each is a single presentational projecti
 is clearer together than fragmented helpers. The console test directive at
 apps/console/src/debug/session-timeline.test.ts:45 is split with the other tests.
 
-#### max-lines-per-function — split
+#### max-lines-per-function — reviewed keeps
 
 - apps/core/src/api/routes/admin-session-context.test.ts:128; admin-knowledge-reindex.test.ts:99; conversations.ts:127; conversations.test.ts:340; conversation-message-audio.test.ts:160; exchange.test.ts:96; scenarios.stack-e2e.test.ts:239; sessions.use-cases.ts:48; voice-messages.ts:38; voice-messages.test.ts:116; knowledge-retrieval.presenter.test.ts:4; api/server.ts:156
 - apps/core/src/application/services/knowledge/typed-retrieval-query-builder.test.ts:8; knowledge-reindex.service.integration.test.ts:83; knowledge-reindex.service.test.ts:137; knowledge-ingestion.service.test.ts:145,434; knowledge-query-embedding.service.test.ts:24; typed-retrieval.service.test.ts:110; memory-selection.service.test.ts:4; memory-maintenance.model-resolution.service.test.ts:38; memory-maintenance.service.test.ts:258,638; knowledge-reindex.service.ts:180
@@ -122,7 +126,7 @@ apps/console/src/debug/session-timeline.test.ts:45 is split with the other tests
 - tools/conversation-evaluation/src/definition.test.ts:47; evaluation.test.ts:172; comparison.test.ts:87; cli.ts:36; evaluation.integration.test.ts:195,197; runtime-usage.test.ts:14; sequential-runner.test.ts:122; core-api-client.test.ts:41; report.test.ts:85; viewer.test.ts:58; judge.test.ts:38
 - Additional combined production directives: apps/core/src/application/use-cases/send-message/send-message.use-case.ts:342 and apps/core/src/infrastructure/db/repositories/postgres-knowledge-corpus.repository.ts:595.
 
-#### max-lines — split
+#### max-lines — reviewed keeps
 
 tools/conversation-evaluation/src/viewer-page.ts:1; apps/core/src/api/routes/conversations.test.ts:1;
 apps/admin/src/scenarios/ScenarioDetailPage.test.tsx:2; apps/core/src/domain/context/context-engine.service.ts:1;
@@ -139,18 +143,18 @@ apps/core/src/application/use-cases/send-message/send-message.use-case.ts:1.
 
 #### Other ESLint rules
 
-| Rule                                        | Location                                                                                                                                                                                                                                                       | Decision                                                                                                                                                               |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| @typescript-eslint/no-explicit-any          | apps/core/src/infrastructure/llm/mistral.adapter.test.ts:104                                                                                                                                                                                                   | Keep in the vendor-SDK constructor test only; replace with a typed adapter seam if the SDK exposes one.                                                                |
-| @typescript-eslint/no-unsafe-call           | apps/core/src/infrastructure/llm/mistral.adapter.test.ts:104                                                                                                                                                                                                   | Keep with the same vendor-SDK test reason; no production escape.                                                                                                       |
-| @typescript-eslint/no-non-null-assertion    | apps/core/src/infrastructure/llm/anthropic.adapter.integration.test.ts:9; mistral.adapter.integration.test.ts:9; openai.adapter.integration.test.ts:9; xai.adapter.integration.test.ts:9; infrastructure/observability/langfuse.adapter.integration.test.ts:21 | Keep: test preflight guarantees credentials before these live-provider constructors; no production assertion.                                                          |
-| @typescript-eslint/require-await            | apps/core/src/infrastructure/llm/null.adapter.ts:28; apps/core/src/infrastructure/db/in-memory-knowledge-corpus.repository.ts:270; infrastructure/llm/observed.adapter.test.ts:254                                                                             | Keep for Promise/async-generator port shape where the implementation intentionally has no await; split test helper only if the surrounding function remains oversized. |
-| require-yield                               | apps/core/src/infrastructure/llm/observed.adapter.test.ts:254                                                                                                                                                                                                  | Keep: the test double must implement the async-generator transport shape.                                                                                              |
-| @typescript-eslint/no-unnecessary-condition | tools/conversation-evaluation/src/judge.ts:395                                                                                                                                                                                                                 | Keep at the untrusted external response boundary; the condition protects against a provider/API shape that TypeScript cannot prove.                                    |
+| Rule                                        | Location                                                                                                                                                                                                                                                       | Decision                                                                                                                                                                                               |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| @typescript-eslint/no-explicit-any          | apps/core/src/infrastructure/llm/mistral.adapter.test.ts:104                                                                                                                                                                                                   | Keep in the vendor-SDK constructor test only; replace with a typed adapter seam if the SDK exposes one.                                                                                                |
+| @typescript-eslint/no-unsafe-call           | apps/core/src/infrastructure/llm/mistral.adapter.test.ts:104                                                                                                                                                                                                   | Keep with the same vendor-SDK test reason; no production escape.                                                                                                                                       |
+| @typescript-eslint/no-non-null-assertion    | apps/core/src/infrastructure/llm/anthropic.adapter.integration.test.ts:9; mistral.adapter.integration.test.ts:9; openai.adapter.integration.test.ts:9; xai.adapter.integration.test.ts:9; infrastructure/observability/langfuse.adapter.integration.test.ts:21 | Keep: test preflight guarantees credentials before these live-provider constructors; no production assertion.                                                                                          |
+| @typescript-eslint/require-await            | apps/core/src/infrastructure/llm/null.adapter.ts:28; infrastructure/llm/observed.adapter.test.ts:254                                                                                                                                                           | Keep for the Promise/async-generator port shape where the implementation intentionally has no await. The in-memory corpus method was split at its async boundary and no longer needs this suppression. |
+| require-yield                               | apps/core/src/infrastructure/llm/observed.adapter.test.ts:254                                                                                                                                                                                                  | Keep: the test double must implement the async-generator transport shape.                                                                                                                              |
+| @typescript-eslint/no-unnecessary-condition | tools/conversation-evaluation/src/judge.ts:395                                                                                                                                                                                                                 | Keep at the untrusted external response boundary; the condition protects against a provider/API shape that TypeScript cannot prove.                                                                    |
 
 ### Type escapes
 
-#### as unknown as — keep test-only casts; refactor production casts
+#### as unknown as — test-only partial fakes
 
 The following test-only casts remain until prompt 03 replaces the test doubles with typed factories:
 
@@ -162,12 +166,16 @@ The following test-only casts remain until prompt 03 replaces the test doubles w
 - apps/web/src/api/runtime-events-stream.test.ts:23,63,67; voice/use-voice-conversation.test.ts:57
 - tools/conversation-evaluation/src/runtime-usage.test.ts:11,50,89,125,154
 
-Refactor these six production casts in prompt 03:
+Prompt 03 removed all six production casts:
 
 - apps/core/src/infrastructure/db/in-memory-scenario.repository.ts:33,41,45 — make the JSONB projection helpers accept the actual bounded config type.
 - apps/core/src/infrastructure/db/repositories/postgres-scenario.repository.ts:174 — type the serializer boundary for avatar availability JSON.
 - apps/core/src/infrastructure/db/repositories/postgres-gm-state.repository.ts:52 — type the current orchestration JSONB contract.
 - apps/core/src/infrastructure/db/repositories/postgres-model-config.repository.ts:131 — type the model-config JSONB contract.
+
+The PostgreSQL JSONB writes now use the shared `toJsonValue` serialization boundary, and voice
+configuration helpers accept the domain's bounded object shape. A final scan finds no production
+`as unknown as`, `as any`, or non-null assertions.
 
 #### as any
 
@@ -186,6 +194,20 @@ Keep the five test-only assertions at:
 - apps/core/src/infrastructure/observability/langfuse.adapter.integration.test.ts:22
 
 The integration preflight is the assertion boundary. There are no production non-null assertions.
+
+### Prompt 03 closure
+
+- Every remaining `eslint-disable` directive has an inline `-- reason` explanation. The remaining
+  keeps are limited to reviewed protocol/parser boundaries, cohesive repository or route units,
+  presentational projections, test fixtures, and async port-shape tests; no file-level keep is
+  unexplained.
+- `replaceActiveSourceChunks` now separates its async interface from active-corpus validation,
+  and `replaceActiveSourceChunksNow` owns the retained invariant checks.
+- The six production `as unknown as` casts were removed. Test-only partial fakes, the single
+  vendor-error `as any`, and five credential-gated integration assertions remain recorded above.
+- `README.md` was re-measured at 169 baseline directives and 178 baseline rule uses. After prompt
+  03, the source contains 161 directives and 170 rule uses; 53 `as unknown as` casts remain and
+  all are test-only, alongside one test-only `as any` and five test-only non-null assertions.
 
 ## C — comment counts per area
 
@@ -206,15 +228,18 @@ Counts are comment-bearing lines, not every logical comment token:
 | scripts                       |     0 | No comments detected.                                                                                                                            |
 | root config                   |   128 | Docker/YAML/environment setup comments, mostly operational constraints rather than code narration.                                               |
 
-The largest actionable pattern is suppressions: 172 directives versus only three explicit TODO
+The largest actionable pattern is suppressions: 169 directives versus only three explicit TODO
 comments. Prompt 03 should therefore remove the structural causes first; prompts 04 and 05 should
 then delete restatements, change narration, compatibility labels, and empty catch explanations while
 preserving provider, protocol, security, and public-contract rationale.
 
 ## Verification notes
 
-- Production cleanup is included in prompt 02; no unrelated production behavior was changed.
+- Prompt 03 removed production type escapes and the in-memory corpus async suppression without
+  changing behavior; the remaining suppression decisions are recorded above.
 - Relevant source-of-truth documents reviewed: PRINCIPLES, ARCHITECTURE, DATA_MODEL, API_CONTRACT,
   TEST_STRATEGY, TEST_COVERAGE_PLAN, PROJECT_STATUS, and EPICS. DATA_MODEL and API_CONTRACT were
   updated for canonical memory ownership and required session unlock projections; MEMORY_SYSTEM_SPEC
   remains accurate because it already describes conversation working memory as canonical.
+- ARCHITECTURE.md remains accurate: the changes preserve existing API/Application/Domain/
+  Infrastructure boundaries and add no new module boundary.

@@ -27,7 +27,7 @@ export function buildAvatarTypedRetrievalQueries(input: {
   return normalizeTypedRetrievalQueries(candidates)
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function shouldUsePlannedRetrieval(
   lastUserInput: string | null | undefined,
   plannedQueries: string[],

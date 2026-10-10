@@ -111,7 +111,7 @@ function lastContext(): FakeAudioContext {
   return context
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('useMessageAudioPlayback', () => {
   beforeEach(() => {
     vi.clearAllMocks()

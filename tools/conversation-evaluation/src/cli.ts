@@ -33,7 +33,7 @@ export function countConsecutiveModelFailures(
   return status === 'completed' ? 0 : previousCount + 1
 }
 
-// eslint-disable-next-line complexity, max-lines-per-function
+// eslint-disable-next-line complexity, max-lines-per-function -- retained fixture or orchestration setup is clearer together
 export async function runCli(
   argv: readonly string[] = process.argv.slice(2),
   environment: Readonly<Record<string, string | undefined>> = process.env,

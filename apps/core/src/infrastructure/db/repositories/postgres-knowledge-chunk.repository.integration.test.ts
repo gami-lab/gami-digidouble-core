@@ -36,7 +36,7 @@ async function insertChunk(sql: Sql, params: CreateKnowledgeChunkParams): Promis
   `
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
   let sql: Sql
   let scenarioRepo: PostgresScenarioRepository
@@ -316,7 +316,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
     expect(candidates[0]).not.toHaveProperty('distance')
   })
 
-  // eslint-disable-next-line max-lines-per-function
+  // eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
   it('filters ready sources, type, scenario, profile, generation, static scope, and visibility', async () => {
     const scenario = await scenarioRepo.create({
       name: 'Vector scenario',

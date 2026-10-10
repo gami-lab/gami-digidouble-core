@@ -107,9 +107,9 @@ function buildService(
   return { service, embedVariants, chunkRepository }
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('TypedRetrievalService', () => {
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
   it('retrieves semantic paraphrases without lexical overlap and excludes unrelated vectors', async () => {
     const semanticSource = source('semantic_world_source', 'world')
     const chunkRepository = new InMemoryKnowledgeChunkRepository(

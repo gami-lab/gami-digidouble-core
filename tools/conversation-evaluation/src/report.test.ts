@@ -29,7 +29,7 @@ const definition: TestDefinition = {
   ],
 }
 
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function result(
   questionNumber: number,
   status: QuestionResult['status'],
@@ -82,7 +82,7 @@ function result(
   }
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('evaluation reports', () => {
   it('uses evaluated judge results as the pass-rate denominator', () => {
     const results = [
@@ -142,7 +142,7 @@ describe('evaluation reports', () => {
     expect(aggregateRunSummary(2, []).passRate).toBeNull()
   })
 
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
   it('includes Avatar, Game Master, and memory usage while excluding judge cost', () => {
     const runtimeUsage = emptyRuntimeUsage('complete')
     runtimeUsage.gameMaster = {

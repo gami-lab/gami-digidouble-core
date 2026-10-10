@@ -26,7 +26,7 @@ function stagedChunk(args: {
   }
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('InMemoryKnowledgeCorpusRepository', () => {
   it('promotes an empty initial corpus', async () => {
     const repository = new InMemoryKnowledgeCorpusRepository(new InMemoryKnowledgeChunkRepository())

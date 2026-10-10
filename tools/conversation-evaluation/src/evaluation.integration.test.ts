@@ -193,9 +193,9 @@ function createScriptedFetch(events: string[]): {
   return { fetch, calls }
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('composed scripted evaluation', () => {
-  // eslint-disable-next-line max-lines-per-function
+  // eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
   it('runs three questions in order through one session and judges before the next question', async () => {
     const events: string[] = []
     const scripted = createScriptedFetch(events)
