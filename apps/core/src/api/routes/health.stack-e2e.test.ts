@@ -1,9 +1,4 @@
-/**
- * Stack E2E — GET /health
- *
- * Fires a real HTTP request against the running Docker stack.
- * No mocking. Requires APP_URL to point to a live server.
- */
+/** Requires APP_URL to point to a running Docker stack. */
 import { describe, expect, it } from 'vitest'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'

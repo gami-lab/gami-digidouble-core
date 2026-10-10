@@ -1,17 +1,4 @@
-/**
- * Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits
- *
- * Fires real HTTP requests against the running Docker stack (EPIC 8.1's
- * explicit scenario-scoped trait preparation endpoint). No mocking.
- *
- * The Docker stack is configured with API_KEY_SECRET=e2e-stack-secret and
- * LLM_PROVIDER=${LLM_PROVIDER:-null} (see docker-compose.e2e.yml). With the
- * default null provider, trait preparation deterministically produces a
- * `failed` (`unparseable_output`) result per avatar — that's still a full,
- * always-on proof that the endpoint, auth, scenario/avatar lookup, and
- * persistence wiring all work end-to-end. When the stack is started with a
- * real provider key, the gated block below asserts genuine prepared traits.
- */
+/** Requires APP_URL to point to a running Docker stack. */
 import { describe, expect, it, type TestContext } from 'vitest'
 import { skipIfTransientProviderReason } from '../../test-utils/real-provider.js'
 import {
@@ -35,12 +22,7 @@ function authHeaders(apiKey = API_KEY): Record<string, string> {
   }
 }
 
-// The prepare-avatar-traits endpoint takes no request body — calls to it must
-// omit the JSON content-type header too, since sending `Content-Type:
-// application/json` with no payload trips a generic Fastify body-parser gap
-// (a pre-existing app-wide issue, not specific to this route) that returns
-// 500 instead of the expected status. Bodied calls to *other* endpoints below
-// (create scenario/avatar) correctly use `authHeaders()` instead.
+// This endpoint takes no request body, so no-body requests omit content-type.
 function noBodyAuthHeaders(apiKey = API_KEY): Record<string, string> {
   return { 'x-api-key': apiKey }
 }
@@ -160,10 +142,6 @@ async function deleteScenario(scenarioId: string): Promise<void> {
   })
 }
 
-// Always runs regardless of the stack's configured LLM_PROVIDER — with the
-// default null provider, every avatar deterministically fails to parse
-// (`unparseable_output`), which still proves the full HTTP -> use case ->
-// DB round trip works.
 const isNullProvider = (process.env['LLM_PROVIDER'] ?? 'null') === 'null'
 
 function skipIfTraitProviderUnavailable(

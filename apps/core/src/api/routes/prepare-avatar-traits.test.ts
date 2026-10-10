@@ -21,7 +21,6 @@ const sampleTraits: AvatarComputedTraits = {
   behaviouralRules: ['No spoilers'],
 }
 
-/** Fake LLM adapter that always returns a valid trait-preparation JSON payload. */
 function createDeterministicTraitLlm(): ILlmAdapter {
   return {
     complete: vi.fn((_request: LlmRequest) =>

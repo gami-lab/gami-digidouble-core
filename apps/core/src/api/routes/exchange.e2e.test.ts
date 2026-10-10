@@ -1,22 +1,10 @@
-/**
- * E2E tests — real LLM calls through the full HTTP stack.
- *
- * These tests exercise the complete request path:
- *   HTTP POST /v1/exchange → exchangeRoute → SendRawMessageUseCase → real LLM API
- *
- * They are skipped automatically when the required API key is absent (CI without
- * live credentials). Run locally with a populated .env file.
- *
- * Do NOT mock anything here — the goal is to verify the end-to-end product.
- */
+/** Runs only when the corresponding provider credential is configured. */
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse, RawExchangeResponse } from '@gami/shared'
 import type { Config } from '../../config.js'
 import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function makeConfig(overrides: Partial<Config> = {}): Config {
   return {
@@ -32,8 +20,6 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
     ...overrides,
   }
 }
-
-// ── OpenAI E2E ────────────────────────────────────────────────────────────────
 
 const openaiKey = process.env['OPENAI_API_KEY']
 
@@ -67,8 +53,6 @@ describe.skipIf(!openaiKey)('E2E — POST /v1/exchange with real OpenAI', () => 
   }, 30_000)
 })
 
-// ── Anthropic E2E ─────────────────────────────────────────────────────────────
-
 const anthropicKey = process.env['ANTHROPIC_API_KEY']
 
 describe.skipIf(!anthropicKey)('E2E — POST /v1/exchange with real Anthropic', () => {
@@ -96,8 +80,6 @@ describe.skipIf(!anthropicKey)('E2E — POST /v1/exchange with real Anthropic', 
     expect(body.data?.latencyMs).toBeGreaterThan(0)
   }, 30_000)
 })
-
-// ── Mistral E2E ───────────────────────────────────────────────────────────────
 
 const mistralKey = process.env['MISTRAL_API_KEY']
 

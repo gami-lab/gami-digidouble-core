@@ -1,24 +1,10 @@
-/**
- * Stack E2E — POST /v1/exchange
- *
- * Fires real HTTP requests against the running Docker stack.
- * No mocking. Requires APP_URL to point to a live server.
- *
- * Always-on tests (independent of the LLM provider):
- *   - auth rejection for missing / wrong key
- *   - schema validation rejection
- *
- * The valid exchange response-shape test runs only with the null provider;
- * provider-backed smoke coverage is guarded for transient provider outages.
- */
+/** Requires APP_URL to point to a running Docker stack. */
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse, RawExchangeResponse } from '@gami/shared'
 import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret'
-
-// ── Auth guard tests (always run) ────────────────────────────────────────────
 
 describe('Stack E2E — POST /v1/exchange — auth', () => {
   it('rejects requests with no API key (401)', async () => {
@@ -57,11 +43,6 @@ describe('Stack E2E — POST /v1/exchange — auth', () => {
     expect(res.status).toBe(400)
   })
 })
-
-// ── Null provider — always runs (no LLM key required) ────────────────────────
-//
-// Uses the null adapter to validate the full stack (HTTP → app → DB → Redis)
-// without any external dependencies. Runs regardless of LLM_PROVIDER.
 
 const isNullProvider = (process.env['LLM_PROVIDER'] ?? 'null') === 'null'
 
