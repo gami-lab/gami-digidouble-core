@@ -1,8 +1,8 @@
 {
   "version": 1,
   "name": "Max Lorenzo full test - Chunk size 800, 7 chunk, 0-0-3 required",
-  "scenarioId": "scenario_75a5c07b-9c5d-4453-8543-cc07043742c7",
-  "initialAvatarId": "avatar_b39c0734-2ccf-4d62-92e0-8a3d6ce3786c",
+  "scenarioId": "scenario_391bd6e6-2143-45f1-ba4a-34d7d220bca5",
+  "initialAvatarId": "avatar_be56a2a3-da4b-4ad4-8d05-7a140e08060d",
   "models": [
     "openai/gpt-5.6-luna",
     "openai/gpt-5.6-luna",
@@ -20,7 +20,7 @@
       }
     }
   },
-  "judgeModel": "openai/gpt-5.4-mini",
+  "judgeModel": "openai/gpt-5.6-luna",
   "questions": [
     {
       "question": "Pourquoi êtes-vous partis vous réfugier à la montagne ?",
