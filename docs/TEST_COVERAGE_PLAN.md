@@ -51,6 +51,9 @@ These are easy to regress silently because they are policy, not type-level const
 
 ## Other modules to keep covered
 
+- Nightly test depth: add mutation and conversation-regression suites when their scripts exist,
+  performance smoke/soak checks once baseline thresholds are defined, and secrets scanning once an
+  approved tool is available for the GitHub organization.
 - Avatar trait preparation: per-avatar failure isolation, rerunnable recomputation, persistence
   of `computedTraits` without mutating authored avatar fields, and model resolution through
   scenario default -> global default only (never Avatar role/entity/scenario overrides).

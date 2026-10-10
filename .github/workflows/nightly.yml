@@ -65,10 +65,6 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # TODO(TEST_STRATEGY): Add mutation and conversation regression suites once scripts exist.
-      # TODO(TEST_STRATEGY): Add performance smoke/soak jobs once baseline thresholds are implemented.
-      # TODO(TEST_STRATEGY): Add secrets scan once a suitable free tool is available for GitHub orgs.
-
   stack-e2e:
     name: Stack E2E — production Docker stack
     runs-on: ubuntu-latest

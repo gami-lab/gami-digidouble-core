@@ -1,10 +1,7 @@
-# Development Dockerfile — hot reload via tsx
-# Used by docker-compose.yml app service only.
-# This is NOT the production image.
+# Development image for the docker-compose app service; source is mounted for hot reload.
 
 FROM node:22-alpine
 
-# Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
 WORKDIR /app
@@ -14,11 +11,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/core/package.json ./apps/core/
 COPY packages/shared/package.json ./packages/shared/
 
-# Install all dependencies
 RUN pnpm install --frozen-lockfile
-
-# Source is mounted as a volume at runtime for hot reload
-# (see docker-compose.yml volumes configuration)
 
 EXPOSE 3000
 

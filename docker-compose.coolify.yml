@@ -1,25 +1,13 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# Coolify production stack — app + web + PostgreSQL + Redis
-#
-# Use this file for a full-stack deployment in Coolify or any other Compose-
-# based platform.
-#
-# The API builds from the production Dockerfile and the public web app builds
-# from Dockerfile.web. Both connect to the internal postgres and redis services
-# over the Compose network.
-#
-# Required env vars in Coolify:
+# Coolify requires these environment variables:
 #   API_KEY_SECRET
 #   VITE_API_URL
 #   VITE_API_KEY is derived from API_KEY_SECRET for the web build
 #
-# Embedding startup requires OPENAI_API_KEY with the default OpenAI embedding provider.
+# The default embedding provider requires OPENAI_API_KEY at startup.
 # Optional env vars:
 #   LLM_PROVIDER, EMBEDDING_PROVIDER, EMBEDDING_MODEL, EMBEDDING_DIMENSIONS,
 #   EMBEDDING_BATCH_SIZE, ANTHROPIC_API_KEY, MISTRAL_API_KEY,
 #   XAI_API_KEY, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_BASE_URL
-# ─────────────────────────────────────────────────────────────────────────────
-
 services:
   postgres:
     build:

@@ -1,10 +1,3 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# Production Dockerfile for the admin app (apps/admin)
-#
-# This image builds the Vite app and serves static assets via nginx.
-# VITE_* variables are injected at build time.
-# ─────────────────────────────────────────────────────────────────────────────
-
 FROM node:22-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate

@@ -1,35 +1,9 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# Gami DigiDouble Core — Local Development Stack
-#
-# Three services:
-#   postgres  PostgreSQL 17 + pgvector  → port 5432
-#   redis     Redis 7                   → port 6379
-#   app       @gami/core (tsx dev)      → port 3000
-#
-# Usage:
-#   Infra only (recommended for active dev):
-#     docker compose up postgres redis
-#     pnpm dev
-#
-#   Full stack in containers (--build avoids running a stale app image):
-#     docker compose up -d --build
-#
-#   Teardown (keep volumes):
-#     docker compose down
-#
-#   Teardown (wipe all data):
-#     docker compose down -v
-#
-#   Fresh canonical database (required after schema changes):
+# After schema changes, recreate the canonical volume before starting services:
 #     docker compose down
 #     docker volume rm gami-digidouble-core_postgres_data_canonical 2>/dev/null || true
 #     docker compose up -d postgres redis
-# ─────────────────────────────────────────────────────────────────────────────
 
 services:
-  # ───────────────────────────────────────────
-  # PostgreSQL 17 + pgvector
-  # ───────────────────────────────────────────
   postgres:
     image: pgvector/pgvector:pg17
     container_name: gami_postgres
@@ -50,9 +24,6 @@ services:
       retries: 10
       start_period: 10s
 
-  # ───────────────────────────────────────────
-  # Redis 7
-  # ───────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: gami_redis
@@ -69,12 +40,6 @@ services:
       retries: 10
       start_period: 5s
 
-  # ───────────────────────────────────────────
-  # App (dev mode — tsx hot reload)
-  # Used when running the full stack in Docker.
-  # For active development, prefer running the
-  # app locally with `pnpm dev` instead.
-  # ───────────────────────────────────────────
   app:
     build:
       context: .
