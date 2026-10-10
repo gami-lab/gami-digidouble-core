@@ -236,25 +236,28 @@ provider, and runtime-order contracts remain unchanged.
 
 ## Open Backlog
 
-### `11.2 No Agent Comments Policy`
+### `11.2 Comment Audit & Hack Removal`
 
 **Purpose**  
-Keep agent-written change-log comments (e.g. `// Updated function to handle null check`,
-`/* Added by AI */`) out of source code. They clutter diffs, pollute LLM context on later passes,
-and go stale fast; comments should explain why tricky logic exists, not restate the change.
+Harden the code before the first release. Agent-written comments clutter diffs, pollute LLM
+context, and go stale; worse, many comments mark a hack (a legacy fallback, a TODO, a workaround, a
+lint or type suppression) that should not exist in code nothing has shipped yet.
 
 **Description**  
-Add a `no-comments` ESLint rule that flags change-narrating and AI-attribution comments, run it
-through the existing lint and `lint-staged` pre-commit path, and state the comment policy in
-`AGENTS.md`. The rule reports rather than rewrites, so a human or agent removes or rewords each hit.
+Scan every comment in `apps/`, `packages/`, and `tools/`. Delete comments that restate the code or
+narrate a change, fix stale ones, and keep only comments that explain non-obvious "why". When a
+comment, `TODO`, `eslint-disable`, or type escape (`as unknown as`, `!`) exposes a hack, remove the
+hack itself, not just the comment. Then add a lint guardrail so narration comments and unexplained
+suppressions do not come back.
 
 **Definition of done**
 
-- the rule flags change-narrating and AI-attribution comments and leaves "why" comments, JSDoc,
-  and directives (`eslint-disable`, `@ts-expect-error`) alone
-- unit tests cover flagged and allowed comment examples
-- `pnpm lint` and the pre-commit hook fail on a flagged comment; the existing codebase passes
-- `AGENTS.md` and `docs/TEST_STRATEGY.md` describe the policy
+- every comment, `TODO`, `eslint-disable`, and production type escape is fixed, removed, or kept
+  with a recorded reason
+- legacy/compatibility fallbacks, stale `TODO(EPIC-x)` markers, and workaround code are removed
+- lint fails on change-narrating/AI-attribution comments and on unused or unexplained disables
+- `AGENTS.md` states the comment policy; lint, typecheck, build, and tests pass with no behavior
+  change beyond removed hacks
 
 ### `3.3 Replay & Recovery Tools`
 
