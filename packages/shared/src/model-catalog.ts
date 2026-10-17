@@ -63,9 +63,9 @@ export const SUPPORTED_PRODUCTION_MODEL_MATRIX: Record<
   ],
   mistral: [
     { value: 'mistral-medium-3.5', label: 'mistral-medium-3.5 (frontier)' },
-    { value: 'mistral-small-4', label: 'mistral-small-4 (efficient)' },
-    { value: 'mistral-large-3', label: 'mistral-large-3 (high quality)' },
-    { value: 'ministral-3b', label: 'ministral-3b (tiny)' },
+    { value: 'mistral-small-2603', label: 'mistral-small-2603 (efficient)' },
+    { value: 'mistral-large-2512', label: 'mistral-large-2512 (high quality)' },
+    { value: 'ministral-3b-2512', label: 'ministral-3b-2512 (tiny)' },
   ],
   xai: [
     { value: 'grok-4.3', label: 'grok-4.3 (chat)' },

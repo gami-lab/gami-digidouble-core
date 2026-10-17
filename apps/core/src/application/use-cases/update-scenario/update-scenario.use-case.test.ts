@@ -83,11 +83,11 @@ describe('UpdateScenarioUseCase', () => {
     const updated = await useCase.execute({
       scenarioId: 'scenario_1',
       modelSelection: {
-        defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
+        defaultProfile: { provider: 'mistral', model: 'mistral-small-2603' },
       },
     })
     expect(updated.scenario.modelSelection).toEqual({
-      defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
+      defaultProfile: { provider: 'mistral', model: 'mistral-small-2603' },
     })
 
     const cleared = await useCase.execute({

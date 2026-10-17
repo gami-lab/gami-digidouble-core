@@ -8,7 +8,7 @@ describe('scenario model-selection mappers', () => {
         name: 'Scenario',
         modelSelection: {
           defaultProfile: { provider: 'openai', model: ' gpt-5.6-luna ' },
-          avatarOverride: { provider: 'mistral', model: ' mistral-small-4 ' },
+          avatarOverride: { provider: 'mistral', model: ' mistral-small-2603 ' },
           gameMasterOverride: { provider: 'anthropic', model: ' claude-sonnet-4-6 ' },
           memoryOverride: { provider: 'xai', model: ' grok-4.3 ' },
         },
@@ -16,7 +16,7 @@ describe('scenario model-selection mappers', () => {
     ).toMatchObject({
       modelSelection: {
         defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
-        avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+        avatarOverride: { provider: 'mistral', model: 'mistral-small-2603' },
         gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
         memoryOverride: { provider: 'xai', model: 'grok-4.3' },
       },
@@ -27,14 +27,14 @@ describe('scenario model-selection mappers', () => {
     expect(
       mapUpdateScenarioInput('scenario_1', {
         modelSelection: {
-          avatarOverride: { provider: 'mistral', model: ' mistral-small-4 ' },
+          avatarOverride: { provider: 'mistral', model: ' mistral-small-2603 ' },
           memoryOverride: { provider: 'xai', model: ' grok-4.3 ' },
         },
       }),
     ).toEqual({
       scenarioId: 'scenario_1',
       modelSelection: {
-        avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+        avatarOverride: { provider: 'mistral', model: 'mistral-small-2603' },
         memoryOverride: { provider: 'xai', model: 'grok-4.3' },
       },
     })

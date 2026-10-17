@@ -28,14 +28,14 @@ describe('resolveRoleLlmCall', () => {
         llmAdapterRegistry,
         modelConfigFallback: undefined,
         avatarOverride: { provider: 'xai', model: 'grok-4.3' },
-        requestOverride: { provider: 'mistral', model: 'mistral-small-4' },
+        requestOverride: { provider: 'mistral', model: 'mistral-small-2603' },
         scenarioModelSelection: undefined,
       }),
     ).resolves.toEqual({
       adapter: selectedAdapter,
       provider: 'mistral',
-      model: 'mistral-small-4',
-      effectiveModel: 'mistral-small-4',
+      model: 'mistral-small-2603',
+      effectiveModel: 'mistral-small-2603',
     })
     expect(llmAdapterRegistry.get).toHaveBeenCalledWith('mistral')
   })
@@ -95,7 +95,7 @@ describe('resolveTraitPreparationLlmCall', () => {
         modelConfigFallback: undefined,
         scenarioModelSelection: {
           defaultProfile: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
-          avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+          avatarOverride: { provider: 'mistral', model: 'mistral-small-2603' },
         },
       }),
     ).resolves.toEqual({

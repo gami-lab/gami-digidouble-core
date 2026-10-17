@@ -148,17 +148,17 @@ const PRICING: Record<string, PublicPricing> = {
     outputUsdPerMillionTokens: 7.5,
     source: 'https://mistral.ai/pricing/api/',
   },
-  'mistral/mistral-small-4': {
+  'mistral/mistral-small-2603': {
     inputUsdPerMillionTokens: 0.15,
     outputUsdPerMillionTokens: 0.6,
     source: 'https://mistral.ai/pricing/api/',
   },
-  'mistral/mistral-large-3': {
+  'mistral/mistral-large-2512': {
     inputUsdPerMillionTokens: 0.5,
     outputUsdPerMillionTokens: 1.5,
     source: 'https://mistral.ai/pricing/api/',
   },
-  'mistral/ministral-3b': {
+  'mistral/ministral-3b-2512': {
     inputUsdPerMillionTokens: 0.1,
     outputUsdPerMillionTokens: 0.1,
     source: 'https://mistral.ai/pricing/api/',

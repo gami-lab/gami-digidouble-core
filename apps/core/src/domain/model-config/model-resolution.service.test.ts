@@ -210,13 +210,13 @@ describe('ModelResolutionService.resolve -> scenario model selection', () => {
           },
           avatarOverride: {
             provider: 'mistral',
-            model: 'mistral-small-4',
+            model: 'mistral-small-2603',
           },
         },
       }),
     ).toEqual({
       provider: 'mistral',
-      model: 'mistral-small-4',
+      model: 'mistral-small-2603',
     })
   })
 
@@ -225,7 +225,7 @@ describe('ModelResolutionService.resolve -> scenario model selection', () => {
       ModelResolutionService.resolve('avatar', baseConfig, {
         avatarOverride: {
           provider: 'mistral',
-          model: 'mistral-small-4',
+          model: 'mistral-small-2603',
         },
         scenarioModelSelection: {
           defaultProfile: {
@@ -236,7 +236,7 @@ describe('ModelResolutionService.resolve -> scenario model selection', () => {
       }),
     ).toEqual({
       provider: 'mistral',
-      model: 'mistral-small-4',
+      model: 'mistral-small-2603',
     })
   })
 
@@ -298,7 +298,7 @@ describe('resolveScenarioOrGlobalDefault', () => {
       ModelResolutionService.resolveScenarioOrGlobalDefault(config, {
         avatarOverride: {
           provider: 'mistral',
-          model: 'mistral-small-4',
+          model: 'mistral-small-2603',
         },
       }),
     ).toEqual({ provider: 'openai', model: 'gpt-5.6-luna' })

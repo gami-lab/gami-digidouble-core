@@ -25,7 +25,7 @@ vi.mock('@mistralai/mistralai/models/errors', () => {
   return { MistralError: MockMistralError }
 })
 
-function buildCompletion(text: string, model = 'mistral-small-4') {
+function buildCompletion(text: string, model = 'mistral-small-2603') {
   return {
     id: 'cmpl-test',
     object: 'chat.completion',
@@ -60,19 +60,19 @@ describe('MistralAdapter', () => {
     const response = await adapter.complete(request)
 
     expect(response.content).toBe('Hi there!')
-    expect(response.model).toBe('mistral-small-4')
+    expect(response.model).toBe('mistral-small-2603')
     expect(response.inputTokens).toBe(10)
     expect(response.outputTokens).toBe(15)
     expect(response.latencyMs).toBeGreaterThanOrEqual(0)
   })
 
   it('uses the model override from the request', async () => {
-    mockComplete.mockResolvedValue(buildCompletion('ok', 'mistral-large-3'))
+    mockComplete.mockResolvedValue(buildCompletion('ok', 'mistral-large-2512'))
     const adapter = new MistralAdapter('test-key')
-    await adapter.complete({ ...request, model: 'mistral-large-3' })
+    await adapter.complete({ ...request, model: 'mistral-large-2512' })
 
     const calledWith = mockComplete.mock.calls[0]?.[0] as { model: string }
-    expect(calledWith.model).toBe('mistral-large-3')
+    expect(calledWith.model).toBe('mistral-large-2512')
   })
 
   it('sends the system prompt as the first message', async () => {
@@ -144,14 +144,14 @@ describe('MistralAdapter', () => {
     mockStream.mockResolvedValue(
       (function* () {
         yield {
-          data: { model: 'mistral-small-4', choices: [{ delta: { content: 'Hello ' } }] },
+          data: { model: 'mistral-small-2603', choices: [{ delta: { content: 'Hello ' } }] },
         }
         yield {
-          data: { model: 'mistral-small-4', choices: [{ delta: { content: 'world' } }] },
+          data: { model: 'mistral-small-2603', choices: [{ delta: { content: 'world' } }] },
         }
         yield {
           data: {
-            model: 'mistral-small-4',
+            model: 'mistral-small-2603',
             choices: [],
             usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
           },
@@ -171,7 +171,7 @@ describe('MistralAdapter', () => {
       type: 'completed',
       response: {
         content: 'Hello world',
-        model: 'mistral-small-4',
+        model: 'mistral-small-2603',
         inputTokens: 10,
         outputTokens: 5,
       },

@@ -82,13 +82,13 @@ describe('model selection form helpers', () => {
 
   it('maps a ScenarioModelSelection back to form values, defaulting missing fields to blank', () => {
     const result = fromScenarioModelSelection({
-      defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
+      defaultProfile: { provider: 'mistral', model: 'mistral-small-2603' },
       avatarOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
       memoryOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
     })
 
     expect(result).toEqual({
-      defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
+      defaultProfile: { provider: 'mistral', model: 'mistral-small-2603' },
       avatarOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
       gameMasterOverride: EMPTY_MODEL_SELECTION,
       memoryOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
@@ -108,13 +108,13 @@ describe('model selection form helpers', () => {
     expect(
       toScenarioModelSelection({
         defaultProfile: { provider: ' openai ', model: ' gpt-5.6-luna ' },
-        avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+        avatarOverride: { provider: 'mistral', model: 'mistral-small-2603' },
         gameMasterOverride: { provider: ' anthropic ', model: ' claude-sonnet-4-6 ' },
         memoryOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
       }),
     ).toEqual({
       defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
-      avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+      avatarOverride: { provider: 'mistral', model: 'mistral-small-2603' },
       gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
       memoryOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
     })

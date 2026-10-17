@@ -142,12 +142,14 @@ describe('ScenarioDetailPage loading and data states', () => {
       scenario: createScenario({
         modelSelection: {
           defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
-          avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+          avatarOverride: { provider: 'mistral', model: 'mistral-small-2603' },
           gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
           memoryOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
         },
       }),
-      avatars: [createAvatar({ llmOverride: { provider: 'mistral', model: 'mistral-small-4' } })],
+      avatars: [
+        createAvatar({ llmOverride: { provider: 'mistral', model: 'mistral-small-2603' } }),
+      ],
     })
 
     renderPage()
@@ -157,10 +159,10 @@ describe('ScenarioDetailPage loading and data states', () => {
     expect(screen.getByText('Explore AI concepts')).toBeTruthy()
     expect(screen.getByText('Mira')).toBeTruthy()
     expect(screen.getByText(/Scenario default model:\s*openai \/ gpt-5.6-luna/)).toBeTruthy()
-    expect(screen.getByText(/Avatar override:\s*mistral \/ mistral-small-4/)).toBeTruthy()
+    expect(screen.getByText(/Avatar override:\s*mistral \/ mistral-small-2603/)).toBeTruthy()
     expect(screen.getByText(/Game Master override:\s*anthropic \/ claude-sonnet-4-6/)).toBeTruthy()
     expect(screen.getByText(/Memory override:\s*openai \/ gpt-5.6-luna/)).toBeTruthy()
-    expect(screen.getByText('mistral / mistral-small-4')).toBeTruthy()
+    expect(screen.getByText('mistral / mistral-small-2603')).toBeTruthy()
   })
 
   it('shows an error message when the fetch fails', async () => {
@@ -296,7 +298,7 @@ describe('ScenarioDetailPage scenario edit form', () => {
       scenario: createScenario({
         modelSelection: {
           defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
-          avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+          avatarOverride: { provider: 'mistral', model: 'mistral-small-2603' },
           gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
           memoryOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
         },
@@ -311,7 +313,7 @@ describe('ScenarioDetailPage scenario edit form', () => {
 
     expect(screen.getByRole('heading', { name: 'Edit scenario' })).toBeTruthy()
     expect(document.querySelector<HTMLSelectElement>('#edit-sc-avatar-model-model')?.value).toBe(
-      'mistral-small-4',
+      'mistral-small-2603',
     )
     expect(document.querySelector<HTMLSelectElement>('#edit-sc-memory-model-model')?.value).toBe(
       'gpt-5.6-luna',
@@ -323,7 +325,7 @@ describe('ScenarioDetailPage scenario edit form', () => {
       scenario: createScenario({
         modelSelection: {
           defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
-          avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+          avatarOverride: { provider: 'mistral', model: 'mistral-small-2603' },
         },
       }),
     })
@@ -339,18 +341,24 @@ describe('ScenarioDetailPage scenario edit form', () => {
         target: { value: '' },
       },
     )
-    fireEvent.change(screen.getByLabelText(/ model$/, { selector: '#edit-sc-avatar-model-model' }), {
-      target: { value: '' },
-    })
+    fireEvent.change(
+      screen.getByLabelText(/ model$/, { selector: '#edit-sc-avatar-model-model' }),
+      {
+        target: { value: '' },
+      },
+    )
     fireEvent.change(
       screen.getByLabelText(/ provider$/, { selector: '#edit-sc-memory-model-provider' }),
       {
         target: { value: 'anthropic' },
       },
     )
-    fireEvent.change(screen.getByLabelText(/ model$/, { selector: '#edit-sc-memory-model-model' }), {
-      target: { value: 'claude-haiku-4-5' },
-    })
+    fireEvent.change(
+      screen.getByLabelText(/ model$/, { selector: '#edit-sc-memory-model-model' }),
+      {
+        target: { value: 'claude-haiku-4-5' },
+      },
+    )
     fireEvent.submit(
       screen.getByRole('button', { name: 'Save' }).closest('form') as HTMLFormElement,
     )

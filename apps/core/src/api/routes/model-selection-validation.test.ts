@@ -5,7 +5,7 @@ describe('validateScenarioModelSelection', () => {
   it('accepts a modelSelection containing only avatarOverride or memoryOverride', () => {
     expect(
       validateScenarioModelSelection({
-        avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+        avatarOverride: { provider: 'mistral', model: 'mistral-small-2603' },
       }),
     ).toBeNull()
     expect(

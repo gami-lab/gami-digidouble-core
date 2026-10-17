@@ -89,11 +89,14 @@ describe('ScenarioCreatePage', () => {
     fireEvent.change(screen.getByLabelText(/ model$/, { selector: '#sc-default-model-model' }), {
       target: { value: 'gpt-5.6-luna' },
     })
-    fireEvent.change(screen.getByLabelText(/ provider$/, { selector: '#sc-avatar-model-provider' }), {
-      target: { value: 'mistral' },
-    })
+    fireEvent.change(
+      screen.getByLabelText(/ provider$/, { selector: '#sc-avatar-model-provider' }),
+      {
+        target: { value: 'mistral' },
+      },
+    )
     fireEvent.change(screen.getByLabelText(/ model$/, { selector: '#sc-avatar-model-model' }), {
-      target: { value: 'mistral-small-4' },
+      target: { value: 'mistral-small-2603' },
     })
     fireEvent.change(screen.getByLabelText(/ provider$/, { selector: '#sc-gm-model-provider' }), {
       target: { value: 'anthropic' },
@@ -101,9 +104,12 @@ describe('ScenarioCreatePage', () => {
     fireEvent.change(screen.getByLabelText(/ model$/, { selector: '#sc-gm-model-model' }), {
       target: { value: 'claude-sonnet-4-6' },
     })
-    fireEvent.change(screen.getByLabelText(/ provider$/, { selector: '#sc-memory-model-provider' }), {
-      target: { value: 'openai' },
-    })
+    fireEvent.change(
+      screen.getByLabelText(/ provider$/, { selector: '#sc-memory-model-provider' }),
+      {
+        target: { value: 'openai' },
+      },
+    )
     fireEvent.change(screen.getByLabelText(/ model$/, { selector: '#sc-memory-model-model' }), {
       target: { value: 'gpt-5.6-luna' },
     })
@@ -116,7 +122,7 @@ describe('ScenarioCreatePage', () => {
         expect.objectContaining({
           modelSelection: {
             defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
-            avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+            avatarOverride: { provider: 'mistral', model: 'mistral-small-2603' },
             gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
             memoryOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
           },

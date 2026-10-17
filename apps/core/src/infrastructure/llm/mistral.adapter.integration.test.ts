@@ -4,7 +4,7 @@ import { MistralAdapter } from './mistral.adapter.js'
 
 const apiKey = process.env['MISTRAL_API_KEY']
 
-describe.skipIf(!apiKey)('MistralAdapter — real mistral-small-4 integration', () => {
+describe.skipIf(!apiKey)('MistralAdapter — real mistral-small-2603 integration', () => {
   it('returns a valid LlmResponse from the live API', async (context) => {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- integration preflight guarantees the credential
     const adapter = new MistralAdapter(apiKey!)
@@ -13,7 +13,7 @@ describe.skipIf(!apiKey)('MistralAdapter — real mistral-small-4 integration', 
       const response = await adapter.complete({
         systemPrompt: 'You are a concise assistant. Reply with a single word.',
         messages: [{ role: 'user', content: 'Say "ok".' }],
-        model: 'mistral-small-4',
+        model: 'mistral-small-2603',
       })
 
       expect(response.content).toBeTruthy()

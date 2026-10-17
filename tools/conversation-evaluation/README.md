@@ -69,7 +69,7 @@ rejected. `expectedResponse` is criteria text for a later semantic judge, not an
 answer. `model` records the expected Avatar model for a single run. `models` is an explicit
 comparison list; the evaluator runs the same definition once per provider/model selector and sends
 that selector to Core for each Avatar request. Use `provider/model` notation such as
-`openai/gpt-5.4`, `anthropic/claude-sonnet-4-6`, `mistral/mistral-small-4`, or `xai/grok-4.3`.
+`openai/gpt-5.4`, `anthropic/claude-sonnet-4-6`, `mistral/mistral-small-2603`, or `xai/grok-4.3`.
 `model` and `models` cannot be used together. Repeating a selector in `models` runs that same model
 again as a separate comparison entry; each occurrence gets its own report file and isolated
 run-scoped user ID. `judgeModel` selects the judge
@@ -137,9 +137,9 @@ the models covered by the built-in token-cost estimate table as of `2026-08-03`:
 | Anthropic | `anthropic/claude-haiku-4-5`           | Yes               |
 | Anthropic | `anthropic/claude-haiku-4-5-20251001`  | Yes               |
 | Mistral   | `mistral/mistral-medium-3.5`           | Yes               |
-| Mistral   | `mistral/mistral-small-4`              | Yes               |
-| Mistral   | `mistral/mistral-large-3`              | Yes               |
-| Mistral   | `mistral/ministral-3b`                 | Yes               |
+| Mistral   | `mistral/mistral-small-2603`           | Yes               |
+| Mistral   | `mistral/mistral-large-2512`           | Yes               |
+| Mistral   | `mistral/ministral-3b-2512`            | Yes               |
 | xAI       | `xai/grok-4.3`                         | Yes               |
 | xAI       | `xai/grok-build-0.1`                   | Yes               |
 

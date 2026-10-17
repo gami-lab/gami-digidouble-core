@@ -125,7 +125,7 @@ describe('Stack E2E — POST /v1/scenarios — success', () => {
         name: `Scenario With Models ${String(Date.now())}`,
         modelSelection: {
           defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
-          avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+          avatarOverride: { provider: 'mistral', model: 'mistral-small-2603' },
           gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
           memoryOverride: { provider: 'xai', model: 'grok-4.3' },
         },
@@ -150,7 +150,7 @@ describe('Stack E2E — POST /v1/scenarios — success', () => {
     expect(body.error).toBeNull()
     expect(body.data.scenario.modelSelection).toEqual({
       defaultProfile: { provider: 'openai', model: 'gpt-5.6-luna' },
-      avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+      avatarOverride: { provider: 'mistral', model: 'mistral-small-2603' },
       gameMasterOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
       memoryOverride: { provider: 'xai', model: 'grok-4.3' },
     })
@@ -304,7 +304,7 @@ describe('Stack E2E — PATCH /v1/scenarios/:id — success', () => {
         },
         body: JSON.stringify({
           modelSelection: {
-            defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
+            defaultProfile: { provider: 'mistral', model: 'mistral-small-2603' },
             avatarOverride: { provider: 'openai', model: 'gpt-5.4-mini' },
             memoryOverride: { provider: 'anthropic', model: 'claude-haiku-4-5' },
           },
@@ -323,7 +323,7 @@ describe('Stack E2E — PATCH /v1/scenarios/:id — success', () => {
         }
       }
       expect(patchSetBody.data.scenario.modelSelection).toEqual({
-        defaultProfile: { provider: 'mistral', model: 'mistral-small-4' },
+        defaultProfile: { provider: 'mistral', model: 'mistral-small-2603' },
         avatarOverride: { provider: 'openai', model: 'gpt-5.4-mini' },
         memoryOverride: { provider: 'anthropic', model: 'claude-haiku-4-5' },
       })

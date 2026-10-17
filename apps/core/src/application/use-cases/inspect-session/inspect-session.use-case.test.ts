@@ -23,7 +23,7 @@ const defaultGmState = {
 const defaultModelConfig = {
   globalDefault: { provider: 'openai' as const, model: 'gpt-5.6-luna' },
   roleOverrides: {
-    gameMaster: { provider: 'mistral' as const, model: 'mistral-small-4' },
+    gameMaster: { provider: 'mistral' as const, model: 'mistral-small-2603' },
     memory: { provider: 'xai' as const, model: 'grok-4.3' },
   },
   updatedAt: '2026-05-20T00:00:00.000Z',

@@ -52,7 +52,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresModelConfigRepository', () => {
 
   it('persists config across repository re-instantiation', async () => {
     await repository.upsert({
-      globalDefault: { provider: 'mistral', model: 'mistral-large-3' },
+      globalDefault: { provider: 'mistral', model: 'mistral-large-2512' },
       roleOverrides: { memory: { model: 'mistral-medium-3.5' } },
       updatedAt: '2026-05-20T00:00:00.000Z',
     })
@@ -62,7 +62,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresModelConfigRepository', () => {
 
     expect(loaded).not.toBeNull()
     expect(loaded?.globalDefault.provider).toBe('mistral')
-    expect(loaded?.globalDefault.model).toBe('mistral-large-3')
+    expect(loaded?.globalDefault.model).toBe('mistral-large-2512')
     expect(loaded?.roleOverrides.memory?.model).toBe('mistral-medium-3.5')
   })
 })

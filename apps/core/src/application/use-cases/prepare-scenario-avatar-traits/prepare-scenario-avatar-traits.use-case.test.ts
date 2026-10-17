@@ -262,7 +262,7 @@ describe('PrepareScenarioAvatarTraitsUseCase — model resolution', () => {
         makeScenario({
           modelSelection: {
             defaultProfile: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
-            avatarOverride: { provider: 'mistral', model: 'mistral-small-4' },
+            avatarOverride: { provider: 'mistral', model: 'mistral-small-2603' },
           },
         }),
       ]),
