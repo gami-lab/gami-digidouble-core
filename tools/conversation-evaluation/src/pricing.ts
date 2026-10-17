@@ -98,6 +98,26 @@ const PRICING: Record<string, PublicPricing> = {
     outputUsdPerMillionTokens: 25,
     source: 'https://platform.claude.com/docs/en/about-claude/pricing',
   },
+  'anthropic/claude-fable-5-1': {
+    inputUsdPerMillionTokens: 10,
+    outputUsdPerMillionTokens: 50,
+    source: 'https://platform.claude.com/docs/en/about-claude/pricing',
+  },
+  'anthropic/claude-opus-5-5': {
+    inputUsdPerMillionTokens: 4,
+    outputUsdPerMillionTokens: 20,
+    source: 'https://platform.claude.com/docs/en/about-claude/pricing',
+  },
+  'anthropic/claude-sonnet-5-5': {
+    inputUsdPerMillionTokens: 2,
+    outputUsdPerMillionTokens: 10,
+    source: 'https://platform.claude.com/docs/en/about-claude/pricing',
+  },
+  'anthropic/claude-haiku-5-5': {
+    inputUsdPerMillionTokens: 0.1,
+    outputUsdPerMillionTokens: 0.5,
+    source: 'https://platform.claude.com/docs/en/about-claude/pricing',
+  },
   'anthropic/claude-fable-5': {
     inputUsdPerMillionTokens: 10,
     outputUsdPerMillionTokens: 50,

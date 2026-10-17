@@ -37,21 +37,28 @@ describe('public token pricing estimates', () => {
 
   it('prices every active Anthropic model selector', () => {
     const activeModels = [
+      'claude-fable-5-1',
       'claude-fable-5',
+      'claude-opus-5-5',
       'claude-opus-5',
       'claude-opus-4-8',
       'claude-opus-4-7',
       'claude-opus-4-6',
       'claude-opus-4-5-20251101',
+      'claude-sonnet-5-5',
       'claude-sonnet-5',
       'claude-sonnet-4-6',
       'claude-sonnet-4-5-20250929',
+      'claude-haiku-5-5',
       'claude-haiku-4-5-20251001',
     ]
 
     for (const model of activeModels) {
       expect(estimateTokenCost(`anthropic/${model}`, 100, 200)).not.toBeNull()
     }
+    expect(estimateTokenCost('anthropic/claude-opus-5-5', 1_000_000, 1_000_000)?.totalCostUsd).toBe(
+      24,
+    )
   })
 
   it('resolves supported provider aliases', () => {
