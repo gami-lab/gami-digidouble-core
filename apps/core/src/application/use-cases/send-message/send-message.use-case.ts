@@ -1,4 +1,3 @@
-/* eslint-disable max-lines -- retained cohesive module boundary; splitting would obscure ownership */
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../ports/IConversationRepository.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
@@ -13,19 +12,11 @@ import type { IConversationMemoryRepository } from '../../ports/IConversationMem
 import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { IModelConfigRepository } from '../../ports/IModelConfigRepository.js'
 import { requirePreparedAvatar, type AvatarConfig } from '../../../domain/avatar/avatar.types.js'
-import { buildAvatarAwareness } from '../../../domain/avatar/avatar-awareness.service.js'
 import { cleanAvatarResponse } from '../../../domain/avatar/avatar-response-cleaner.js'
-import { assemblePersonaPrompt } from '../../../domain/avatar/persona-prompt.service.js'
 import { ContextEngine } from '../../../domain/context/context-engine.service.js'
 import type { Conversation, Message, Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
-import type { Scenario } from '../../../domain/scenario/scenario.types.js'
-import type { UserPersona } from '../../../domain/user/user.types.js'
-import {
-  AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS,
-  type ConversationEndReason,
-  type EndConversationResponse,
-} from '@gami/shared'
+import { type ConversationEndReason, type EndConversationResponse } from '@gami/shared'
 import type { SelectedMemoryPayload } from '../../../domain/memory/memory.types.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
 import type {
@@ -40,50 +31,30 @@ import {
 } from '../../services/model-resolution-runtime.service.js'
 import { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
 import {
-  buildAvatarTypedRetrievalQueries,
-  flattenTypedRetrievalQueries,
-} from '../../services/knowledge/typed-retrieval-query-builder.js'
-import {
   DEFAULT_IMPLICIT_END_POLICY,
   type ImplicitEndPolicy,
 } from '../../services/implicit-end-detection.service.js'
 import type { SendMessageInput, SendMessageOutput } from './send-message.types.js'
 import type { PreparedSendMessageTurn, SendMessageTurnResponse } from './send-message.turn.types.js'
 import { tryImplicitClose } from './send-message.implicit-close.js'
-import {
-  hasSelectedMemoryContent,
-  hasText,
-  toLlmDialogueMessages,
-  toRecentExchanges,
-} from './send-message.helpers.js'
-import type { ContextEngineOutput } from '../../../domain/context/context-engine.types.js'
-import type { TypedRetrievalResult } from '../../../domain/knowledge/knowledge.types.js'
+import { hasText, toLlmDialogueMessages, toRecentExchanges } from './send-message.helpers.js'
 import type { ModelConfig } from '../../../domain/model-config/index.js'
 import type { LlmAdapterRegistry } from '../../../infrastructure/llm/llm-adapter-registry.js'
-import { toGameMasterAvailableAvatars } from '../run-game-master/run-game-master.avatar-unlocks.js'
-import { toScenarioSnapshot } from './send-message.context-engine.js'
 import { buildSendMessageLlmRequest } from './send-message.llm-request.js'
 import { buildSendMessageOutput } from './send-message.output.js'
 import {
-  toContextSelectionMetadata,
-  warnIfContextBudgetTrimmed,
-} from './send-message.context-selection.js'
-
+  awaitPendingWorkingMemoryRefresh,
+  type BackgroundTurn,
+  dispatchMemoryMaintenance,
+  dispatchRunGameMaster,
+} from './send-message.background-work.js'
+import { toContextSelectionMetadata } from './send-message.context-selection.js'
+import {
+  AvatarPromptContextBuilder,
+  type ContextAssembler,
+} from './send-message.avatar-prompt-context.js'
 const MESSAGE_HISTORY_EXCHANGE_LIMIT = 3
 const MESSAGE_HISTORY_FETCH_LIMIT = MESSAGE_HISTORY_EXCHANGE_LIMIT * 2
-
-function hasRetrievedKnowledge(retrieval: TypedRetrievalResult | undefined): boolean {
-  return (
-    retrieval !== undefined &&
-    (retrieval.avatar_knowledge.length > 0 ||
-      retrieval.world.length > 0 ||
-      retrieval.media.length > 0)
-  )
-}
-
-type ContextAssembler = {
-  assemble(input: Parameters<ContextEngine['assemble']>[0]): ContextEngineOutput
-}
 
 type ConversationCloser = {
   execute(input: {
@@ -94,6 +65,8 @@ type ConversationCloser = {
 }
 
 export class SendMessageUseCase {
+  private readonly avatarPromptContext: AvatarPromptContextBuilder
+
   constructor(
     private readonly sessionRepository: ISessionRepository,
     private readonly conversationRepository: IConversationRepository,
@@ -116,7 +89,19 @@ export class SendMessageUseCase {
     private readonly llmAdapterRegistry?: LlmAdapterRegistry,
     private readonly modelConfigFallback?: ModelConfig,
     private readonly gmStateRepository?: IGmStateRepository,
-  ) {}
+  ) {
+    this.avatarPromptContext = new AvatarPromptContextBuilder({
+      avatarRepository,
+      scenarioRepository,
+      messageRepository,
+      contextAssembler,
+      userRepository,
+      conversationWorkingMemoryRepository,
+      conversationMemoryRepository,
+      memorySelectionService,
+      typedRetrievalService,
+    })
+  }
 
   async execute(input: SendMessageInput): Promise<SendMessageOutput> {
     const turn = await this.prepareTurn(input)
@@ -131,7 +116,7 @@ export class SendMessageUseCase {
     const startedAtMs = Date.now()
 
     const conversation = await this.loadActiveConversation(input.conversationId)
-    await this.awaitPendingWorkingMemoryRefresh(conversation.conversationId)
+    await awaitPendingWorkingMemoryRefresh(this.memoryMaintenance, conversation.conversationId)
     const session = await this.loadActiveSession(conversation.sessionId)
     const avatar = await this.loadAvatar(conversation.avatarId)
     const gmState = await this.loadGmState(session.sessionId)
@@ -150,7 +135,7 @@ export class SendMessageUseCase {
       assembledContext,
       retrievalLatencyMs,
       scenarioModelSelection,
-    } = await this.buildTurnPromptContext({
+    } = await this.avatarPromptContext.build({
       session,
       conversation,
       avatar,
@@ -339,147 +324,6 @@ export class SendMessageUseCase {
     return await this.gmStateRepository.findBySessionId(sessionId)
   }
 
-  // eslint-disable-next-line complexity, max-lines-per-function -- retained fixture or orchestration setup is clearer together
-  private async buildTurnPromptContext(args: {
-    session: Session
-    conversation: Conversation
-    avatar: AvatarConfig
-    userMessage: string
-    orchestration: GameMasterOrchestrationState | undefined
-  }): Promise<{
-    systemPrompt: string
-    userPersona: UserPersona | undefined
-    selectedMemory?: SelectedMemoryPayload
-    orchestration: GameMasterOrchestrationState | undefined
-    assembledContext: ContextEngineOutput
-    retrievalLatencyMs: number
-    scenarioModelSelection: Scenario['modelSelection']
-  }> {
-    const scenario = await this.loadScenario(args.session.scenarioId)
-    const scenarioAvatars = await this.avatarRepository.listByScenarioId(args.session.scenarioId)
-    const userPersona = await this.loadUserPersona(args.session.userId)
-    const selectedMemory = await this.loadSelectedMemory({
-      conversationId: args.conversation.conversationId,
-      avatarId: args.conversation.avatarId,
-      userId: args.session.userId,
-      scenarioId: args.session.scenarioId,
-      userMessageText: args.userMessage,
-    })
-    const memory =
-      selectedMemory !== undefined
-        ? this.getMemorySelectionService().toAvatarMemorySnapshot(selectedMemory)
-        : undefined
-    const retrievalQueries = buildAvatarTypedRetrievalQueries({
-      gmGuideline: args.orchestration?.directorNotes ?? args.session.gmNotes,
-      gmRetrievalQueries: args.orchestration?.retrievalPlan.queries,
-      gmRequiredFacts: args.orchestration?.retrievalPlan.requiredFacts,
-      lastUserInput: args.userMessage,
-      workingMemorySummary: memory?.working?.avatar?.summary ?? memory?.working?.session?.summary,
-    })
-    const retrievalStartMs = Date.now()
-    let retrieval: Awaited<ReturnType<SendMessageUseCase['loadTypedRetrieval']>>
-    let retrievalFailed = false
-    try {
-      retrieval = await this.loadTypedRetrieval(
-        args.session,
-        args.conversation.avatarId,
-        retrievalQueries,
-        args.session.avatarOptions?.retrieval,
-      )
-    } catch {
-      retrievalFailed = true
-      retrieval = undefined
-      console.error('[avatar-retrieval] Retrieval failed.')
-    }
-    const retrievalStatus =
-      args.orchestration?.retrievalPlan.required === true &&
-      (retrievalFailed || !hasRetrievedKnowledge(retrieval))
-        ? ('insufficient_evidence' as const)
-        : undefined
-    const directorNotes = args.orchestration?.directorNotes ?? args.session.gmNotes
-    const retrievalLatencyMs = Date.now() - retrievalStartMs
-    const assembledContext = this.contextAssembler.assemble({
-      sessionId: args.session.sessionId,
-      activeAvatarId: args.conversation.avatarId,
-      recentMessages: [{ role: 'user', content: args.userMessage }],
-      scenario: toScenarioSnapshot(args.session, scenario),
-      availableAvatars: toGameMasterAvailableAvatars(scenarioAvatars, args.session),
-      gmState: {
-        progression: '',
-        interactionCount: 0,
-      },
-      extensions: {
-        memory,
-        retrieval,
-        ...(args.session.avatarOptions?.retrieval !== undefined
-          ? { avatarRetrievalOptions: args.session.avatarOptions.retrieval }
-          : {}),
-        userPersona: userPersona ?? null,
-        gmDirective: directorNotes ?? null,
-        ...(args.avatar.adjustments !== undefined
-          ? { responseRules: args.avatar.adjustments }
-          : {}),
-        ...(args.avatar.computedTraits !== undefined
-          ? { avatarTraits: args.avatar.computedTraits }
-          : {}),
-      },
-    })
-    warnIfContextBudgetTrimmed(assembledContext, {
-      sessionId: args.session.sessionId,
-      conversationId: args.conversation.conversationId,
-      avatarId: args.conversation.avatarId,
-    })
-
-    const systemPrompt = assemblePersonaPrompt(args.avatar, {
-      sections: assembledContext.avatar.sections,
-      avatarAwareness: buildAvatarAwareness(
-        args.avatar,
-        scenarioAvatars,
-        args.session.unlockedAvatarIds,
-      ),
-      ...(args.orchestration !== undefined
-        ? {
-            gmGuidance: {
-              mode: args.orchestration.dialogueControl.mode,
-              askFollowUp: args.orchestration.dialogueControl.askFollowUp,
-              ...(directorNotes !== undefined ? { directorNotes } : {}),
-              ...(retrievalStatus !== undefined ? { retrievalStatus } : {}),
-            },
-          }
-        : {}),
-    })
-    return {
-      systemPrompt,
-      userPersona,
-      assembledContext,
-      orchestration: args.orchestration,
-      retrievalLatencyMs,
-      scenarioModelSelection: scenario.modelSelection,
-      ...(selectedMemory !== undefined ? { selectedMemory } : {}),
-    }
-  }
-
-  private async loadTypedRetrieval(
-    session: Session,
-    avatarId: string | undefined,
-    queries: ReturnType<typeof buildAvatarTypedRetrievalQueries>,
-    retrievalOptions: NonNullable<Session['avatarOptions']>['retrieval'] | undefined,
-    bypassVisibilityFilter = false,
-  ) {
-    if (this.typedRetrievalService === undefined) return undefined
-    const query = flattenTypedRetrievalQueries(queries)
-    if (!hasText(query)) return undefined
-
-    return this.typedRetrievalService.retrieve({
-      scenarioId: session.scenarioId,
-      ...(avatarId !== undefined ? { activeAvatarId: avatarId } : {}),
-      ...(bypassVisibilityFilter ? { bypassVisibilityFilter: true } : {}),
-      query,
-      queries,
-      limitPerType: retrievalOptions?.maxChunks ?? AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS,
-    })
-  }
-
   private async consumeNextTurnOrchestration(input: {
     sessionId: string
     avatarId: string
@@ -511,86 +355,9 @@ export class SendMessageUseCase {
     return pending
   }
 
-  private dispatchBackgroundUpdates(args: {
-    requestId: string
-    sessionId: string
-    scenarioId: string
-    conversationId: string
-    avatarId: string
-    userMessage: string
-    turnIndex: number
-    userPersona: UserPersona | undefined
-    selectedMemory?: SelectedMemoryPayload
-  }): void {
-    this.dispatchRunGameMaster(args)
-    this.dispatchMemoryMaintenance(args)
-  }
-
-  private dispatchRunGameMaster(args: {
-    requestId: string
-    sessionId: string
-    scenarioId: string
-    conversationId: string
-    avatarId: string
-    userMessage: string
-    turnIndex: number
-    userPersona: UserPersona | undefined
-    selectedMemory?: SelectedMemoryPayload
-  }): void {
-    if (this.runGameMasterUseCase === null) return
-    void this.runGameMasterUseCase
-      .execute({
-        sessionId: args.sessionId,
-        scenarioId: args.scenarioId,
-        avatarId: args.avatarId,
-        conversationId: args.conversationId,
-        userMessageText: args.userMessage,
-        turnIndex: args.turnIndex,
-        correlationId: args.requestId,
-        ...(args.userPersona !== undefined ? { userPersona: args.userPersona } : {}),
-        ...(args.selectedMemory !== undefined ? { selectedMemory: args.selectedMemory } : {}),
-      })
-      .catch((err: unknown) => {
-        console.error(
-          '[GM] Background execution failed for session:',
-          args.sessionId,
-          'correlationId:',
-          args.requestId,
-          err,
-        )
-      })
-  }
-
-  private dispatchMemoryMaintenance(args: {
-    requestId: string
-    sessionId: string
-    scenarioId: string
-    conversationId: string
-    avatarId: string
-  }): void {
-    if (this.memoryMaintenance === undefined) return
-    void Promise.resolve(
-      this.memoryMaintenance.execute({
-        sessionId: args.sessionId,
-        conversationId: args.conversationId,
-        avatarId: args.avatarId,
-        scenarioId: args.scenarioId,
-        trigger: 'post_turn',
-        correlationId: args.requestId,
-      }),
-    ).catch((error: unknown) => {
-      console.error('[memory-maintenance] Background refresh failed:', error)
-    })
-  }
-
-  private async awaitPendingWorkingMemoryRefresh(conversationId: string): Promise<void> {
-    if (this.memoryMaintenance?.awaitPendingRefresh === undefined) return
-
-    try {
-      await this.memoryMaintenance.awaitPendingRefresh(conversationId)
-    } catch (error) {
-      console.error('[memory-maintenance] Await pending refresh failed:', error)
-    }
+  private dispatchBackgroundUpdates(turn: BackgroundTurn): void {
+    dispatchRunGameMaster(this.runGameMasterUseCase, turn)
+    dispatchMemoryMaintenance(this.memoryMaintenance, turn)
   }
 
   private validateInput(input: SendMessageInput): void {
@@ -630,14 +397,6 @@ export class SendMessageUseCase {
       throw new DomainError('NOT_FOUND', `Avatar ${avatarId} was not found.`)
     }
     return requirePreparedAvatar(avatar)
-  }
-
-  private async loadScenario(scenarioId: string): Promise<Scenario> {
-    const scenario = await this.scenarioRepository.findById(scenarioId)
-    if (scenario === null) {
-      throw new DomainError('NOT_FOUND', `Scenario ${scenarioId} was not found.`)
-    }
-    return scenario
   }
 
   private async buildHistoryMessages(
@@ -715,42 +474,6 @@ export class SendMessageUseCase {
         totalTokens: response.inputTokens + response.outputTokens,
       },
     })
-  }
-
-  private async loadUserPersona(userId: string): Promise<UserPersona | undefined> {
-    if (this.userRepository === undefined) return undefined
-    try {
-      const user = await this.userRepository.findById(userId)
-      return user?.persona
-    } catch {
-      return undefined
-    }
-  }
-
-  private async loadSelectedMemory(input: {
-    conversationId: string
-    avatarId: string
-    userId: string
-    scenarioId: string
-    userMessageText: string
-  }) {
-    try {
-      const selected = await this.getMemorySelectionService().select(input)
-      return hasSelectedMemoryContent(selected) ? selected : undefined
-    } catch {
-      return undefined
-    }
-  }
-
-  private getMemorySelectionService(): MemorySelectionService {
-    return (
-      this.memorySelectionService ??
-      new MemorySelectionService(
-        this.messageRepository,
-        this.conversationWorkingMemoryRepository,
-        this.conversationMemoryRepository,
-      )
-    )
   }
 
   private createMessageId(): string {
