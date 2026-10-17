@@ -31,9 +31,7 @@ export function buildSendMessageOutput(args: {
       ...(updatedSession.activeAvatarId !== undefined
         ? { activeAvatarId: updatedSession.activeAvatarId }
         : {}),
-      ...(updatedSession.unlockedAvatarIds !== undefined
-        ? { unlockedAvatarIds: updatedSession.unlockedAvatarIds }
-        : {}),
+      unlockedAvatarIds: updatedSession.unlockedAvatarIds,
       status: updatedSession.status,
       startedAt: updatedSession.startedAt,
       lastActivityAt: now,

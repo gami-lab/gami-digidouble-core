@@ -49,7 +49,7 @@ export class PostgresSessionRepository implements ISessionRepository {
 
   async create(params: CreateSessionParams): Promise<Session> {
     const scenarioUuid = stripPrefix('scenario_', params.scenarioId)
-    const unlockedAvatarUuids = (params.unlockedAvatarIds ?? []).map((avatarId) =>
+    const unlockedAvatarUuids = params.unlockedAvatarIds.map((avatarId) =>
       stripPrefix('avatar_', avatarId),
     )
     const [row] = await this.sql<[SessionRow]>`

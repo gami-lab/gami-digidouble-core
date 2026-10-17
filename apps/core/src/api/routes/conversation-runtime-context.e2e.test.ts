@@ -86,6 +86,7 @@ function makeSession(): Session {
     sessionId: 'session_1',
     userId: 'user_1',
     scenarioId: 'scenario_1',
+    unlockedAvatarIds: [],
     activeAvatarId: 'avatar_1',
     gmNotes: 'Keep the answer practical.',
     status: 'active',

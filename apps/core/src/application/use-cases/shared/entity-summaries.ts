@@ -13,7 +13,7 @@ export function toSessionSummary(session: Session): SessionSummary {
     userId: session.userId,
     scenarioId: session.scenarioId,
     ...(session.activeAvatarId !== undefined ? { activeAvatarId: session.activeAvatarId } : {}),
-    unlockedAvatarIds: [...(session.unlockedAvatarIds ?? [])],
+    unlockedAvatarIds: [...session.unlockedAvatarIds],
     ...(session.avatarOptions !== undefined ? { avatarOptions: session.avatarOptions } : {}),
     status: session.status,
     startedAt: session.startedAt,

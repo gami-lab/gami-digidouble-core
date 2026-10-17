@@ -42,7 +42,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationWorkingMemoryRepository', ()
       status: 'draft',
     })
     avatarId = avatar.avatarId
-    const session = await sessionRepo.create({ userId: 'user_1', scenarioId })
+    const session = await sessionRepo.create({
+      userId: 'user_1',
+      scenarioId,
+      unlockedAvatarIds: [],
+    })
     sessionId = session.sessionId
     const conversation = await conversationRepo.create({ sessionId, avatarId, startedBy: 'user' })
     conversationId = conversation.conversationId

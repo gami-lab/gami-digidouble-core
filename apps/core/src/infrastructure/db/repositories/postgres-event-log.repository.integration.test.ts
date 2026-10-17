@@ -35,10 +35,12 @@ function defineFindBySessionOrderingTest(getContext: () => EventLogReadTestConte
     const targetSession = await sessionRepo.create({
       userId: 'user-target',
       scenarioId: scenario.scenarioId,
+      unlockedAvatarIds: [],
     })
     const otherSession = await sessionRepo.create({
       userId: 'user-other',
       scenarioId: scenario.scenarioId,
+      unlockedAvatarIds: [],
     })
     const oldest = '2026-04-28T10:00:00.000Z'
     const middle = '2026-04-28T10:01:00.000Z'
@@ -111,6 +113,7 @@ function defineFindBySessionLimitTest(getContext: () => EventLogReadTestContext)
     const session = await sessionRepo.create({
       userId: 'user-limit',
       scenarioId: scenario.scenarioId,
+      unlockedAvatarIds: [],
     })
 
     await eventLogRepo.append({
@@ -271,7 +274,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresEventLogRepository — JSONB payload and
 
   it('sessionId with session_ prefix is stored and the row is linked to an existing session', async () => {
     const scenario = await scenarioRepo.create({ name: 'Event Log Harness' })
-    const session = await sessionRepo.create({ userId: 'user-1', scenarioId: scenario.scenarioId })
+    const session = await sessionRepo.create({
+      userId: 'user-1',
+      scenarioId: scenario.scenarioId,
+      unlockedAvatarIds: [],
+    })
     const correlationId = 'corr-with-session'
 
     const event: StoredEvent = {

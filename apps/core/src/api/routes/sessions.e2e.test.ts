@@ -449,6 +449,7 @@ describe('POST /:sessionId/switch-avatar validation and conflicts', () => {
             sessionId: 'session_1',
             userId: 'user_1',
             scenarioId: 'scenario_1',
+            unlockedAvatarIds: [],
             activeAvatarId: 'avatar_1',
             status: 'closed',
             startedAt: '2026-04-18T10:00:00.000Z',

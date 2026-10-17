@@ -44,7 +44,7 @@ export class InspectSessionUseCase {
                 interactionCount: gmState.interactionCount,
               },
         transitionHistory: toTransitionHistory(conversations),
-        unlockedAvatarIds: session.unlockedAvatarIds ?? [],
+        unlockedAvatarIds: session.unlockedAvatarIds,
         gmNotes: session.gmNotes ?? null,
         effectiveModels: resolveEffectiveModels(resolvedConfig, activeAvatar, scenario),
       },

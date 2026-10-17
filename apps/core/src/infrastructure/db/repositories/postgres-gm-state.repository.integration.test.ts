@@ -24,7 +24,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresGmStateRepository', () => {
   afterEach(async () => {
     await truncateAllTables(sql)
     const scenario = await scenarioRepo.create({ name: 'GM State Harness' })
-    const session = await sessionRepo.create({ userId: 'user-1', scenarioId: scenario.scenarioId })
+    const session = await sessionRepo.create({
+      userId: 'user-1',
+      scenarioId: scenario.scenarioId,
+      unlockedAvatarIds: [],
+    })
     sessionId = session.sessionId
   })
 
@@ -38,6 +42,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresGmStateRepository', () => {
     const session = await sessionRepo.create({
       userId: 'user-none',
       scenarioId: scenario.scenarioId,
+      unlockedAvatarIds: [],
     })
 
     const result = await gmStateRepo.findBySessionId(session.sessionId)

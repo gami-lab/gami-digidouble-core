@@ -34,6 +34,7 @@ const session: Session = {
   sessionId: 'session_1',
   userId: 'user_1',
   scenarioId: 'scenario_1',
+  unlockedAvatarIds: [],
   status: 'active',
   startedAt: conversation.startedAt,
   lastActivityAt: conversation.lastActivityAt,

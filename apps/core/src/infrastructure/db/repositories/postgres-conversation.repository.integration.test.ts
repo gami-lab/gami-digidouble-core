@@ -29,14 +29,22 @@ describe.skipIf(!DB_AVAILABLE)('PostgresConversationRepository', () => {
       status: 'draft',
     })
     avatarId = avatar.avatarId
-    const session = await sessionRepo.create({ userId: 'user-1', scenarioId: scenario.scenarioId })
+    const session = await sessionRepo.create({
+      userId: 'user-1',
+      scenarioId: scenario.scenarioId,
+      unlockedAvatarIds: [],
+    })
     sessionId = session.sessionId
   })
 
   afterEach(async () => {
     await sql`TRUNCATE messages, conversations, sessions CASCADE`
     const sessionRepo = new PostgresSessionRepository(sql)
-    const session = await sessionRepo.create({ userId: 'user-1', scenarioId })
+    const session = await sessionRepo.create({
+      userId: 'user-1',
+      scenarioId,
+      unlockedAvatarIds: [],
+    })
     sessionId = session.sessionId
   })
 

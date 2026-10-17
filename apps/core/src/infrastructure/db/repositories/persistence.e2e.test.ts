@@ -44,6 +44,7 @@ describe.skipIf(!DB_AVAILABLE)('Persistence stack — fixture roundtrip', () => 
     const session = await sessionRepo1.create({
       userId: 'stack-e2e-user',
       scenarioId: scenario.scenarioId,
+      unlockedAvatarIds: [],
     })
     const conversation = await conversationRepo1.create({
       sessionId: session.sessionId,
@@ -123,6 +124,7 @@ describe.skipIf(!DB_AVAILABLE)('Persistence stack — multi-avatar switch flow',
     const session = await sessionRepo.create({
       userId: 'multi-avatar-user',
       scenarioId: scenario.scenarioId,
+      unlockedAvatarIds: [],
     })
 
     const conversationA = await conversationRepo.create({

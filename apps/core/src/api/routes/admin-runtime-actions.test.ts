@@ -61,6 +61,7 @@ function makeApp() {
         sessionId: 'session_1',
         userId: 'user_1',
         scenarioId: 'scenario_1',
+        unlockedAvatarIds: [],
         gmNotes: 'nudge',
         status: 'active',
         startedAt: '2026-05-01T10:00:00.000Z',

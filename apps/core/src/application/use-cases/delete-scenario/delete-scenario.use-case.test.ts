@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest'
+import type { Session } from '../../../domain/conversation/session.types.js'
 import { InMemoryAvatarRepository } from '../../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
 import { DeleteScenarioUseCase } from './delete-scenario.use-case.js'
+
+const closedSession: Session = {
+  sessionId: 'session_1',
+  userId: 'user_1',
+  scenarioId: 'scenario_1',
+  unlockedAvatarIds: [],
+  status: 'closed',
+  startedAt: '2026-04-21T08:00:00.000Z',
+  lastActivityAt: '2026-04-21T08:00:00.000Z',
+  endedAt: '2026-04-21T08:30:00.000Z',
+}
 
 describe('DeleteScenarioUseCase', () => {
   it('returns 404 when scenario is missing', async () => {
@@ -68,17 +80,7 @@ describe('DeleteScenarioUseCase', () => {
         },
       ]),
       new InMemoryAvatarRepository(),
-      new InMemorySessionRepository([
-        {
-          sessionId: 'session_1',
-          userId: 'user_1',
-          scenarioId: 'scenario_1',
-          status: 'closed',
-          startedAt: '2026-04-21T08:00:00.000Z',
-          lastActivityAt: '2026-04-21T08:00:00.000Z',
-          endedAt: '2026-04-21T08:30:00.000Z',
-        },
-      ]),
+      new InMemorySessionRepository([closedSession]),
     )
 
     await expect(useCase.execute({ scenarioId: 'scenario_1' })).rejects.toMatchObject({

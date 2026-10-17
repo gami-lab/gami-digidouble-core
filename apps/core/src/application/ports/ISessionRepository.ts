@@ -19,7 +19,7 @@ export type ListSessionsFilter = {
 export interface CreateSessionParams {
   userId: string
   scenarioId: string
-  unlockedAvatarIds?: string[]
+  unlockedAvatarIds: string[]
   modelOverride?: Session['modelOverride']
   avatarOptions?: Session['avatarOptions']
 }

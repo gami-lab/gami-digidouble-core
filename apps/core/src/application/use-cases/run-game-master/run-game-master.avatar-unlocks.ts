@@ -119,7 +119,7 @@ export function resolveAvatarUnlocks(
   if (evaluations.length === 0) return null
 
   return {
-    nextUnlockedAvatarIds: [...(session.unlockedAvatarIds ?? []), ...newlyUnlockedAvatarIds],
+    nextUnlockedAvatarIds: [...session.unlockedAvatarIds, ...newlyUnlockedAvatarIds],
     newlyUnlockedAvatarIds,
     evaluations,
   }
@@ -134,7 +134,7 @@ function resolveMentionedLockedAvatarIds(
   const normalizedCorpus = normalizeText(messageCorpus)
   const corpusTokens = new Set(tokenizeText(messageCorpus))
   const lockedAvatars = avatars.filter(
-    (avatar) => avatar.status === 'active' && !session.unlockedAvatarIds?.includes(avatar.avatarId),
+    (avatar) => avatar.status === 'active' && !session.unlockedAvatarIds.includes(avatar.avatarId),
   )
 
   return lockedAvatars.reduce<Set<string>>((ids, avatar) => {
@@ -205,6 +205,6 @@ function buildAvailability(
 ): { availability?: 'available' | 'locked' } {
   if (session === null) return {}
   return {
-    availability: session.unlockedAvatarIds?.includes(avatarId) === true ? 'available' : 'locked',
+    availability: session.unlockedAvatarIds.includes(avatarId) ? 'available' : 'locked',
   }
 }

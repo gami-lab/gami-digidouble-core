@@ -48,6 +48,7 @@ describe('MemoryMaintenanceService model resolution', () => {
         sessionId: 'session_1',
         userId: 'user_1',
         scenarioId: 'scenario_1',
+        unlockedAvatarIds: [],
         modelOverride: { provider: 'openai', model: 'gpt-5.6-luna' },
         status: 'active',
         startedAt: '2026-05-06T10:00:00.000Z',

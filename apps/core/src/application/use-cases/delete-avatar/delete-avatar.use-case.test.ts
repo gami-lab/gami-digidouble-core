@@ -34,6 +34,7 @@ describe('DeleteAvatarUseCase', () => {
           sessionId: 'session_1',
           userId: 'user_1',
           scenarioId: 'scenario_1',
+          unlockedAvatarIds: [],
           status: 'active',
           startedAt: '2026-04-21T08:00:00.000Z',
           lastActivityAt: '2026-04-21T08:00:00.000Z',

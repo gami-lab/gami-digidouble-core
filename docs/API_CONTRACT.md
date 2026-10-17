@@ -50,8 +50,11 @@ schemas belong to `packages/shared/src/` and route schemas; do not copy them her
 - `POST /v1/conversations/{conversationId}/voice-messages/stream` — bounded raw-audio SSE turn.
 - `POST /v1/conversations/{conversationId}/messages/{messageId}/audio` — optional audio for a completed Avatar message.
 
-Session projections always include `unlockedAvatarIds`; an empty array means the scenario currently
-has no unlocked Avatar for that session.
+Session projections always include `unlockedAvatarIds`; an empty array means no Avatar is unlocked
+for that session. The list is fixed when the session starts: a scenario with no availability policy
+unlocks every Avatar that is active at that moment, and a scenario with a policy unlocks only its
+`initialAvatarIds`. Later unlocks come only from the Game Master; Avatars added to or activated in
+the scenario afterwards stay locked for existing sessions.
 
 ### Runtime
 

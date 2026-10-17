@@ -4,7 +4,7 @@ import type { AvatarAwarenessItem } from './persona-prompt.types.js'
 export function buildAvatarAwareness(
   currentAvatar: AvatarConfig,
   scenarioAvatars: AvatarConfig[],
-  unlockedAvatarIds: string[] | undefined,
+  unlockedAvatarIds: string[],
 ): AvatarAwarenessItem[] {
   return scenarioAvatars
     .filter((avatar) => avatar.status === 'active' && avatar.avatarId !== currentAvatar.avatarId)
@@ -12,10 +12,7 @@ export function buildAvatarAwareness(
       name: avatar.name,
       ...(avatar.description !== undefined ? { description: avatar.description } : {}),
       ...extractPublicScope(avatar),
-      availability:
-        unlockedAvatarIds === undefined || unlockedAvatarIds.includes(avatar.avatarId)
-          ? 'available'
-          : 'locked',
+      availability: unlockedAvatarIds.includes(avatar.avatarId) ? 'available' : 'locked',
     }))
 }
 

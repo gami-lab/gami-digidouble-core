@@ -1,4 +1,5 @@
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
+import type { Session } from '../../../domain/conversation/session.types.js'
 import type { GameMasterOutput } from '../../../domain/game-master/game-master.types.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { RunGameMasterInput } from './run-game-master.types.js'
@@ -11,9 +12,7 @@ export type AvatarRoutingResult = {
 export async function applyAvatarRoutingUpdates(args: {
   sessionRepository: ISessionRepository
   input: RunGameMasterInput
-  session: {
-    unlockedAvatarIds?: string[]
-  } | null
+  session: Pick<Session, 'unlockedAvatarIds'> | null
   scenarioAvatars: AvatarConfig[]
   output: GameMasterOutput
   unlockResult: { newlyUnlockedAvatarIds: string[]; evaluations: Array<{ outcome: string }> }
@@ -71,7 +70,7 @@ async function handleUnlockAndSwitch(
   args: {
     sessionRepository: ISessionRepository
     input: RunGameMasterInput
-    session: { unlockedAvatarIds?: string[] } | null
+    session: Pick<Session, 'unlockedAvatarIds'> | null
     unlockResult: { newlyUnlockedAvatarIds: string[] }
   },
   routing: NonNullable<GameMasterOutput['routing']>,
@@ -80,7 +79,7 @@ async function handleUnlockAndSwitch(
 ): Promise<AvatarRoutingResult> {
   const wasLocked =
     targetAvatarId !== undefined &&
-    args.session?.unlockedAvatarIds?.includes(targetAvatarId) !== true
+    args.session?.unlockedAvatarIds.includes(targetAvatarId) !== true
   const wasUnlocked =
     targetAvatarId !== undefined &&
     args.unlockResult.newlyUnlockedAvatarIds.includes(targetAvatarId)

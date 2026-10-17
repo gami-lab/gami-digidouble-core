@@ -231,7 +231,7 @@ function toAvailableAvatars(
   avatars: Awaited<ReturnType<IAvatarRepository['listByScenarioId']>>,
   session: Session,
 ) {
-  const unlockedAvatarIds = new Set(session.unlockedAvatarIds ?? [])
+  const unlockedAvatarIds = new Set(session.unlockedAvatarIds)
   return avatars
     .filter((avatar) => avatar.status === 'active')
     .map((avatar) => ({

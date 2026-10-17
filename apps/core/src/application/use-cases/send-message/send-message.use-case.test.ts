@@ -95,6 +95,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     sessionId: 'session_1',
     userId: 'user_1',
     scenarioId: 'scenario_1',
+    unlockedAvatarIds: [],
     activeAvatarId: 'avatar_1',
     status: 'active',
     startedAt: '2026-04-18T10:00:00.000Z',

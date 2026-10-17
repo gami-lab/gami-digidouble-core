@@ -30,7 +30,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresSessionRepository', () => {
   })
 
   it('creates a session and returns it with generated id and timestamps', async () => {
-    const session = await sessionRepo.create({ userId: 'user-1', scenarioId })
+    const session = await sessionRepo.create({
+      userId: 'user-1',
+      scenarioId,
+      unlockedAvatarIds: [],
+    })
 
     expect(session.sessionId).toBeTypeOf('string')
     expect(session.userId).toBe('user-1')
@@ -42,7 +46,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresSessionRepository', () => {
   })
 
   it('findById returns the session by its id', async () => {
-    const created = await sessionRepo.create({ userId: 'user-2', scenarioId })
+    const created = await sessionRepo.create({
+      userId: 'user-2',
+      scenarioId,
+      unlockedAvatarIds: [],
+    })
     const found = await sessionRepo.findById(created.sessionId)
 
     expect(found).not.toBeNull()
@@ -54,7 +62,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresSessionRepository', () => {
     expect(result).toBeNull()
   })
   it('update changes status and returns the updated session', async () => {
-    const created = await sessionRepo.create({ userId: 'user-3', scenarioId })
+    const created = await sessionRepo.create({
+      userId: 'user-3',
+      scenarioId,
+      unlockedAvatarIds: [],
+    })
     const updated = await sessionRepo.update(created.sessionId, { status: 'closed' })
 
     expect(updated.status).toBe('closed')
@@ -62,7 +74,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresSessionRepository', () => {
   })
 
   it('update sets endedAt when provided', async () => {
-    const created = await sessionRepo.create({ userId: 'user-4', scenarioId })
+    const created = await sessionRepo.create({
+      userId: 'user-4',
+      scenarioId,
+      unlockedAvatarIds: [],
+    })
     const endedAt = new Date().toISOString()
     const updated = await sessionRepo.update(created.sessionId, { status: 'closed', endedAt })
 
@@ -70,7 +86,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresSessionRepository', () => {
   })
 
   it('update preserves untouched columns', async () => {
-    const created = await sessionRepo.create({ userId: 'user-5', scenarioId })
+    const created = await sessionRepo.create({
+      userId: 'user-5',
+      scenarioId,
+      unlockedAvatarIds: [],
+    })
     const updated = await sessionRepo.update(created.sessionId, { status: 'archived' })
 
     expect(updated.userId).toBe(created.userId)
@@ -127,7 +147,11 @@ describe.skipIf(!DB_AVAILABLE)('PostgresSessionRepository — extended operation
   })
 
   it('delete removes the session', async () => {
-    const created = await sessionRepo.create({ userId: 'user-6', scenarioId })
+    const created = await sessionRepo.create({
+      userId: 'user-6',
+      scenarioId,
+      unlockedAvatarIds: [],
+    })
     await sessionRepo.delete(created.sessionId)
     const found = await sessionRepo.findById(created.sessionId)
 
@@ -135,8 +159,8 @@ describe.skipIf(!DB_AVAILABLE)('PostgresSessionRepository — extended operation
   })
 
   it('countByScenarioId returns all sessions linked to the scenario', async () => {
-    await sessionRepo.create({ userId: 'user-7', scenarioId })
-    await sessionRepo.create({ userId: 'user-8', scenarioId })
+    await sessionRepo.create({ userId: 'user-7', scenarioId, unlockedAvatarIds: [] })
+    await sessionRepo.create({ userId: 'user-8', scenarioId, unlockedAvatarIds: [] })
 
     const count = await sessionRepo.countByScenarioId(scenarioId)
 
@@ -144,8 +168,12 @@ describe.skipIf(!DB_AVAILABLE)('PostgresSessionRepository — extended operation
   })
 
   it('countActiveByScenarioId returns only active sessions', async () => {
-    const active = await sessionRepo.create({ userId: 'user-9', scenarioId })
-    const closed = await sessionRepo.create({ userId: 'user-10', scenarioId })
+    const active = await sessionRepo.create({ userId: 'user-9', scenarioId, unlockedAvatarIds: [] })
+    const closed = await sessionRepo.create({
+      userId: 'user-10',
+      scenarioId,
+      unlockedAvatarIds: [],
+    })
     await sessionRepo.update(closed.sessionId, { status: 'closed' })
 
     const count = await sessionRepo.countActiveByScenarioId(scenarioId)

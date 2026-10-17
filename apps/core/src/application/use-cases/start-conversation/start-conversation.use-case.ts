@@ -55,7 +55,7 @@ export class StartConversationUseCase {
         `Avatar ${avatarId} does not belong to scenario ${session.scenarioId}.`,
       )
     }
-    if (session.unlockedAvatarIds?.includes(avatarId) !== true) {
+    if (!session.unlockedAvatarIds.includes(avatarId)) {
       throw new DomainError('FORBIDDEN', `Avatar ${avatarId} is locked for session ${sessionId}.`)
     }
     requirePreparedAvatar(avatar)

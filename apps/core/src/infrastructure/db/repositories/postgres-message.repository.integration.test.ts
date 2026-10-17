@@ -154,6 +154,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresMessageRepository', () => {
     const session = await sessionRepo.create({
       userId: 'user-1',
       scenarioId: scenario.scenarioId,
+      unlockedAvatarIds: [],
     })
     const avatar = await avatarRepo.create({
       scenarioId: scenario.scenarioId,
