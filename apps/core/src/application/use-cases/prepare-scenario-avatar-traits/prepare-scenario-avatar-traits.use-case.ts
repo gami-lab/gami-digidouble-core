@@ -7,6 +7,7 @@ import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { DomainError } from '../../../domain/errors.js'
+import { isKnowledgeVisibleToAvatar } from '../../../domain/knowledge/knowledge-visibility.js'
 import type { KnowledgeSource } from '../../../domain/knowledge/knowledge.types.js'
 import type { ModelConfig } from '../../../domain/model-config/index.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
@@ -62,7 +63,14 @@ export class PrepareScenarioAvatarTraitsUseCase {
 
     const results: AvatarTraitPreparationResult[] = []
     for (const avatar of avatars) {
-      results.push(await this.prepareOneAvatar({ avatar, scenario, memorySources, worldSources }))
+      results.push(
+        await this.prepareOneAvatar({
+          avatar,
+          scenario,
+          memorySources: filterVisibleToAvatar(memorySources, avatar.avatarId),
+          worldSources: filterVisibleToAvatar(worldSources, avatar.avatarId),
+        }),
+      )
     }
 
     await this.tracePreparationSummary(scenario.scenarioId, results)
@@ -193,6 +201,10 @@ export class PrepareScenarioAvatarTraitsUseCase {
 /** Groups every trait-preparation trace of a scenario under one Langfuse session. */
 function traitPreparationTraceSessionId(scenarioId: string): string {
   return `trait-preparation:${scenarioId}`
+}
+
+function filterVisibleToAvatar(sources: KnowledgeSource[], avatarId: string): KnowledgeSource[] {
+  return sources.filter((source) => isKnowledgeVisibleToAvatar(source, avatarId, false))
 }
 
 function selectAvatars(

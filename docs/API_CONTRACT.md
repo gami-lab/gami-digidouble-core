@@ -188,7 +188,9 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
 - `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` takes an optional body
   `PrepareAvatarTraitsRequest`: `avatarId` prepares only that avatar (`404` when it is not in the
   scenario); otherwise `scope` is `all` (default, re-prepares every avatar) or `unprepared` (only
-  avatars without `computedTraits`; skipped avatars are omitted from `results`). One avatar's
+  avatars without `computedTraits`; skipped avatars are omitted from `results`). Each avatar's
+  preparation input includes only the `avatar_knowledge`/`world` sources whose visibility policy
+  admits that avatar, the same rule as runtime retrieval. One avatar's
   failure (e.g. `provider_unavailable`) never fails the whole batch, and preparation overwrites only
   `computedTraits`, never authored fields. Trait preparation resolves `scenario.modelSelection.defaultProfile`
   and falls back directly to the global default, independently of the Avatar role override,
