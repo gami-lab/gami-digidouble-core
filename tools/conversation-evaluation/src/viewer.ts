@@ -39,7 +39,6 @@ function send(
   response.end(body)
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 async function handleRequest(
   request: IncomingMessage,
   response: ServerResponse,
@@ -47,27 +46,42 @@ async function handleRequest(
 ): Promise<void> {
   const pathname = new URL(request.url ?? '/', 'http://localhost').pathname
   if (request.method === 'POST' && pathname === '/review') {
-    try {
-      const correction = parseReviewRequest(JSON.parse(await readRequestBody(request)) as unknown)
-      const updatedReport = await applyReview(reportPath, correction)
-      send(response, 200, 'application/json; charset=utf-8', JSON.stringify(updatedReport))
-    } catch (error: unknown) {
-      send(
-        response,
-        400,
-        'application/json; charset=utf-8',
-        JSON.stringify({
-          error: error instanceof Error ? error.message : 'Unable to save review.',
-        }),
-      )
-    }
+    await handleReview(request, response, reportPath)
     return
   }
   if (request.method !== 'GET') {
     send(response, 405, 'text/plain; charset=utf-8', 'Method not allowed')
     return
   }
+  await handleGet(pathname, response, reportPath)
+}
 
+async function handleReview(
+  request: IncomingMessage,
+  response: ServerResponse,
+  reportPath: string,
+): Promise<void> {
+  try {
+    const correction = parseReviewRequest(JSON.parse(await readRequestBody(request)) as unknown)
+    const updatedReport = await applyReview(reportPath, correction)
+    send(response, 200, 'application/json; charset=utf-8', JSON.stringify(updatedReport))
+  } catch (error: unknown) {
+    send(
+      response,
+      400,
+      'application/json; charset=utf-8',
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'Unable to save review.',
+      }),
+    )
+  }
+}
+
+async function handleGet(
+  pathname: string,
+  response: ServerResponse,
+  reportPath: string,
+): Promise<void> {
   if (pathname === '/' || pathname === '/index.html') {
     send(response, 200, 'text/html; charset=utf-8', REPORT_VIEWER_HTML)
     return

@@ -137,7 +137,6 @@ function readOptionalStringArray(
   return value.map((item) => (item as string).trim())
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 export function validateTestDefinition(value: unknown): TestDefinition {
   if (!isRecord(value)) {
     throw new DefinitionValidationError(['The root value must be a JSON object.'])
@@ -149,24 +148,12 @@ export function validateTestDefinition(value: unknown): TestDefinition {
   const questions = readQuestions(value, issues)
   addDuplicateQuestionIssues(questions, issues)
 
-  if (issues.length > 0 || fields.name === undefined || fields.scenarioId === undefined) {
+  const { name, scenarioId, ...optionalFields } = fields
+  if (issues.length > 0 || name === undefined || scenarioId === undefined) {
     throw new DefinitionValidationError(issues)
   }
 
-  return {
-    version: 1,
-    name: fields.name,
-    scenarioId: fields.scenarioId,
-    ...(fields.initialAvatarId !== undefined ? { initialAvatarId: fields.initialAvatarId } : {}),
-    ...(fields.initialAvatarName !== undefined
-      ? { initialAvatarName: fields.initialAvatarName }
-      : {}),
-    ...(fields.model !== undefined ? { model: fields.model } : {}),
-    ...(fields.models !== undefined ? { models: fields.models } : {}),
-    ...(fields.judgeModel !== undefined ? { judgeModel: fields.judgeModel } : {}),
-    ...(fields.avatarOptions !== undefined ? { avatarOptions: fields.avatarOptions } : {}),
-    questions,
-  }
+  return { version: 1, name, scenarioId, ...optionalFields, questions }
 }
 
 type DefinitionFields = {
@@ -177,10 +164,23 @@ type DefinitionFields = {
   model?: string
   models?: string[]
   judgeModel?: string
-  avatarOptions?: TestDefinition['avatarOptions']
+  avatarOptions?: NonNullable<TestDefinition['avatarOptions']>
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+function addModelSelectionIssues(
+  model: string | undefined,
+  models: string[] | undefined,
+  issues: string[],
+): void {
+  if (models === undefined) return
+  if (model !== undefined) issues.push('model and models cannot both be provided.')
+  models.forEach((candidate, index) => {
+    if (!isProviderModelSelector(candidate)) {
+      issues.push(`models[${String(index)}] must use provider/model notation.`)
+    }
+  })
+}
+
 function readDefinitionFields(value: Record<string, unknown>, issues: string[]): DefinitionFields {
   if (value['version'] !== 1) issues.push('version must be 1.')
   const name = readRequiredString(value, 'name', issues)
@@ -191,14 +191,7 @@ function readDefinitionFields(value: Record<string, unknown>, issues: string[]):
   const models = readOptionalStringArray(value, 'models', 'definition', issues)
   const judgeModel = readOptionalString(value, 'judgeModel', issues)
   const avatarOptions = readAvatarOptions(value['avatarOptions'], issues)
-  if (models !== undefined) {
-    if (model !== undefined) issues.push('model and models cannot both be provided.')
-    models.forEach((candidate, index) => {
-      if (!isProviderModelSelector(candidate)) {
-        issues.push(`models[${String(index)}] must use provider/model notation.`)
-      }
-    })
-  }
+  addModelSelectionIssues(model, models, issues)
   if ((initialAvatarId !== undefined) === (initialAvatarName !== undefined)) {
     issues.push('Exactly one of initialAvatarId or initialAvatarName must be provided.')
   }

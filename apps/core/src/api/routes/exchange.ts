@@ -1,3 +1,4 @@
+import { optionalField } from '../../domain/optional-field.js'
 import type { FastifyPluginCallback } from 'fastify'
 import {
   fail,
@@ -87,7 +88,6 @@ export const exchangeRoute: FastifyPluginCallback<ExchangeRouteOptions> = (app, 
       schema: { body: exchangeBodySchema },
       preHandler: authenticateApiKey(options.config.apiKeySecret),
     },
-    // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
     async (request, reply) => {
       const requestedProvider = request.body.model?.provider
       const requestLlmAdapter =
@@ -98,13 +98,9 @@ export const exchangeRoute: FastifyPluginCallback<ExchangeRouteOptions> = (app, 
       try {
         const output = await useCase.execute({
           userMessage: request.body.message,
-          ...(request.body.systemPrompt !== undefined
-            ? { systemPrompt: request.body.systemPrompt }
-            : {}),
-          ...(request.body.model?.model !== undefined ? { model: request.body.model.model } : {}),
-          ...(request.body.model?.serviceTier !== undefined
-            ? { serviceTier: request.body.model.serviceTier }
-            : {}),
+          ...optionalField('systemPrompt', request.body.systemPrompt),
+          ...optionalField('model', request.body.model?.model),
+          ...optionalField('serviceTier', request.body.model?.serviceTier),
         })
         return await reply.send(ok<RawExchangeResponse>(mapRawExchangeResponse(output)))
       } catch (error) {

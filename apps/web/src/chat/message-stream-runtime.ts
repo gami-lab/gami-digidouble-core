@@ -130,7 +130,35 @@ export async function streamMessageAndReconcile(
   }
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+/** Deltas can arrive out of order; only append the contiguous run starting at the next sequence. */
+function applyStreamDelta(
+  event: Extract<MessageStreamEvent, { type: 'conversation.message.delta' }>,
+  pendingDeltas: Map<number, string>,
+  nextSequence: SequenceRef,
+  setters: StreamMessageSetters,
+): void {
+  if (event.sequence < nextSequence.current) return
+  if (pendingDeltas.has(event.sequence)) return
+  pendingDeltas.set(event.sequence, event.delta)
+  const orderedDeltas: string[] = []
+  while (pendingDeltas.has(nextSequence.current)) {
+    orderedDeltas.push(pendingDeltas.get(nextSequence.current) as string)
+    pendingDeltas.delete(nextSequence.current)
+    nextSequence.current += 1
+  }
+  if (orderedDeltas.length === 0) return
+  setters.setAvatarDraft((current) => {
+    const draft =
+      current ??
+      ({
+        localId: `draft-${event.requestId}`,
+        content: '',
+        createdAt: new Date().toISOString(),
+      } satisfies ChatThreadAvatarDraft)
+    return { ...draft, content: `${draft.content}${orderedDeltas.join('')}` }
+  })
+}
+
 function handleMessageStreamEvent(
   event: MessageStreamEvent,
   pendingMessageId: string,
@@ -154,29 +182,9 @@ function handleMessageStreamEvent(
         createdAt: new Date().toISOString(),
       })
       return
-    case 'conversation.message.delta': {
-      if (event.sequence < nextSequence.current) return
-      if (pendingDeltas.has(event.sequence)) return
-      pendingDeltas.set(event.sequence, event.delta)
-      const orderedDeltas: string[] = []
-      while (pendingDeltas.has(nextSequence.current)) {
-        orderedDeltas.push(pendingDeltas.get(nextSequence.current) as string)
-        pendingDeltas.delete(nextSequence.current)
-        nextSequence.current += 1
-      }
-      if (orderedDeltas.length === 0) return
-      setters.setAvatarDraft((current) => {
-        const draft =
-          current ??
-          ({
-            localId: `draft-${event.requestId}`,
-            content: '',
-            createdAt: new Date().toISOString(),
-          } satisfies ChatThreadAvatarDraft)
-        return { ...draft, content: `${draft.content}${orderedDeltas.join('')}` }
-      })
+    case 'conversation.message.delta':
+      applyStreamDelta(event, pendingDeltas, nextSequence, setters)
       return
-    }
     case 'conversation.message.completed':
       setters.setMessages((current) =>
         reconcileSendSuccess(
