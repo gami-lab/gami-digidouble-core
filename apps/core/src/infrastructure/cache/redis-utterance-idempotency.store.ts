@@ -8,8 +8,13 @@ import {
 
 type RedisStringStore = {
   get(key: string): Promise<string | null>
-  set(key: string, value: string, mode?: 'NX' | 'XX'): Promise<'OK' | null>
-  pexpire(key: string, milliseconds: number): Promise<number>
+  set(
+    key: string,
+    value: string,
+    expiry: 'PX',
+    milliseconds: number,
+    mode: 'NX' | 'XX',
+  ): Promise<'OK' | null>
   del(key: string): Promise<number>
 }
 
@@ -63,10 +68,11 @@ export class RedisUtteranceIdempotencyStore implements IUtteranceIdempotencyStor
       const created = await this.redis.set(
         key,
         serializeEntry({ fingerprint, reservationId, state: 'in_flight', expiresAt }),
+        'PX',
+        this.inFlightTtlMs,
         'NX',
       )
       if (created === 'OK') {
-        await this.redis.pexpire(key, this.inFlightTtlMs)
         return { status: 'claimed', reservationId, expiresAt }
       }
     }
@@ -84,9 +90,10 @@ export class RedisUtteranceIdempotencyStore implements IUtteranceIdempotencyStor
     const updated = await this.redis.set(
       key,
       serializeEntry({ ...entry, state: 'completed' }),
+      'PX',
+      COMPLETED_RETENTION_MS,
       'XX',
     )
-    if (updated === 'OK') await this.redis.pexpire(key, COMPLETED_RETENTION_MS)
     return updated === 'OK'
   }
 
