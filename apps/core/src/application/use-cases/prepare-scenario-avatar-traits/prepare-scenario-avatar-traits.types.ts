@@ -1,12 +1,13 @@
 import type {
   AvatarTraitPreparationFailureReason,
   AvatarTraitPreparationResult,
+  PrepareAvatarTraitsRequest,
   PrepareAvatarTraitsResponse,
 } from '@gami/shared'
 
 export type { AvatarTraitPreparationFailureReason, AvatarTraitPreparationResult }
 
-export type PrepareScenarioAvatarTraitsInput = {
+export type PrepareScenarioAvatarTraitsInput = PrepareAvatarTraitsRequest & {
   scenarioId: string
 }
 

@@ -148,11 +148,12 @@ describe('scenarios API wrappers', () => {
     }
     vi.mocked(adminRequest).mockResolvedValue(response)
 
-    const result = await prepareAvatarTraits('scenario_1')
+    const result = await prepareAvatarTraits('scenario_1', { avatarId: 'avatar_1' })
 
     expect(adminRequest).toHaveBeenCalledWith(
       'POST',
       '/v1/scenarios/scenario_1/prepare-avatar-traits',
+      { avatarId: 'avatar_1' },
     )
     expect(result).toEqual(response)
   })

@@ -89,7 +89,10 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — auth', () => 
 
 describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — validation', () => {
   it.each([
-    { label: 'object fields', payload: JSON.stringify({ avatarIds: ['avatar_1'] }) },
+    { label: 'unknown fields', payload: JSON.stringify({ avatarIds: ['avatar_1'] }) },
+    { label: 'an empty avatarId', payload: JSON.stringify({ avatarId: ' ' }) },
+    { label: 'a non-string avatarId', payload: JSON.stringify({ avatarId: 5 }) },
+    { label: 'an unknown scope', payload: JSON.stringify({ scope: 'failed' }) },
     { label: 'null JSON', payload: 'null' },
     { label: 'number JSON', payload: '5' },
     { label: 'boolean JSON', payload: 'true' },
@@ -196,5 +199,63 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — success', () 
     expect(response.statusCode).toBe(200)
     const body = response.json<ApiResponse<PrepareAvatarTraitsResponse>>()
     expect(body.data).toEqual({ scenarioId, results: [] })
+  })
+})
+
+describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — avatar selection', () => {
+  async function prepare(
+    app: ReturnType<typeof createServer>,
+    scenarioId: string,
+    payload: Record<string, unknown>,
+  ): Promise<{ statusCode: number; body: ApiResponse<PrepareAvatarTraitsResponse> }> {
+    const response = await app.inject({
+      method: 'POST',
+      url: `/v1/scenarios/${scenarioId}/prepare-avatar-traits`,
+      headers: { 'x-api-key': 'test-secret' },
+      payload,
+    })
+    return {
+      statusCode: response.statusCode,
+      body: response.json<ApiResponse<PrepareAvatarTraitsResponse>>(),
+    }
+  }
+
+  it('prepares only the avatar named in the body', async () => {
+    const app = createServer(TEST_CONFIG, { llmAdapter: createDeterministicTraitLlm() })
+    const { scenarioId, avatarId } = await createScenarioAndAvatar(app)
+    await app.inject({
+      method: 'POST',
+      url: `/v1/scenarios/${scenarioId}/avatars`,
+      headers: { 'x-api-key': 'test-secret' },
+      payload: { name: 'Theo', personaPrompt: 'You are Theo.' },
+    })
+
+    const { statusCode, body } = await prepare(app, scenarioId, { avatarId })
+
+    expect(statusCode).toBe(200)
+    expect(body.data?.results).toEqual([
+      { avatarId, status: 'prepared', computedTraits: sampleTraits },
+    ])
+  })
+
+  it('returns 404 when the named avatar is not in the scenario', async () => {
+    const app = createServer(TEST_CONFIG, { llmAdapter: createDeterministicTraitLlm() })
+    const { scenarioId } = await createScenarioAndAvatar(app)
+
+    const { statusCode, body } = await prepare(app, scenarioId, { avatarId: 'avatar_unknown' })
+
+    expect(statusCode).toBe(404)
+    expect(body.error?.code).toBe('NOT_FOUND')
+  })
+
+  it('skips already prepared avatars with scope unprepared', async () => {
+    const app = createServer(TEST_CONFIG, { llmAdapter: createDeterministicTraitLlm() })
+    const { scenarioId } = await createScenarioAndAvatar(app)
+    await prepare(app, scenarioId, {})
+
+    const { statusCode, body } = await prepare(app, scenarioId, { scope: 'unprepared' })
+
+    expect(statusCode).toBe(200)
+    expect(body.data?.results).toEqual([])
   })
 })

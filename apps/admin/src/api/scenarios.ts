@@ -8,6 +8,7 @@ import type {
   GetScenarioResponse,
   ListScenarioAvatarsResponse,
   ListScenariosResponse,
+  PrepareAvatarTraitsRequest,
   PrepareAvatarTraitsResponse,
   ScenarioSummary,
   UpdateAvatarRequest,
@@ -84,9 +85,11 @@ export async function deleteAvatar(avatarId: string): Promise<void> {
 
 export async function prepareAvatarTraits(
   scenarioId: string,
+  request: PrepareAvatarTraitsRequest,
 ): Promise<PrepareAvatarTraitsResponse> {
   return adminRequest<PrepareAvatarTraitsResponse>(
     'POST',
     `/v1/scenarios/${scenarioId}/prepare-avatar-traits`,
+    request,
   )
 }

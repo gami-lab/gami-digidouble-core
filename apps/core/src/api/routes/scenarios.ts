@@ -2,11 +2,13 @@ import type { TextToSpeechProviders } from '../../application/voice/text-to-spee
 import type { FastifyInstance, FastifyPluginCallback, FastifyReply } from 'fastify'
 import { fail, ok, SCENARIO_MODEL_SLOTS } from '@gami/shared'
 import type {
+  AvatarTraitPreparationScope,
   CreateAvatarRequest,
   CreateAvatarResponse,
   CreateScenarioRequest,
   CreateScenarioResponse,
   GetScenarioResponse,
+  PrepareAvatarTraitsRequest,
   PrepareAvatarTraitsResponse,
   UpdateScenarioRequest,
   UpdateScenarioResponse,
@@ -431,20 +433,50 @@ function registerPrepareAvatarTraitsRoute(
     '/:scenarioId/prepare-avatar-traits',
     { schema: { params: scenarioIdParamsSchema } },
     async (request, reply) => {
-      if (request.body !== undefined) {
+      const body = parsePrepareAvatarTraitsBody(request.body)
+      if (body === null) {
         return await reply
           .status(400)
-          .send(fail('VALIDATION_ERROR', 'This action does not accept a request body.'))
+          .send(
+            fail(
+              'VALIDATION_ERROR',
+              "Body must be omitted or an object with an optional non-empty 'avatarId' and an optional 'scope' of 'all' or 'unprepared'.",
+            ),
+          )
       }
 
       try {
-        const output = await useCase.execute({ scenarioId: request.params.scenarioId })
+        const output = await useCase.execute({ scenarioId: request.params.scenarioId, ...body })
         return await reply.send(ok<PrepareAvatarTraitsResponse>(output))
       } catch (error) {
         return handleDomainError(error, reply)
       }
     },
   )
+}
+
+function parsePrepareAvatarTraitsBody(body: unknown): PrepareAvatarTraitsRequest | null {
+  if (body === undefined) return {}
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) return null
+
+  const { avatarId, scope, ...rest } = body as Record<string, unknown>
+  if (Object.keys(rest).length > 0) return null
+  if (!isOptionalNonEmptyString(avatarId) || !isOptionalTraitPreparationScope(scope)) return null
+
+  return {
+    ...(avatarId !== undefined ? { avatarId } : {}),
+    ...(scope !== undefined ? { scope } : {}),
+  }
+}
+
+function isOptionalNonEmptyString(value: unknown): value is string | undefined {
+  return value === undefined || (typeof value === 'string' && value.trim().length > 0)
+}
+
+function isOptionalTraitPreparationScope(
+  value: unknown,
+): value is AvatarTraitPreparationScope | undefined {
+  return value === undefined || value === 'all' || value === 'unprepared'
 }
 
 async function handleDomainError(error: unknown, reply: FastifyReply): Promise<FastifyReply> {

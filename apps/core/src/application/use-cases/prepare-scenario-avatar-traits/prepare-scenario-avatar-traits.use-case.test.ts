@@ -9,6 +9,7 @@ import { InMemoryAvatarRepository } from '../../../infrastructure/db/in-memory-a
 import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory-scenario.repository.js'
 import { LlmError } from '../../../infrastructure/llm/llm.error.js'
+import { expectConsoleError } from '../../../test-utils/console.js'
 import { PrepareScenarioAvatarTraitsUseCase } from './prepare-scenario-avatar-traits.use-case.js'
 
 const sampleTraits: AvatarComputedTraits = {
@@ -371,7 +372,10 @@ describe('PrepareScenarioAvatarTraitsUseCase — failure isolation', () => {
       observability,
     )
 
-    const output = await useCase.execute({ scenarioId: 'scenario_1' })
+    const output = await expectConsoleError(
+      async () => await useCase.execute({ scenarioId: 'scenario_1' }),
+      /LLM call failed for avatar_llm in scenario_1 \(provider_unavailable\): raw provider message/,
+    )
 
     expect(output.results.find((result) => result.avatarId === 'avatar_good')).toMatchObject({
       status: 'prepared',
@@ -393,6 +397,7 @@ describe('PrepareScenarioAvatarTraitsUseCase — failure isolation', () => {
 
     expect(observability.events).toHaveLength(1)
     expect(observability.events[0]).toMatchObject({
+      sessionId: 'trait-preparation:scenario_1',
       event: 'avatar.trait_preparation.completed',
       output: {
         preparedCount: 1,
@@ -481,5 +486,74 @@ describe('PrepareScenarioAvatarTraitsUseCase — recomputation', () => {
     const avatar = await avatarRepository.findById('avatar_1')
     expect(avatar?.computedTraits).toEqual(updatedTraits)
     expect(avatar?.personaPrompt).toBe('Updated prompt after edit.')
+  })
+})
+
+describe('PrepareScenarioAvatarTraitsUseCase — avatar selection', () => {
+  function createSelectionFixture(): {
+    avatarRepository: InMemoryAvatarRepository
+    llm: ReturnType<typeof createLlm>
+    useCase: PrepareScenarioAvatarTraitsUseCase
+  } {
+    const avatarRepository = new InMemoryAvatarRepository([
+      makeAvatar({ avatarId: 'avatar_prepared', computedTraits: sampleTraits }),
+      makeAvatar({ avatarId: 'avatar_unprepared' }),
+    ])
+    const llm = createLlm({
+      avatar_prepared: JSON.stringify({ ...sampleTraits, identity: ['Recomputed'] }),
+      avatar_unprepared: JSON.stringify(sampleTraits),
+    })
+    const useCase = new PrepareScenarioAvatarTraitsUseCase(
+      new InMemoryScenarioRepository([makeScenario()]),
+      avatarRepository,
+      new InMemoryKnowledgeSourceRepository(),
+      llm,
+    )
+    return { avatarRepository, llm, useCase }
+  }
+
+  it('prepares only the requested avatar, even when it is already prepared', async () => {
+    const { avatarRepository, llm, useCase } = createSelectionFixture()
+
+    const output = await useCase.execute({ scenarioId: 'scenario_1', avatarId: 'avatar_prepared' })
+
+    expect(output.results.map((result) => result.avatarId)).toEqual(['avatar_prepared'])
+    expect(llm.requests).toHaveLength(1)
+    expect(llm.requests[0]?.trace).toMatchObject({
+      sessionId: 'trait-preparation:scenario_1',
+      metadata: { scenarioId: 'scenario_1', avatarId: 'avatar_prepared' },
+    })
+    const avatar = await avatarRepository.findById('avatar_prepared')
+    expect(avatar?.computedTraits?.identity).toEqual(['Recomputed'])
+  })
+
+  it('throws NOT_FOUND when the requested avatar is not in the scenario', async () => {
+    const { llm, useCase } = createSelectionFixture()
+
+    await expect(
+      useCase.execute({ scenarioId: 'scenario_1', avatarId: 'avatar_elsewhere' }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    expect(llm.requests).toHaveLength(0)
+  })
+
+  it('skips avatars that already have computed traits when scope is unprepared', async () => {
+    const { avatarRepository, useCase } = createSelectionFixture()
+
+    const output = await useCase.execute({ scenarioId: 'scenario_1', scope: 'unprepared' })
+
+    expect(output.results.map((result) => result.avatarId)).toEqual(['avatar_unprepared'])
+    const untouched = await avatarRepository.findById('avatar_prepared')
+    expect(untouched?.computedTraits).toEqual(sampleTraits)
+  })
+
+  it('re-prepares every avatar when scope is all', async () => {
+    const { useCase } = createSelectionFixture()
+
+    const output = await useCase.execute({ scenarioId: 'scenario_1', scope: 'all' })
+
+    expect(output.results.map((result) => result.avatarId).sort()).toEqual([
+      'avatar_prepared',
+      'avatar_unprepared',
+    ])
   })
 })

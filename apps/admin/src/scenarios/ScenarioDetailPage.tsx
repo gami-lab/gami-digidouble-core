@@ -4,6 +4,7 @@ import type {
   AvatarSummary,
   AvatarTraitPreparationResult,
   IngestionJobDto,
+  PrepareAvatarTraitsRequest,
   ScenarioAvatarAvailability,
   ScenarioSummary,
 } from '@gami/shared'
@@ -89,11 +90,19 @@ async function pollIngestionJob(ingestionJobId: string): Promise<IngestionJobDto
   throw new ApiError('TIMEOUT', 'Ingestion is taking longer than expected. Check back shortly.')
 }
 
-function summarizePrepareTraitsResults(results: AvatarTraitPreparationResult[]): string {
-  const failedCount = results.filter((result) => result.status === 'failed').length
-  const preparedCount = results.length - failedCount
-  return failedCount > 0
-    ? `Prepared ${String(preparedCount)} of ${String(results.length)} avatar(s); ${String(failedCount)} failed.`
+function summarizePrepareTraitsResults(
+  results: AvatarTraitPreparationResult[],
+  avatars: AvatarSummary[],
+): string {
+  if (results.length === 0) return 'Every avatar already has prepared traits.'
+  const failures = results.flatMap((result) => {
+    if (result.status !== 'failed') return []
+    const name = avatars.find((avatar) => avatar.avatarId === result.avatarId)?.name
+    return [`${name ?? result.avatarId} (${result.reason})`]
+  })
+  const preparedCount = results.length - failures.length
+  return failures.length > 0
+    ? `Prepared ${String(preparedCount)} of ${String(results.length)} avatar(s); failed: ${failures.join(', ')}.`
     : `Prepared traits for ${String(preparedCount)} avatar(s).`
 }
 
@@ -486,13 +495,13 @@ function ScenarioViewContainer({
     }
   }
 
-  async function handlePrepareTraits(): Promise<void> {
+  async function handlePrepareTraits(request: PrepareAvatarTraitsRequest): Promise<void> {
     onSetPrepareTraitsStatus({ kind: 'preparing' })
     try {
-      const response = await prepareAvatarTraits(data.scenario.scenarioId)
+      const response = await prepareAvatarTraits(data.scenario.scenarioId, request)
       const avatars = await listScenarioAvatars(data.scenario.scenarioId)
       onSetState(makeReady({ data: { ...data, avatars }, actionError: null }))
-      onSetPrepareTraitsStatus({ kind: 'success', summary: summarizePrepareTraitsResults(response.results) })
+      onSetPrepareTraitsStatus({ kind: 'success', summary: summarizePrepareTraitsResults(response.results, avatars) })
     } catch (error: unknown) {
       onSetPrepareTraitsStatus({
         kind: 'error',
@@ -514,7 +523,7 @@ function ScenarioViewContainer({
       onEditAvatar={(avatarId) => { setMode({ kind: 'editing-avatar', avatarId }) }}
       onDeleteAvatar={(avatarId) => { void handleDeleteAvatar(avatarId) }}
       onToggleVisibility={(avatarId, visible) => { void handleToggleVisibility(avatarId, visible) }}
-      onPrepareTraits={() => { void handlePrepareTraits() }}
+      onPrepareTraits={(request) => { void handlePrepareTraits(request) }}
       onAddKnowledge={() => { setMode({ kind: 'creating-knowledge' }) }}
       onEditKnowledge={(sourceId) => { setMode({ kind: 'editing-knowledge', sourceId }) }}
       onDeleteKnowledge={(sourceId) => { void handleDeleteKnowledge(sourceId) }}

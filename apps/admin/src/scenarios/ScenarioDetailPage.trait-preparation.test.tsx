@@ -131,7 +131,7 @@ describe('ScenarioDetailPage avatar trait preparation trigger', () => {
     renderPage()
     await waitForScenario()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Prepare avatar traits' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Prepare missing traits' }))
 
     const button = screen.getByRole('button', { name: 'Preparing…' })
     expect(button).toBeTruthy()
@@ -154,10 +154,10 @@ describe('ScenarioDetailPage avatar trait preparation trigger', () => {
       createAvatar({ computedTraits: createComputedTraits() }),
     ])
 
-    fireEvent.click(screen.getByRole('button', { name: 'Prepare avatar traits' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Re-prepare all traits' }))
 
     await waitFor(() => {
-      expect(prepareAvatarTraits).toHaveBeenCalledWith('scenario_a')
+      expect(prepareAvatarTraits).toHaveBeenCalledWith('scenario_a', { scope: 'all' })
     })
     await waitFor(() => {
       expect(listScenarioAvatars).toHaveBeenCalledTimes(2)
@@ -176,12 +176,51 @@ describe('ScenarioDetailPage avatar trait preparation trigger', () => {
     renderPage()
     await waitForScenario()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Prepare avatar traits' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Prepare missing traits' }))
 
     await waitFor(() => {
       expect(screen.getByText('UNKNOWN_ERROR: Failed to prepare avatar traits')).toBeTruthy()
     })
     expect(listScenarioAvatars).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('ScenarioDetailPage targeted avatar trait preparation', () => {
+  it('prepares only the clicked avatar and names failed avatars with their reason', async () => {
+    mockReadyLoad({ avatars: [createAvatar()] })
+    vi.mocked(prepareAvatarTraits).mockResolvedValue({
+      scenarioId: 'scenario_a',
+      results: [{ avatarId: 'avatar_1', status: 'failed', reason: 'llm_error' }],
+    })
+
+    renderPage()
+    await waitForScenario()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Prepare traits: Mira' }))
+
+    await waitFor(() => {
+      expect(prepareAvatarTraits).toHaveBeenCalledWith('scenario_a', { avatarId: 'avatar_1' })
+    })
+    await waitFor(() => {
+      expect(screen.getByText('Prepared 0 of 1 avatar(s); failed: Mira (llm_error).')).toBeTruthy()
+    })
+  })
+
+  it('requests only unprepared avatars and reports when none needed preparation', async () => {
+    mockReadyLoad({ avatars: [createAvatar({ computedTraits: createComputedTraits() })] })
+    vi.mocked(prepareAvatarTraits).mockResolvedValue({ scenarioId: 'scenario_a', results: [] })
+
+    renderPage()
+    await waitForScenario()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Prepare missing traits' }))
+
+    await waitFor(() => {
+      expect(prepareAvatarTraits).toHaveBeenCalledWith('scenario_a', { scope: 'unprepared' })
+    })
+    await waitFor(() => {
+      expect(screen.getByText('Every avatar already has prepared traits.')).toBeTruthy()
+    })
   })
 })
 

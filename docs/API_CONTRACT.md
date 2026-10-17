@@ -185,7 +185,10 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   `scenario.modelSelection.gameMasterOverride` -> `scenario.modelSelection.defaultProfile` ->
   global GM override -> global default; Memory: `scenario.modelSelection.memoryOverride` ->
   `scenario.modelSelection.defaultProfile` -> global memory override -> global default.
-- `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` takes no request body. One avatar's
+- `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` takes an optional body
+  `PrepareAvatarTraitsRequest`: `avatarId` prepares only that avatar (`404` when it is not in the
+  scenario); otherwise `scope` is `all` (default, re-prepares every avatar) or `unprepared` (only
+  avatars without `computedTraits`; skipped avatars are omitted from `results`). One avatar's
   failure (e.g. `provider_unavailable`) never fails the whole batch, and preparation overwrites only
   `computedTraits`, never authored fields. Trait preparation resolves `scenario.modelSelection.defaultProfile`
   and falls back directly to the global default, independently of the Avatar role override,
@@ -212,7 +215,8 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   kept/trimmed selection diagnostics; fields are optional because not every event carries every one.
 - Session events link to Langfuse instead of carrying prompts: a `turn_completed` event's
   `correlationId` is the Avatar call's trace id, and GM and memory-refresh payloads carry
-  `llmTraceId`. `turn_completed` records `inputMode`, plus `speechToTextLatencyMs` (voice turns,
+  `llmTraceId`. Trait-preparation traces (one per avatar LLM call plus a run summary) are grouped
+  under the Langfuse session `trait-preparation:{scenarioId}`. `turn_completed` records `inputMode`, plus `speechToTextLatencyMs` (voice turns,
   outside `totalTurnLatencyMs`) and `avatarFirstTokenLatencyMs` (streamed turns). Post-turn memory
   refreshes that the cadence skips log no event. Conversation-close memory work (episodic
   generation) is listed too; events outside a turn use

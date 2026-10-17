@@ -101,6 +101,18 @@ export type AvatarTraitPreparationResult =
   | { avatarId: string; status: 'prepared'; computedTraits: AvatarComputedTraits }
   | { avatarId: string; status: 'failed'; reason: AvatarTraitPreparationFailureReason }
 
+/**
+ * Optional body of the trait preparation action. `avatarId` prepares that one
+ * avatar; otherwise `scope` picks every avatar (`all`, the default) or only
+ * those without `computedTraits` (`unprepared`).
+ */
+export type PrepareAvatarTraitsRequest = {
+  avatarId?: string
+  scope?: AvatarTraitPreparationScope
+}
+
+export type AvatarTraitPreparationScope = 'all' | 'unprepared'
+
 export type PrepareAvatarTraitsResponse = {
   scenarioId: string
   results: AvatarTraitPreparationResult[]

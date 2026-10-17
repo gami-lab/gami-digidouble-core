@@ -252,6 +252,8 @@ export type {
   DeleteAvatarResponse,
   AvatarTraitPreparationFailureReason,
   AvatarTraitPreparationResult,
+  AvatarTraitPreparationScope,
+  PrepareAvatarTraitsRequest,
   PrepareAvatarTraitsResponse,
   StartSessionRequest,
   StartSessionResponse,

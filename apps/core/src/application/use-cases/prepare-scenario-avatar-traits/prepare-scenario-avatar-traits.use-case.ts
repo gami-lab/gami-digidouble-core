@@ -54,7 +54,10 @@ export class PrepareScenarioAvatarTraitsUseCase {
       throw new DomainError('NOT_FOUND', `Scenario ${input.scenarioId} was not found.`)
     }
 
-    const avatars = await this.avatarRepository.listByScenarioId(input.scenarioId)
+    const avatars = selectAvatars(
+      await this.avatarRepository.listByScenarioId(input.scenarioId),
+      input,
+    )
     const { memorySources, worldSources } = await this.gatherSupportingDocuments(input.scenarioId)
 
     const results: AvatarTraitPreparationResult[] = []
@@ -90,7 +93,12 @@ export class PrepareScenarioAvatarTraitsUseCase {
     try {
       response = await this.callTraitPreparationLlm(args)
     } catch (error) {
-      return buildFailedResult(args.avatar.avatarId, classifyLlmFailure(error))
+      const reason = classifyLlmFailure(error)
+      console.error(
+        `[avatar.trait_preparation] LLM call failed for ${args.avatar.avatarId} in ${args.scenario.scenarioId} (${reason}):`,
+        error instanceof Error ? error.message : String(error),
+      )
+      return buildFailedResult(args.avatar.avatarId, reason)
     }
 
     const parsed = parseTraitPreparationOutput(response.content)
@@ -134,6 +142,7 @@ export class PrepareScenarioAvatarTraitsUseCase {
       maxTokens: TRAIT_PREPARATION_MAX_TOKENS,
       trace: {
         requestId: crypto.randomUUID(),
+        sessionId: traitPreparationTraceSessionId(args.scenario.scenarioId),
         event: 'avatar.trait_preparation',
         errorEvent: 'avatar.trait_preparation.llm_error',
         metadata: {
@@ -161,6 +170,7 @@ export class PrepareScenarioAvatarTraitsUseCase {
     try {
       await this.observability.trace({
         requestId: crypto.randomUUID(),
+        sessionId: traitPreparationTraceSessionId(scenarioId),
         event: 'avatar.trait_preparation.completed',
         output: {
           preparedCount: preparedResults.length,
@@ -178,6 +188,31 @@ export class PrepareScenarioAvatarTraitsUseCase {
       console.error('[avatar.trait_preparation] Failed to record summary trace', error)
     }
   }
+}
+
+/** Groups every trait-preparation trace of a scenario under one Langfuse session. */
+function traitPreparationTraceSessionId(scenarioId: string): string {
+  return `trait-preparation:${scenarioId}`
+}
+
+function selectAvatars(
+  avatars: AvatarConfig[],
+  input: PrepareScenarioAvatarTraitsInput,
+): AvatarConfig[] {
+  if (input.avatarId !== undefined) {
+    const avatar = avatars.find((candidate) => candidate.avatarId === input.avatarId)
+    if (avatar === undefined) {
+      throw new DomainError(
+        'NOT_FOUND',
+        `Avatar ${input.avatarId} was not found in scenario ${input.scenarioId}.`,
+      )
+    }
+    return [avatar]
+  }
+  if (input.scope === 'unprepared') {
+    return avatars.filter((avatar) => avatar.computedTraits === undefined)
+  }
+  return avatars
 }
 
 function buildFailedResult(

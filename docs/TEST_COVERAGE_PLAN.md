@@ -57,7 +57,8 @@ These are easy to regress silently because they are policy, not type-level const
 - Nightly test depth: add mutation and conversation-regression suites when their scripts exist,
   performance smoke/soak checks once baseline thresholds are defined, and secrets scanning once an
   approved tool is available for the GitHub organization.
-- Avatar trait preparation: per-avatar failure isolation, rerunnable recomputation, persistence
+- Avatar trait preparation: per-avatar failure isolation, single-avatar and unprepared-only
+  selection, rerunnable recomputation, persistence
   of `computedTraits` without mutating authored avatar fields, and model resolution through
   scenario default -> global default only (never Avatar role/entity/scenario overrides).
 - Scenario model selection: every slot in `SCENARIO_MODEL_SLOTS` round-trips through API create/
