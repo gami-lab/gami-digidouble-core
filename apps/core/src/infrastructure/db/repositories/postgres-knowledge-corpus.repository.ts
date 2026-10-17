@@ -1,8 +1,5 @@
-/* eslint-disable max-lines -- retained cohesive module boundary; splitting would obscure ownership */
-
-import type { JSONValue, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { EmbeddingProfile } from '../../../application/ports/IEmbeddingAdapter.js'
-import { MAX_REINDEX_FAILURE_DETAILS_LENGTH } from '../../../application/ports/IKnowledgeCorpusRepository.js'
 import type {
   ActiveCorpus,
   ActiveSourceChunkReplacement,
@@ -17,53 +14,24 @@ import type {
   UpdateReindexSourceProgressParams,
 } from '../../../application/ports/IKnowledgeCorpusRepository.js'
 import type { KnowledgeChunk } from '../../../domain/knowledge/knowledge.types.js'
-import { hashKnowledgeChunkContent } from '../../../domain/knowledge/knowledge-content-hash.js'
 import { DEFAULT_EMBEDDING_DIMENSIONS } from '../../../config.js'
-import { extractUuid, stripPrefix } from './id-prefix.js'
-
-type ReindexOperationRow = {
-  id: string
-  corpus_generation_id: string
-  embedding_profile_id: string
-  expected_active_generation_id: string | null
-  expected_active_profile_id: string | null
-  status: ReindexOperation['status']
-  attempts: number
-  expected_source_count: number
-  completed_source_count: number
-  created_at: Date
-  started_at: Date | null
-  completed_at: Date | null
-  failure_details: string | null
-}
-
-type ReindexSourceProgressRow = {
-  reindex_operation_id: string
-  source_id: string
-  status: ReindexSourceProgress['status']
-  attempts: number
-  expected_chunk_count: number | null
-  completed_chunk_count: number
-  embedded_chunk_count: number
-  reused_chunk_count: number
-  started_at: Date | null
-  completed_at: Date | null
-  failure_details: string | null
-}
-
-type ChunkRow = {
-  id: string
-  source_id: string
-  content: string
-  content_hash: string | null
-  chunk_index: number
-  embedding: string | null
-  embedding_profile_id: string | null
-  corpus_generation_id: string | null
-  metadata: unknown
-  visible_to_avatar_ids: string[] | null
-  created_at: Date
-}
+import { extractUuid } from './id-prefix.js'
+import { promoteCorpusGeneration, validateCorpusGeneration } from './postgres-corpus-generation.js'
+import {
+  refreshCompletedSourceCount,
+  replaceActiveSourceChunks,
+  replaceStagedSourceChunks,
+} from './postgres-knowledge-chunk-writes.js'
+import {
+  type ReindexOperationRow,
+  type ReindexSourceProgressRow,
+  type ChunkRow,
+  requireUuid,
+  rowToOperation,
+  rowToSourceProgress,
+  rowToKnowledgeChunk,
+  boundFailureDetails,
+} from './postgres-knowledge-corpus.mapping.js'
 
 export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusRepository {
   constructor(private readonly sql: Sql) {}
@@ -281,9 +249,9 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     const [row] = await this.sql<ReindexOperationRow[]>`
       UPDATE reindex_operations
       SET status = ${updates.status},
-        attempts = COALESCE(${updates.attempts ?? null}, attempts),
-        started_at = COALESCE(${updates.startedAt ?? null}::timestamptz, started_at),
-        completed_at = COALESCE(${updates.completedAt ?? null}::timestamptz, completed_at),
+        attempts = COALESCE(${orNull(updates.attempts)}, attempts),
+        started_at = COALESCE(${orNull(updates.startedAt)}::timestamptz, started_at),
+        completed_at = COALESCE(${orNull(updates.completedAt)}::timestamptz, completed_at),
         failure_details = COALESCE(
           ${updates.failureDetails === undefined ? null : boundFailureDetails(updates.failureDetails)},
           failure_details
@@ -320,20 +288,19 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     const operationUuid = extractUuid('reindex_operation_', reindexOperationId)
     const sourceUuid = extractUuid('knowledge_source_', sourceId)
     if (operationUuid === null || sourceUuid === null) return null
-    // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
     return this.sql.begin(async (tx) => {
       const [row] = await tx<ReindexSourceProgressRow[]>`
         UPDATE reindex_operation_sources
         SET status = ${updates.status},
-          attempts = COALESCE(${updates.attempts ?? null}, attempts),
-          expected_chunk_count = COALESCE(${updates.expectedChunkCount ?? null}, expected_chunk_count),
-          completed_chunk_count = COALESCE(${updates.completedChunkCount ?? null}, completed_chunk_count),
-          embedded_chunk_count = COALESCE(${updates.embeddedChunkCount ?? null}, embedded_chunk_count),
-          reused_chunk_count = COALESCE(${updates.reusedChunkCount ?? null}, reused_chunk_count),
-          started_at = COALESCE(${updates.startedAt ?? null}::timestamptz, started_at),
-          completed_at = COALESCE(${updates.completedAt ?? null}::timestamptz, completed_at),
+          attempts = COALESCE(${orNull(updates.attempts)}, attempts),
+          expected_chunk_count = COALESCE(${orNull(updates.expectedChunkCount)}, expected_chunk_count),
+          completed_chunk_count = COALESCE(${orNull(updates.completedChunkCount)}, completed_chunk_count),
+          embedded_chunk_count = COALESCE(${orNull(updates.embeddedChunkCount)}, embedded_chunk_count),
+          reused_chunk_count = COALESCE(${orNull(updates.reusedChunkCount)}, reused_chunk_count),
+          started_at = COALESCE(${orNull(updates.startedAt)}::timestamptz, started_at),
+          completed_at = COALESCE(${orNull(updates.completedAt)}::timestamptz, completed_at),
           failure_details = COALESCE(
-            ${updates.failureDetails === undefined ? null : boundFailureDetails(updates.failureDetails)},
+            ${orNull(updates.failureDetails, boundFailureDetails)},
             failure_details
           ),
           updated_at = NOW()
@@ -346,383 +313,37 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
       await tx`
         UPDATE corpus_generation_sources
         SET status = ${updates.status},
-          expected_chunk_count = COALESCE(${updates.expectedChunkCount ?? null}, expected_chunk_count),
-          completed_chunk_count = COALESCE(${updates.completedChunkCount ?? null}, completed_chunk_count),
+          expected_chunk_count = COALESCE(${orNull(updates.expectedChunkCount)}, expected_chunk_count),
+          completed_chunk_count = COALESCE(${orNull(updates.completedChunkCount)}, completed_chunk_count),
           updated_at = NOW()
         WHERE corpus_generation_id = (
           SELECT corpus_generation_id FROM reindex_operations WHERE id = ${operationUuid}
         ) AND source_id = ${sourceUuid}
       `
-      await tx`
-        UPDATE reindex_operations
-        SET completed_source_count = (
-          SELECT COUNT(*) FROM reindex_operation_sources
-          WHERE reindex_operation_id = ${operationUuid} AND status = 'completed'
-        ), updated_at = NOW()
-        WHERE id = ${operationUuid}
-      `
+      await refreshCompletedSourceCount(tx, operationUuid)
       return rowToSourceProgress(row)
     })
   }
 
-  async replaceStagedSourceChunks(
+  replaceStagedSourceChunks(
     reindexOperationId: string,
     sourceId: string,
     chunks: readonly StagedKnowledgeChunk[],
   ): Promise<number> {
-    const operationUuid = requireUuid('reindex_operation_', reindexOperationId)
-    const sourceUuid = requireUuid('knowledge_source_', sourceId)
-    // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
-    return this.sql.begin(async (tx) => {
-      const [operation] = await tx<{ generation_id: string; profile_id: string }[]>`
-        SELECT corpus_generation_id AS generation_id, embedding_profile_id AS profile_id
-        FROM reindex_operations
-        WHERE id = ${operationUuid}
-      `
-      if (operation === undefined) throw new Error('Reindex operation not found.')
-      const [source] = await tx<{ source_id: string }[]>`
-        SELECT source_id FROM reindex_operation_sources
-        WHERE reindex_operation_id = ${operationUuid} AND source_id = ${sourceUuid}
-      `
-      if (source === undefined) throw new Error('Source is not part of reindex operation.')
-      for (const chunk of chunks) {
-        if (
-          chunk.sourceId !== sourceId ||
-          chunk.corpusGenerationId !== `corpus_generation_${operation.generation_id}` ||
-          chunk.embeddingProfileId !== `embedding_profile_${operation.profile_id}`
-        ) {
-          throw new Error('Staged chunk identity does not match the reindex operation.')
-        }
-      }
-      await tx`
-        DELETE FROM knowledge_chunks
-        WHERE source_id = ${sourceUuid} AND corpus_generation_id = ${operation.generation_id}
-      `
-      for (const chunk of chunks) {
-        await tx`
-          INSERT INTO knowledge_chunks (
-            source_id, content, content_hash, chunk_index, embedding, embedding_profile_id,
-            corpus_generation_id, metadata, visible_to_avatar_ids
-          ) VALUES (
-            ${sourceUuid}, ${chunk.content},
-            ${chunk.contentHash ?? hashKnowledgeChunkContent(chunk.content)}, ${chunk.chunkIndex},
-            ${JSON.stringify(chunk.embedding)}::vector, ${operation.profile_id},
-            ${operation.generation_id}, ${tx.json((chunk.metadata ?? {}) as JSONValue)},
-            ${chunk.visibleToAvatarIds ?? null}
-          )
-        `
-      }
-      await tx`
-        UPDATE reindex_operation_sources
-        SET status = 'completed', expected_chunk_count = ${chunks.length},
-          completed_chunk_count = ${chunks.length}, completed_at = NOW(), updated_at = NOW()
-        WHERE reindex_operation_id = ${operationUuid} AND source_id = ${sourceUuid}
-      `
-      await tx`
-        UPDATE corpus_generation_sources
-        SET status = 'completed', expected_chunk_count = ${chunks.length},
-          completed_chunk_count = ${chunks.length}, updated_at = NOW()
-        WHERE corpus_generation_id = ${operation.generation_id} AND source_id = ${sourceUuid}
-      `
-      await tx`
-        UPDATE reindex_operations
-        SET completed_source_count = (
-          SELECT COUNT(*) FROM reindex_operation_sources
-          WHERE reindex_operation_id = ${operationUuid} AND status = 'completed'
-        ), updated_at = NOW()
-        WHERE id = ${operationUuid}
-      `
-      return chunks.length
-    })
+    return replaceStagedSourceChunks(this.sql, reindexOperationId, sourceId, chunks)
   }
 
-  async replaceActiveSourceChunks(replacement: ActiveSourceChunkReplacement): Promise<number> {
-    const sourceUuid = requireUuid('knowledge_source_', replacement.sourceId)
-    const profileUuid = requireUuid('embedding_profile_', replacement.embeddingProfileId)
-    const generationUuid = requireUuid('corpus_generation_', replacement.corpusGenerationId)
-    if (replacement.chunks.length === 0) {
-      throw new Error('At least one vectorized chunk is required.')
-    }
-    for (const chunk of replacement.chunks) {
-      if (
-        chunk.sourceId !== replacement.sourceId ||
-        chunk.embeddingProfileId !== replacement.embeddingProfileId ||
-        chunk.corpusGenerationId !== replacement.corpusGenerationId ||
-        chunk.embedding.some((value) => !Number.isFinite(value))
-      ) {
-        throw new Error('Active source chunk identity or vector is invalid.')
-      }
-    }
-
-    // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
-    return this.sql.begin(async (tx) => {
-      const [active] = await tx<
-        {
-          generation_id: string | null
-          profile_id: string | null
-          dimensions: number | null
-        }[]
-      >`
-        SELECT state.active_generation_id AS generation_id,
-          state.active_profile_id AS profile_id,
-          profile.dimensions
-        FROM knowledge_corpus_state state
-        JOIN embedding_profiles profile ON profile.id = state.active_profile_id
-        WHERE state.id = 1
-        FOR UPDATE
-      `
-      if (
-        active === undefined ||
-        active.generation_id === null ||
-        active.profile_id === null ||
-        active.dimensions === null
-      ) {
-        throw new Error('No active knowledge corpus is configured.')
-      }
-      if (active.generation_id !== generationUuid || active.profile_id !== profileUuid) {
-        throw new Error('Active embedding profile or corpus generation changed.')
-      }
-      if (replacement.chunks.some((chunk) => chunk.embedding.length !== active.dimensions)) {
-        throw new Error('Active source chunk vector dimension does not match the active profile.')
-      }
-
-      await tx`
-        DELETE FROM knowledge_chunks
-        WHERE source_id = ${sourceUuid}
-          AND corpus_generation_id = ${generationUuid}
-          AND embedding_profile_id = ${profileUuid}
-      `
-      for (const chunk of replacement.chunks) {
-        await tx`
-          INSERT INTO knowledge_chunks (
-            source_id, content, content_hash, chunk_index, embedding, embedding_profile_id,
-            corpus_generation_id, metadata, visible_to_avatar_ids
-          ) VALUES (
-            ${sourceUuid}, ${chunk.content},
-            ${chunk.contentHash ?? hashKnowledgeChunkContent(chunk.content)}, ${chunk.chunkIndex},
-            ${JSON.stringify(chunk.embedding)}::vector, ${profileUuid},
-            ${generationUuid}, ${tx.json((chunk.metadata ?? {}) as JSONValue)},
-            ${chunk.visibleToAvatarIds ?? null}
-          )
-        `
-      }
-      await tx`
-        UPDATE knowledge_sources
-        SET status = 'ready', updated_at = NOW()
-        WHERE id = ${sourceUuid}
-      `
-      return replacement.chunks.length
-    })
+  replaceActiveSourceChunks(replacement: ActiveSourceChunkReplacement): Promise<number> {
+    return replaceActiveSourceChunks(this.sql, replacement)
   }
 
-  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
-  async validateCorpusGeneration(reindexOperationId: string): Promise<CorpusValidation> {
-    const operationUuid = requireUuid('reindex_operation_', reindexOperationId)
-    const [row] = await this.sql<
-      {
-        generation_id: string
-        profile_id: string
-        expected_source_count: number
-        completed_source_count: number
-        completed_nonempty_source_count: number
-        expected_chunk_count: number
-        actual_chunk_count: number
-        non_null_vector_count: number
-      }[]
-    >`
-      SELECT op.corpus_generation_id AS generation_id,
-        op.embedding_profile_id AS profile_id,
-        op.expected_source_count,
-        (
-          SELECT COUNT(*)::int FROM reindex_operation_sources progress
-          WHERE progress.reindex_operation_id = op.id AND progress.status = 'completed'
-        ) AS completed_source_count,
-        (
-          SELECT COUNT(*)::int FROM reindex_operation_sources progress
-          WHERE progress.reindex_operation_id = op.id
-            AND progress.status = 'completed'
-            AND COALESCE(progress.expected_chunk_count, 0) > 0
-        ) AS completed_nonempty_source_count,
-        (
-          SELECT COALESCE(SUM(progress.expected_chunk_count), 0)::int
-          FROM reindex_operation_sources progress
-          WHERE progress.reindex_operation_id = op.id
-        ) AS expected_chunk_count,
-        (
-          SELECT COUNT(*)::int FROM knowledge_chunks chunks
-          WHERE chunks.corpus_generation_id = op.corpus_generation_id
-            AND chunks.embedding_profile_id = op.embedding_profile_id
-        ) AS actual_chunk_count,
-        (
-          SELECT COUNT(chunks.embedding)::int FROM knowledge_chunks chunks
-          WHERE chunks.corpus_generation_id = op.corpus_generation_id
-            AND chunks.embedding_profile_id = op.embedding_profile_id
-        ) AS non_null_vector_count
-      FROM reindex_operations op
-      WHERE op.id = ${operationUuid}
-    `
-    if (row === undefined) throw new Error('Reindex operation not found.')
-    const valid =
-      row.completed_source_count === row.expected_source_count &&
-      (row.expected_source_count === 0
-        ? row.expected_chunk_count === 0 &&
-          row.actual_chunk_count === 0 &&
-          row.non_null_vector_count === 0
-        : row.completed_nonempty_source_count === row.expected_source_count &&
-          row.expected_chunk_count === row.actual_chunk_count &&
-          row.actual_chunk_count > 0 &&
-          row.actual_chunk_count === row.non_null_vector_count)
-    if (valid) {
-      await this.sql`
-        UPDATE corpus_generations
-        SET status = 'validated', validated_at = NOW()
-        WHERE id = ${row.generation_id} AND embedding_profile_id = ${row.profile_id}
-      `
-    }
-    return {
-      valid,
-      corpusGenerationId: `corpus_generation_${row.generation_id}`,
-      embeddingProfileId: `embedding_profile_${row.profile_id}`,
-      expectedSourceCount: row.expected_source_count,
-      completedSourceCount: row.completed_source_count,
-      expectedChunkCount: row.expected_chunk_count,
-      actualChunkCount: row.actual_chunk_count,
-      nonNullVectorCount: row.non_null_vector_count,
-      ...(valid ? {} : { failureDetails: 'Generation is incomplete or contains null vectors.' }),
-    }
+  validateCorpusGeneration(reindexOperationId: string): Promise<CorpusValidation> {
+    return validateCorpusGeneration(this.sql, reindexOperationId)
   }
 
-  /* eslint-disable max-lines-per-function, complexity -- retained fixture or orchestration setup is clearer together */
-  async promoteCorpusGeneration(reindexOperationId: string): Promise<ActiveCorpus> {
-    const operationUuid = requireUuid('reindex_operation_', reindexOperationId)
-    return this.sql.begin(async (tx) => {
-      const [operation] = await tx<
-        {
-          generation_id: string
-          profile_id: string
-          expected_generation_id: string | null
-          expected_profile_id: string | null
-          status: string
-        }[]
-      >`
-        SELECT corpus_generation_id AS generation_id, embedding_profile_id AS profile_id,
-          expected_active_generation_id AS expected_generation_id,
-          expected_active_profile_id AS expected_profile_id, status
-        FROM reindex_operations WHERE id = ${operationUuid} FOR UPDATE
-      `
-      if (operation === undefined) throw new Error('Reindex operation not found.')
-      const [activeState] = await tx<
-        { active_generation_id: string | null; active_profile_id: string | null }[]
-      >`
-        SELECT active_generation_id, active_profile_id
-        FROM knowledge_corpus_state
-        WHERE id = 1
-        FOR UPDATE
-      `
-      if (activeState === undefined) throw new Error('Active corpus state is unavailable.')
-      if (
-        activeState.active_generation_id !== operation.expected_generation_id ||
-        activeState.active_profile_id !== operation.expected_profile_id
-      ) {
-        throw new Error('Active corpus changed; active corpus was preserved.')
-      }
-      const [validation] = await tx<
-        {
-          expected_source_count: number
-          completed_source_count: number
-          completed_nonempty_source_count: number
-          expected_chunk_count: number
-          actual_chunk_count: number
-          non_null_vector_count: number
-        }[]
-      >`
-        SELECT op.expected_source_count,
-          (
-            SELECT COUNT(*)::int FROM reindex_operation_sources progress
-            WHERE progress.reindex_operation_id = op.id AND progress.status = 'completed'
-          ) AS completed_source_count,
-          (
-            SELECT COUNT(*)::int FROM reindex_operation_sources progress
-            WHERE progress.reindex_operation_id = op.id
-              AND progress.status = 'completed'
-              AND COALESCE(progress.expected_chunk_count, 0) > 0
-          ) AS completed_nonempty_source_count,
-          (
-            SELECT COALESCE(SUM(progress.expected_chunk_count), 0)::int
-            FROM reindex_operation_sources progress
-            WHERE progress.reindex_operation_id = op.id
-          ) AS expected_chunk_count,
-          (
-            SELECT COUNT(*)::int FROM knowledge_chunks chunks
-            WHERE chunks.corpus_generation_id = op.corpus_generation_id
-              AND chunks.embedding_profile_id = op.embedding_profile_id
-          ) AS actual_chunk_count,
-          (
-            SELECT COUNT(chunks.embedding)::int FROM knowledge_chunks chunks
-            WHERE chunks.corpus_generation_id = op.corpus_generation_id
-              AND chunks.embedding_profile_id = op.embedding_profile_id
-          ) AS non_null_vector_count
-        FROM reindex_operations op
-        WHERE op.id = ${operationUuid}
-      `
-      const valid =
-        validation !== undefined &&
-        validation.completed_source_count === validation.expected_source_count &&
-        (validation.expected_source_count === 0
-          ? validation.expected_chunk_count === 0 &&
-            validation.actual_chunk_count === 0 &&
-            validation.non_null_vector_count === 0
-          : validation.completed_nonempty_source_count === validation.expected_source_count &&
-            validation.expected_chunk_count === validation.actual_chunk_count &&
-            validation.actual_chunk_count > 0 &&
-            validation.actual_chunk_count === validation.non_null_vector_count)
-      if (!valid) {
-        throw new Error('Corpus generation validation failed; active corpus was preserved.')
-      }
-      await tx`
-        UPDATE corpus_generations
-        SET status = 'superseded'
-        WHERE status = 'active' AND id <> ${operation.generation_id}
-      `
-      await tx`
-        UPDATE corpus_generations
-        SET status = 'active', activated_at = NOW()
-        WHERE id = ${operation.generation_id} AND embedding_profile_id = ${operation.profile_id}
-      `
-      await tx`
-        UPDATE knowledge_corpus_state
-        SET active_generation_id = ${operation.generation_id}, active_profile_id = ${operation.profile_id}
-        WHERE id = 1
-      `
-      await tx`
-        UPDATE reindex_operations
-        SET status = 'completed', completed_at = NOW(), updated_at = NOW()
-        WHERE id = ${operationUuid}
-      `
-      const [profile] = await tx<
-        {
-          id: string
-          provider: string
-          model: string
-          dimensions: number
-        }[]
-      >`
-        SELECT id, provider, model, dimensions
-        FROM embedding_profiles WHERE id = ${operation.profile_id}
-      `
-      if (profile === undefined) throw new Error('Embedding profile not found.')
-      return {
-        corpusGenerationId: `corpus_generation_${operation.generation_id}`,
-        embeddingProfileId: `embedding_profile_${operation.profile_id}`,
-        profile: {
-          provider: profile.provider,
-          model: profile.model,
-          dimensions: profile.dimensions,
-        },
-      }
-    })
+  promoteCorpusGeneration(reindexOperationId: string): Promise<ActiveCorpus> {
+    return promoteCorpusGeneration(this.sql, reindexOperationId)
   }
-  /* eslint-enable max-lines-per-function, complexity */
 
   async getActiveCorpus(): Promise<ActiveCorpus | null> {
     const [row] = await this.sql<
@@ -777,85 +398,7 @@ export class PostgresKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
   }
 }
 
-function requireUuid(prefix: string, value: string): string {
-  const uuid = stripPrefix(prefix, value)
-  if (uuid.length === 0 || extractUuid(prefix, value) === null) {
-    throw new Error(`Invalid ${prefix} identifier.`)
-  }
-  return uuid
-}
-
-function rowToOperation(row: ReindexOperationRow): ReindexOperation {
-  return {
-    reindexOperationId: `reindex_operation_${row.id}`,
-    corpusGenerationId: `corpus_generation_${row.corpus_generation_id}`,
-    embeddingProfileId: `embedding_profile_${row.embedding_profile_id}`,
-    ...(row.expected_active_profile_id !== null
-      ? { expectedActiveProfileId: `embedding_profile_${row.expected_active_profile_id}` }
-      : {}),
-    ...(row.expected_active_generation_id !== null
-      ? { expectedActiveGenerationId: `corpus_generation_${row.expected_active_generation_id}` }
-      : {}),
-    status: row.status,
-    attempts: row.attempts,
-    expectedSourceCount: row.expected_source_count,
-    completedSourceCount: row.completed_source_count,
-    createdAt: row.created_at.toISOString(),
-    ...(row.started_at !== null ? { startedAt: row.started_at.toISOString() } : {}),
-    ...(row.completed_at !== null ? { completedAt: row.completed_at.toISOString() } : {}),
-    ...(row.failure_details !== null ? { failureDetails: row.failure_details } : {}),
-  }
-}
-
-function rowToSourceProgress(row: ReindexSourceProgressRow): ReindexSourceProgress {
-  return {
-    reindexOperationId: `reindex_operation_${row.reindex_operation_id}`,
-    sourceId: `knowledge_source_${row.source_id}`,
-    status: row.status,
-    attempts: row.attempts,
-    ...(row.expected_chunk_count !== null ? { expectedChunkCount: row.expected_chunk_count } : {}),
-    completedChunkCount: row.completed_chunk_count,
-    embeddedChunkCount: row.embedded_chunk_count,
-    reusedChunkCount: row.reused_chunk_count,
-    ...(row.started_at !== null ? { startedAt: row.started_at.toISOString() } : {}),
-    ...(row.completed_at !== null ? { completedAt: row.completed_at.toISOString() } : {}),
-    ...(row.failure_details !== null ? { failureDetails: row.failure_details } : {}),
-  }
-}
-
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
-function rowToKnowledgeChunk(row: ChunkRow): KnowledgeChunk {
-  const metadata =
-    typeof row.metadata === 'object' && row.metadata !== null && !Array.isArray(row.metadata)
-      ? (row.metadata as Record<string, unknown>)
-      : undefined
-  return {
-    chunkId: `knowledge_chunk_${row.id}`,
-    sourceId: `knowledge_source_${row.source_id}`,
-    content: row.content,
-    ...(row.content_hash !== null ? { contentHash: row.content_hash } : {}),
-    chunkIndex: row.chunk_index,
-    ...(row.embedding !== null ? { embedding: parseVectorText(row.embedding) } : {}),
-    ...(row.embedding_profile_id !== null
-      ? { embeddingProfileId: `embedding_profile_${row.embedding_profile_id}` }
-      : {}),
-    ...(row.corpus_generation_id !== null
-      ? { corpusGenerationId: `corpus_generation_${row.corpus_generation_id}` }
-      : {}),
-    ...(metadata !== undefined ? { metadata } : {}),
-    ...(row.visible_to_avatar_ids !== null && row.visible_to_avatar_ids.length > 0
-      ? { visibleToAvatarIds: row.visible_to_avatar_ids }
-      : {}),
-    createdAt: row.created_at.toISOString(),
-  }
-}
-
-function parseVectorText(value: string): number[] {
-  const content = value.trim().replace(/^\[/, '').replace(/\]$/, '').trim()
-  if (content.length === 0) return []
-  return content.split(',').map((entry) => Number(entry.trim()))
-}
-
-function boundFailureDetails(value: string): string {
-  return value.slice(0, MAX_REINDEX_FAILURE_DETAILS_LENGTH)
+function orNull<T, R = T>(value: T | undefined, map?: (value: T) => R): R | T | null {
+  if (value === undefined) return null
+  return map === undefined ? value : map(value)
 }
