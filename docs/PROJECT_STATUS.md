@@ -93,9 +93,10 @@ that touches persistence, retrieval, or provider adapters.
   canonical owners and explicit keep-separate boundaries. The cleanup is behavior-preserving and
   does not change runtime ordering or public API contracts.
 - EPIC 11.2 is complete: the comment baseline and decision inventory were recorded; documented
-  legacy fallbacks, stale TODOs, compatibility paths, production type escapes, and unexplained
-  suppressions were removed or resolved; and policy sweeps covered Core, shared contracts, clients,
-  evaluation tools, Docker/config, and workflows. The local comment-policy rule, unused-disable
+  legacy fallbacks, stale TODOs, compatibility paths, and production type escapes were removed;
+  oversized production modules were split and the remaining lint suppressions carry specific
+  reasons; and policy sweeps covered Core, shared contracts, clients, evaluation tools,
+  Docker/config, and workflows. The local comment-policy rule, unused-disable
   reporting, and warning-comment checks now run through `pnpm lint` and staged-file linting. Public
   contracts and runtime behavior remain unchanged apart from the documented hack removals.
 - Phase A has API-key auth only (no user accounts/roles), one Core deployment unit, optional

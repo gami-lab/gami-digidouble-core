@@ -44,6 +44,9 @@ These are easy to regress silently because they are policy, not type-level const
 - Voice/audio: no raw audio or transcript is ever persisted; one `(conversationId, utteranceId)` can
   execute at most once (covers in-flight duplicates, completed replays, expired reservations, and
   conflicting fingerprints). An unconfigured voice provider must leave the text route unaffected.
+  Utterance keys always carry a Redis TTL, set in the same command as the write.
+- Session unlock state is fixed at session start and changes only through Game Master unlocks; the
+  Avatar prompt's awareness and the available-Avatars endpoint must agree for the same session.
 - Retrieval and admin/console diagnostics must never leak vectors, prompts, credentials, or provider
   payloads — only bounded profile/count/timing/similarity/outcome metadata.
 - Streaming persists the user message before provider iteration, never persists a partial Avatar
