@@ -1,9 +1,14 @@
-const CHANGE_NARRATION = /^(updated|added|changed|fixed|now|refactored)\b/i
-const AI_ATTRIBUTION = /\b(?:added\s+by\s+ai|generated\s+by|claude|copilot|codex)\b/i
+const CHANGE_NARRATION_START =
+  /^(?:updated|added|changed|fixed|refactored|rewrote|replaced|removed|moved|renamed)\s+(?:the|this|that|these|a|an|it|to|for|so|in)\b|^now\s+(?:uses|returns|handles|supports|calls|checks|reads|writes|accepts)\b/i
+const CHANGE_NARRATION_ANYWHERE =
+  /\b(?:this|the)\s+(?:function|method|class|file|module|code|logic)\s+(?:was|has\s+been)\s+(?:added|updated|changed|rewritten|refactored|moved|replaced)\b|\bafter\s+the\s+(?:refactor|rewrite|change|cleanup)\b/i
+const AI_ATTRIBUTION =
+  /\b(?:generated|written|added|created|authored)\s+(?:by|with)\s+(?:ai|an?\s+(?:ai|llm|agent)|claude|copilot|codex|chatgpt|gpt)\b|\bai[-\s]generated\b/i
 const EPIC_OR_PROMPT_REFERENCE =
   /\b(?:epic-\w+|epic\s+\d+(?:\.\d+)*|todo\s*\(\s*epic\b|prompt\s+\d+(?:\.\d+)*)\b/i
 const ESLINT_DISABLE = /\beslint-disable(?:-next-line|-line)?\b/i
-const ESLINT_REASON = /--\s+\S/
+const ESLINT_REASON = /--\s+(\S.*)$/s
+const MIN_REASON_WORDS = 3
 
 function firstCommentLine(value) {
   return (
@@ -11,6 +16,16 @@ function firstCommentLine(value) {
       .split(/\r?\n/)
       .map((line) => line.replace(/^\s*\*+\s?/, '').trim())
       .find((line) => line.length > 0) ?? ''
+  )
+}
+
+function hasDisableReason(value) {
+  const reason = ESLINT_REASON.exec(value)?.[1] ?? ''
+  return (
+    reason
+      .trim()
+      .split(/\s+/)
+      .filter((word) => /\w/.test(word)).length >= MIN_REASON_WORDS
   )
 }
 
@@ -29,7 +44,7 @@ const rule = {
       epicReference:
         'Track follow-ups in durable documentation instead of referencing epics or prompts in code comments.',
       unexplainedDisable:
-        'Every eslint-disable directive must include an inline "-- reason" explanation.',
+        'Every eslint-disable directive must include an inline "-- reason" of at least three words.',
     },
   },
 
@@ -41,7 +56,10 @@ const rule = {
         for (const comment of sourceCode.getAllComments()) {
           const firstLine = firstCommentLine(comment.value)
 
-          if (CHANGE_NARRATION.test(firstLine)) {
+          if (
+            CHANGE_NARRATION_START.test(firstLine) ||
+            CHANGE_NARRATION_ANYWHERE.test(comment.value)
+          ) {
             context.report({ node: comment, messageId: 'changeNarration' })
           }
 
@@ -53,7 +71,7 @@ const rule = {
             context.report({ node: comment, messageId: 'epicReference' })
           }
 
-          if (ESLINT_DISABLE.test(comment.value) && !ESLINT_REASON.test(comment.value)) {
+          if (ESLINT_DISABLE.test(comment.value) && !hasDisableReason(comment.value)) {
             context.report({ node: comment, messageId: 'unexplainedDisable' })
           }
         }
