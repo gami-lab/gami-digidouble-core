@@ -1,5 +1,6 @@
-import type { JSX, ReactNode } from 'react'
+import { useEffect, useState, type JSX, type ReactNode } from 'react'
 import { langfuseProjectUrl } from '../env'
+import { langfuseTraceId } from './langfuse-trace-id'
 import { formatMs } from '../debug/format'
 
 type Tone = 'neutral' | 'ok' | 'warn' | 'error' | 'accent'
@@ -66,11 +67,23 @@ export function LangfuseTraceLink({
 }: {
   traceId: string | undefined
 }): JSX.Element | null {
-  if (langfuseProjectUrl === null || traceId === undefined) return null
+  const [otelTraceId, setOtelTraceId] = useState<string | null>(null)
+  useEffect(() => {
+    setOtelTraceId(null)
+    if (traceId === undefined) return
+    let current = true
+    void langfuseTraceId(traceId).then((id) => {
+      if (current) setOtelTraceId(id)
+    })
+    return () => {
+      current = false
+    }
+  }, [traceId])
+  if (langfuseProjectUrl === null || otelTraceId === null) return null
   return (
     <a
       className="small"
-      href={`${langfuseProjectUrl}/traces/${encodeURIComponent(traceId)}`}
+      href={`${langfuseProjectUrl}/traces/${otelTraceId}`}
       target="_blank"
       rel="noreferrer"
     >
