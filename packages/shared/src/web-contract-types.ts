@@ -87,6 +87,7 @@ export type DeleteAvatarResponse = {
 
 export type AvatarTraitPreparationFailureReason =
   | 'unparseable_output'
+  | 'output_truncated'
   | 'llm_error'
   | 'provider_unavailable'
   | 'persistence_error'

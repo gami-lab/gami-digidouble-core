@@ -32,7 +32,11 @@ import type {
   PrepareScenarioAvatarTraitsOutput,
 } from './prepare-scenario-avatar-traits.types.js'
 
-const TRAIT_PREPARATION_MAX_TOKENS = 3000
+/**
+ * Room for an uncapped timeline plus provider-side thinking, kept under the
+ * Anthropic SDK's ~21K ceiling for non-streaming requests.
+ */
+export const TRAIT_PREPARATION_MAX_TOKENS = 16000
 
 /** Computes and persists structured traits from authored scenario and avatar inputs. */
 export class PrepareScenarioAvatarTraitsUseCase {
@@ -111,7 +115,11 @@ export class PrepareScenarioAvatarTraitsUseCase {
 
     const parsed = parseTraitPreparationOutput(response.content)
     if (parsed === null) {
-      return buildFailedResult(args.avatar.avatarId, 'unparseable_output')
+      const reason =
+        response.outputTokens >= TRAIT_PREPARATION_MAX_TOKENS
+          ? 'output_truncated'
+          : 'unparseable_output'
+      return buildFailedResult(args.avatar.avatarId, reason)
     }
 
     const normalized = normalizeComputedTraits(parsed)

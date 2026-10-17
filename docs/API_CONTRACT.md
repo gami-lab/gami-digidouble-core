@@ -191,7 +191,9 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   avatars without `computedTraits`; skipped avatars are omitted from `results`). Each avatar's
   preparation input includes only the `avatar_knowledge`/`world` sources whose visibility policy
   admits that avatar, the same rule as runtime retrieval. One avatar's
-  failure (e.g. `provider_unavailable`) never fails the whole batch, and preparation overwrites only
+  failure (e.g. `provider_unavailable`) never fails the whole batch; `output_truncated` means the
+  model hit the trait-preparation output token cap before finishing the JSON, while
+  `unparseable_output` means complete output that is not valid trait JSON. Preparation overwrites only
   `computedTraits`, never authored fields. Trait preparation resolves `scenario.modelSelection.defaultProfile`
   and falls back directly to the global default, independently of the Avatar role override,
   scenario `avatarOverride`, and Avatar entity `llmOverride`.
