@@ -1,3 +1,4 @@
+import { optionalField } from '../../domain/optional-field.js'
 import type {
   CreateKnowledgeSourceParams,
   IKnowledgeSourceRepository,
@@ -54,7 +55,7 @@ export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceReposi
       status: 'pending',
       createdAt: now,
       updatedAt: now,
-      ...(params.metadata !== undefined ? { metadata: params.metadata } : {}),
+      ...optionalField('metadata', params.metadata),
       ...visibility,
     }
 
@@ -104,7 +105,6 @@ export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceReposi
     return Promise.resolve(normalizeSource(updated))
   }
 
-  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
   update(sourceId: string, updates: UpdateKnowledgeSourceParams): Promise<KnowledgeSource | null> {
     const existing = this.sources.get(sourceId)
     if (existing === undefined) return Promise.resolve(null)
@@ -120,10 +120,10 @@ export class InMemoryKnowledgeSourceRepository implements IKnowledgeSourceReposi
     )
     const updated: KnowledgeSource = {
       ...existing,
-      ...(updates.name !== undefined ? { name: updates.name } : {}),
-      ...(updates.uriOrPath !== undefined ? { uriOrPath: updates.uriOrPath } : {}),
-      ...(updates.metadata !== undefined ? { metadata: updates.metadata } : {}),
-      ...(updates.status !== undefined ? { status: updates.status } : {}),
+      ...optionalField('name', updates.name),
+      ...optionalField('uriOrPath', updates.uriOrPath),
+      ...optionalField('metadata', updates.metadata),
+      ...optionalField('status', updates.status),
       visibilityPolicy: visibility.visibilityPolicy,
       updatedAt: new Date().toISOString(),
     }

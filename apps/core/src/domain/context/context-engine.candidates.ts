@@ -1,3 +1,4 @@
+import { optionalField } from '../optional-field.js'
 import type { RetrievalTrace, RetrievedKnowledgeItem } from '../knowledge/knowledge.types.js'
 import { selectBalancedRetrievedItems } from '../knowledge/retrieval-selection.js'
 import type { ContextEngineInput, ContextEngineOutput } from './context-engine.types.js'
@@ -103,16 +104,19 @@ function pushResponseRulesCandidate(candidates: CandidateSegment[], responseRule
   })
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function pushWorkingMemoryCandidates(
   candidates: CandidateSegment[],
   memory: ContextEngineInput['extensions']['memory'],
 ): void {
-  const sessionSummary = memory?.working?.session?.summary
-  const avatarSummary = memory?.working?.avatar?.summary
-  const conversationSummary = memory?.working?.conversation?.summary
-  const workingText = [sessionSummary, avatarSummary, conversationSummary].filter(hasText).join(' ')
-  if (workingText.length === 0) return
+  const working = memory?.working
+  const workingText = [
+    working?.session?.summary,
+    working?.avatar?.summary,
+    working?.conversation?.summary,
+  ]
+    .filter(hasText)
+    .join(' ')
+  if (working === undefined || workingText.length === 0) return
 
   candidates.push({
     projection: 'avatar',
@@ -121,11 +125,9 @@ function pushWorkingMemoryCandidates(
     tokenEstimate: estimateTokens(workingText),
     apply: (draft) => {
       draft.avatar.sections.conversationState.workingMemory = {
-        ...(memory?.working?.session !== undefined ? { session: memory.working.session } : {}),
-        ...(memory?.working?.avatar !== undefined ? { avatar: memory.working.avatar } : {}),
-        ...(memory?.working?.conversation !== undefined
-          ? { conversation: memory.working.conversation }
-          : {}),
+        ...optionalField('session', working.session),
+        ...optionalField('avatar', working.avatar),
+        ...optionalField('conversation', working.conversation),
       }
     },
   })
@@ -135,11 +137,11 @@ function pushWorkingMemoryCandidates(
     segmentId: 'conversationStateWorkingMemory',
     tokenEstimate: estimateTokens(workingText),
     apply: (draft) => {
-      if (memory?.working?.conversation !== undefined) {
+      if (working.conversation !== undefined) {
         draft.gm.sections.conversationState.workingMemory = {
-          summary: memory.working.conversation.summary,
-          unresolvedThreads: memory.working.conversation.unresolvedThreads,
-          coveredTopics: memory.working.conversation.coveredTopics,
+          summary: working.conversation.summary,
+          unresolvedThreads: working.conversation.unresolvedThreads,
+          coveredTopics: working.conversation.coveredTopics,
         }
       }
     },

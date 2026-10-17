@@ -83,7 +83,31 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     return Promise.resolve(this.profiles.get(embeddingProfileId) ?? null)
   }
 
-  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+  private expectedActiveCorpusFields(): Pick<
+    MutableOperation,
+    'expectedActiveProfileId' | 'expectedActiveGenerationId'
+  > {
+    if (this.activeCorpus === null) return {}
+    return {
+      expectedActiveProfileId: this.activeCorpus.embeddingProfileId,
+      expectedActiveGenerationId: this.activeCorpus.corpusGenerationId,
+    }
+  }
+
+  private findReusableOperation(
+    embeddingProfileId: string,
+    sourceIds: string[],
+  ): MutableOperation | undefined {
+    return [...this.operations.values()].find(
+      (candidate) =>
+        candidate.status !== 'completed' &&
+        candidate.embeddingProfileId === embeddingProfileId &&
+        candidate.expectedActiveProfileId === this.activeCorpus?.embeddingProfileId &&
+        candidate.expectedActiveGenerationId === this.activeCorpus?.corpusGenerationId &&
+        sameStringSet(candidate.sourceIds, sourceIds),
+    )
+  }
+
   createReindexOperation(params: CreateReindexOperationParams): Promise<ReindexOperation> {
     const profile = this.profiles.get(params.embeddingProfileId)
     if (profile === undefined) throw new Error('Embedding profile not found.')
@@ -91,16 +115,7 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     const operationId = params.reindexOperationId ?? `reindex_operation_${crypto.randomUUID()}`
     const existing = this.operations.get(operationId)
     if (existing !== undefined) return Promise.resolve(publicOperation(existing))
-    const expectedActiveProfileId = this.activeCorpus?.embeddingProfileId
-    const expectedActiveGenerationId = this.activeCorpus?.corpusGenerationId
-    const reusable = [...this.operations.values()].find(
-      (candidate) =>
-        candidate.status !== 'completed' &&
-        candidate.embeddingProfileId === profile.embeddingProfileId &&
-        candidate.expectedActiveProfileId === expectedActiveProfileId &&
-        candidate.expectedActiveGenerationId === expectedActiveGenerationId &&
-        sameStringSet(candidate.sourceIds, sourceIds),
-    )
+    const reusable = this.findReusableOperation(profile.embeddingProfileId, sourceIds)
     if (reusable !== undefined) return Promise.resolve(publicOperation(reusable))
     const generationId = params.corpusGenerationId ?? `corpus_generation_${crypto.randomUUID()}`
     const now = new Date().toISOString()
@@ -115,12 +130,7 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
       reindexOperationId: operationId,
       corpusGenerationId: generationId,
       embeddingProfileId: profile.embeddingProfileId,
-      ...(expectedActiveProfileId !== undefined && expectedActiveGenerationId !== undefined
-        ? {
-            expectedActiveProfileId,
-            expectedActiveGenerationId,
-          }
-        : {}),
+      ...this.expectedActiveCorpusFields(),
       status: 'pending',
       attempts: 0,
       expectedSourceCount: sourceIds.length,
@@ -271,7 +281,6 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     return await this.replaceActiveSourceChunksNow(replacement)
   }
 
-  // eslint-disable-next-line complexity -- retained validation boundary keeps active-corpus invariants together
   private async replaceActiveSourceChunksNow(
     replacement: ActiveSourceChunkReplacement,
   ): Promise<number> {
@@ -285,16 +294,8 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     }
     if (replacement.chunks.length === 0)
       throw new Error('At least one vectorized chunk is required.')
-    for (const chunk of replacement.chunks) {
-      if (
-        chunk.sourceId !== replacement.sourceId ||
-        chunk.embeddingProfileId !== active.embeddingProfileId ||
-        chunk.corpusGenerationId !== active.corpusGenerationId ||
-        chunk.embedding.length !== active.profile.dimensions ||
-        chunk.embedding.some((value) => !Number.isFinite(value))
-      ) {
-        throw new Error('Active source chunk does not match the active embedding profile.')
-      }
+    if (replacement.chunks.some((chunk) => !matchesActiveCorpus(chunk, replacement, active))) {
+      throw new Error('Active source chunk does not match the active embedding profile.')
     }
     return Promise.resolve(
       this.chunkRepository.replaceChunksForGeneration(
@@ -354,7 +355,16 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     return validation
   }
 
-  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+  private supersedeActiveGeneration(): void {
+    if (this.activeCorpus === null) return
+    const previous = this.generations.get(this.activeCorpus.corpusGenerationId)
+    if (previous === undefined) return
+    this.generations.set(this.activeCorpus.corpusGenerationId, {
+      ...previous,
+      status: 'superseded',
+    })
+  }
+
   async promoteCorpusGeneration(reindexOperationId: string): Promise<ActiveCorpus> {
     const operation = this.operations.get(reindexOperationId)
     if (operation === undefined) throw new Error('Reindex operation not found.')
@@ -370,15 +380,7 @@ export class InMemoryKnowledgeCorpusRepository implements IKnowledgeCorpusReposi
     if (profile === undefined) throw new Error('Embedding profile not found.')
     const generation = this.generations.get(operation.corpusGenerationId)
     if (generation === undefined) throw new Error('Corpus generation not found.')
-    if (this.activeCorpus !== null) {
-      const previous = this.generations.get(this.activeCorpus.corpusGenerationId)
-      if (previous !== undefined) {
-        this.generations.set(this.activeCorpus.corpusGenerationId, {
-          ...previous,
-          status: 'superseded',
-        })
-      }
-    }
+    this.supersedeActiveGeneration()
     this.generations.set(operation.corpusGenerationId, {
       ...generation,
       status: 'active',
@@ -457,6 +459,20 @@ function profileDimensions(
   profileId: string,
 ): number {
   return profiles.get(profileId)?.dimensions ?? -1
+}
+
+function matchesActiveCorpus(
+  chunk: StagedKnowledgeChunk,
+  replacement: ActiveSourceChunkReplacement,
+  active: ActiveCorpus,
+): boolean {
+  return (
+    chunk.sourceId === replacement.sourceId &&
+    chunk.embeddingProfileId === active.embeddingProfileId &&
+    chunk.corpusGenerationId === active.corpusGenerationId &&
+    chunk.embedding.length === active.profile.dimensions &&
+    chunk.embedding.every((value) => Number.isFinite(value))
+  )
 }
 
 function boundFailureDetails(value: string): string {

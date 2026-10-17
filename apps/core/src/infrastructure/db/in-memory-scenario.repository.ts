@@ -1,3 +1,4 @@
+import { optionalField } from '../../domain/optional-field.js'
 import type {
   CreateScenarioParams,
   IScenarioRepository,
@@ -42,29 +43,23 @@ function normalizeInitialScenario(scenario: Scenario): Scenario {
   }
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 function buildUpdatedScenario(existing: Scenario, updates: UpdateScenarioParams): Scenario {
   const nextModelSelection = resolveNextModelSelection(existing, updates)
   const existingWithoutVoiceConfig = withoutModelSelection(existing)
   delete existingWithoutVoiceConfig.voiceConfig
   return {
     ...existingWithoutVoiceConfig,
-    ...(updates.name !== undefined ? { name: updates.name } : {}),
-    ...(updates.status !== undefined ? { status: updates.status } : {}),
-    ...(updates.language !== undefined ? { language: updates.language } : {}),
-    ...(updates.objectives !== undefined ? { objectives: updates.objectives } : {}),
-    ...(updates.worldContext !== undefined ? { worldContext: updates.worldContext } : {}),
-    ...(updates.avatarAvailability !== undefined
-      ? { avatarAvailability: updates.avatarAvailability }
-      : {}),
-    ...(nextModelSelection !== undefined ? { modelSelection: nextModelSelection } : {}),
-    ...(updates.voiceConfig !== undefined
-      ? updates.voiceConfig !== null
-        ? { voiceConfig: updates.voiceConfig }
-        : {}
-      : existing.voiceConfig !== undefined
-        ? { voiceConfig: existing.voiceConfig }
-        : {}),
+    ...optionalField('name', updates.name),
+    ...optionalField('status', updates.status),
+    ...optionalField('language', updates.language),
+    ...optionalField('objectives', updates.objectives),
+    ...optionalField('worldContext', updates.worldContext),
+    ...optionalField('avatarAvailability', updates.avatarAvailability),
+    ...optionalField('modelSelection', nextModelSelection),
+    ...optionalField(
+      'voiceConfig',
+      updates.voiceConfig === undefined ? existing.voiceConfig : updates.voiceConfig,
+    ),
     config: resolveNextConfig(existing, updates),
     updatedAt: new Date().toISOString(),
   }
@@ -96,12 +91,12 @@ export class InMemoryScenarioRepository implements IScenarioRepository {
       scenarioId: `scenario_${crypto.randomUUID()}`,
       name: params.name,
       status: params.status ?? 'draft',
-      ...(params.language !== undefined ? { language: params.language } : {}),
+      ...optionalField('language', params.language),
       objectives: params.objectives ?? [],
       worldContext: params.worldContext ?? '',
       avatarAvailability: params.avatarAvailability ?? { initialAvatarIds: [] },
-      ...(params.modelSelection !== undefined ? { modelSelection: params.modelSelection } : {}),
-      ...(params.voiceConfig !== undefined ? { voiceConfig: params.voiceConfig } : {}),
+      ...optionalField('modelSelection', params.modelSelection),
+      ...optionalField('voiceConfig', params.voiceConfig),
       config: withoutVoiceConfiguration(
         applyVoiceConfiguration(params.config ?? {}, params.voiceConfig),
       ),
