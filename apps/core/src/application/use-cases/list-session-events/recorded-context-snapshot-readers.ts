@@ -71,7 +71,7 @@ export function readOptionalContextSelection(
   return selection
 }
 
-export function readOptionalRetrievalSelection(
+function readOptionalRetrievalSelection(
   value: unknown,
 ): NonNullable<TurnCompletedEventPayload['contextSelection']>['retrieval'] | undefined {
   if (!isRecord(value)) return undefined
@@ -108,7 +108,7 @@ export function readOptionalRetrievalSelection(
   }
 }
 
-export function readContextEngineSelection(
+function readContextEngineSelection(
   value: unknown,
 ):
   NonNullable<TurnCompletedEventPayload['contextSelection']>['contextEngineSelection'] | undefined {
@@ -119,7 +119,7 @@ export function readContextEngineSelection(
   return { keptSegmentCount, trimmedSegmentCount }
 }
 
-export function readRetrievalCounts(value: Record<string, unknown>): {
+function readRetrievalCounts(value: Record<string, unknown>): {
   avatar_knowledge: number
   world: number
   media: number
@@ -138,7 +138,7 @@ export function readStateSummary(value: unknown): GameMasterStateSummary {
   }
 }
 
-export function readFullStateSummary(value: unknown): RecordedGmContextSnapshot['currentState'] {
+function readFullStateSummary(value: unknown): RecordedGmContextSnapshot['currentState'] {
   const record = isRecord(value) ? value : {}
   return {
     ...readStateSummary(record),
@@ -150,7 +150,7 @@ export function readOptionalStateSummary(value: unknown): GameMasterStateSummary
   return isRecord(value) ? readStateSummary(value) : undefined
 }
 
-export function readAvatarSections(
+function readAvatarSections(
   value: Record<string, unknown>,
 ): RecordedAvatarContextSnapshot['sections'] {
   const retrievedContext = isRecord(value['retrievedContext'])
@@ -174,9 +174,7 @@ export function readAvatarSections(
   }
 }
 
-export function readGmSections(
-  value: Record<string, unknown>,
-): RecordedGmContextSnapshot['sections'] {
+function readGmSections(value: Record<string, unknown>): RecordedGmContextSnapshot['sections'] {
   const retrievedContext = isRecord(value['retrievedContext'])
     ? readGmKnowledge(value['retrievedContext'])
     : undefined
@@ -192,7 +190,7 @@ export function readGmSections(
   }
 }
 
-export function readRecentExchanges(
+function readRecentExchanges(
   value: unknown,
 ): RecordedAvatarContextSnapshot['sections']['conversationState']['recentExchanges'] {
   const record = isRecord(value) ? value : {}
@@ -214,7 +212,7 @@ export function readRecentExchanges(
     )
 }
 
-export function readAvatarWorkingMemory(
+function readAvatarWorkingMemory(
   value: unknown,
 ): RecordedAvatarContextSnapshot['sections']['conversationState']['workingMemory'] {
   const record = isRecord(value) ? value : {}
@@ -232,7 +230,7 @@ export function readAvatarWorkingMemory(
   }
 }
 
-export function readWorkingSession(
+function readWorkingSession(
   value: Record<string, unknown>,
 ): NonNullable<
   RecordedAvatarContextSnapshot['sections']['conversationState']['workingMemory']['session']
@@ -243,7 +241,7 @@ export function readWorkingSession(
   }
 }
 
-export function readWorkingAvatar(
+function readWorkingAvatar(
   value: Record<string, unknown>,
 ): NonNullable<
   RecordedAvatarContextSnapshot['sections']['conversationState']['workingMemory']['avatar']
@@ -255,7 +253,7 @@ export function readWorkingAvatar(
   }
 }
 
-export function readSelectedWorkingMemory(
+function readSelectedWorkingMemory(
   value: Record<string, unknown>,
 ): NonNullable<
   RecordedAvatarContextSnapshot['sections']['conversationState']['workingMemory']['conversation']
@@ -269,7 +267,7 @@ export function readSelectedWorkingMemory(
   }
 }
 
-export function readEpisodicMemories(
+function readEpisodicMemories(
   value: unknown,
 ): RecordedAvatarContextSnapshot['sections']['conversationState']['episodicMemories'] {
   const record = isRecord(value) ? value : {}
@@ -309,7 +307,7 @@ export function readEpisodicMemories(
     )
 }
 
-export function readAvatarKnowledge(
+function readAvatarKnowledge(
   value: Record<string, unknown>,
 ): RecordedAvatarContextSnapshot['sections']['retrievedContext'] | undefined {
   const typedSections = readRecordedTypedSections(value)
@@ -317,7 +315,7 @@ export function readAvatarKnowledge(
   return typedSections
 }
 
-export function readGmMemory(
+function readGmMemory(
   value: unknown,
 ): Omit<RecordedGmContextSnapshot['sections']['conversationState'], 'recentMessages'> {
   const record = isRecord(value) ? value : {}
@@ -329,7 +327,7 @@ export function readGmMemory(
   }
 }
 
-export function readOptionalGmWorkingMemory(
+function readOptionalGmWorkingMemory(
   value: unknown,
 ): RecordedGmContextSnapshot['sections']['conversationState']['workingMemory'] {
   if (!isRecord(value)) return undefined
@@ -342,7 +340,7 @@ export function readOptionalGmWorkingMemory(
   }
 }
 
-export function readGmKnowledge(
+function readGmKnowledge(
   value: Record<string, unknown>,
 ): RecordedGmContextSnapshot['sections']['retrievedContext'] | undefined {
   const typedSections = readRecordedTypedSections(value)
@@ -375,9 +373,7 @@ export function readRecentMessages(
     )
 }
 
-export function readAvailableAvatars(
-  value: unknown,
-): RecordedGmContextSnapshot['availableAvatars'] {
+function readAvailableAvatars(value: unknown): RecordedGmContextSnapshot['availableAvatars'] {
   if (!Array.isArray(value)) return []
   return value
     .map((entry) => {
@@ -399,7 +395,7 @@ export function readAvailableAvatars(
     )
 }
 
-export function readUserPersona(value: unknown): UserPersona | null {
+function readUserPersona(value: unknown): UserPersona | null {
   if (!isRecord(value)) return null
   const persona: UserPersona = {}
   const name = readOptionalString(value['name'])
@@ -413,7 +409,7 @@ export function readUserPersona(value: unknown): UserPersona | null {
   return Object.keys(persona).length > 0 ? persona : null
 }
 
-export function readScenarioSnapshot(
+function readScenarioSnapshot(
   value: unknown,
 ): RecordedAvatarContextSnapshot['sections']['worldContext'] {
   const record = isRecord(value) ? value : {}
@@ -427,7 +423,7 @@ export function readScenarioSnapshot(
   }
 }
 
-export function readRecordedResponseRules(
+function readRecordedResponseRules(
   value: unknown,
 ): RecordedAvatarContextSnapshot['sections']['responseRules'] {
   const record = isRecord(value) ? value : {}
@@ -436,7 +432,7 @@ export function readRecordedResponseRules(
   }
 }
 
-export function readRecordedAvatarTraits(
+function readRecordedAvatarTraits(
   value: Record<string, unknown>,
 ): NonNullable<RecordedAvatarContextSnapshot['sections']['avatarTraits']> {
   const sectionCounts = isRecord(value['sectionCounts']) ? value['sectionCounts'] : value
@@ -453,16 +449,14 @@ export function readRecordedAvatarTraits(
   }
 }
 
-export function readRecordedKnowledgeReferences(value: unknown): RecordedKnowledgeReference[] {
+function readRecordedKnowledgeReferences(value: unknown): RecordedKnowledgeReference[] {
   if (!Array.isArray(value)) return []
   return value
     .map(readRecordedKnowledgeReference)
     .filter((entry): entry is RecordedKnowledgeReference => entry !== null)
 }
 
-export function readRecordedTypedSections(
-  value: Record<string, unknown>,
-): RecordedTypedKnowledgeSections {
+function readRecordedTypedSections(value: Record<string, unknown>): RecordedTypedKnowledgeSections {
   const trace = parseRetrievalTraceDto(value['trace'])
   return {
     avatar_knowledge: readRecordedKnowledgeReferences(value['avatar_knowledge']),
@@ -479,7 +473,7 @@ export function hasRecordedKnowledge(
 }
 
 // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
-export function readRecordedKnowledgeReference(entry: unknown): RecordedKnowledgeReference | null {
+function readRecordedKnowledgeReference(entry: unknown): RecordedKnowledgeReference | null {
   if (!isRecord(entry)) return null
   const sourceId = readOptionalString(entry['sourceId'])
   const chunkId = readOptionalString(entry['chunkId'])
@@ -510,13 +504,13 @@ export function readRecordedKnowledgeReference(entry: unknown): RecordedKnowledg
   return item
 }
 
-export function readRetrievalMatchType(
+function readRetrievalMatchType(
   value: unknown,
 ): NonNullable<RecordedKnowledgeReference['matchType']> | undefined {
   return value === 'vector' || value === 'lexical' || value === 'both' ? value : undefined
 }
 
-export function readRecordedMatchedQuery(
+function readRecordedMatchedQuery(
   value: unknown,
 ): NonNullable<RecordedKnowledgeReference['matchedQuery']> | undefined {
   if (!isRecord(value)) return undefined

@@ -131,7 +131,7 @@ function nonEmpty<T>(values: T[] | null): T[] | undefined {
   return values !== null && values.length > 0 ? values : undefined
 }
 
-export function parseVectorText(value: string): number[] {
+function parseVectorText(value: string): number[] {
   const content = value.trim().replace(/^\[/, '').replace(/\]$/, '').trim()
   if (content.length === 0) return []
   return content.split(',').map((entry) => Number(entry.trim()))
