@@ -12,7 +12,7 @@ import { InMemoryKnowledgeCorpusRepository } from '../../../infrastructure/db/in
 import { InMemoryKnowledgeSourceContentLoader } from '../../../infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
 import { InMemoryKnowledgeSourceRepository } from '../../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { KnowledgeReindexService } from './knowledge-reindex.service.js'
-import { toChunkSeeds } from './knowledge-ingestion.service.js'
+import { toChunkSeeds } from './knowledge-chunking.js'
 
 const targetProfile: EmbeddingProfile = {
   provider: 'test-provider',

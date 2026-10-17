@@ -14,11 +14,8 @@ import type {
 import type { IKnowledgeSourceContentLoader } from '../../ports/IKnowledgeSourceContentLoader.js'
 import type { IKnowledgeSourceRepository } from '../../ports/IKnowledgeSourceRepository.js'
 import type { KnowledgeChunk } from '../../../domain/knowledge/knowledge.types.js'
-import {
-  KnowledgeIngestionError,
-  toChunkSeeds,
-  validateEmbeddingResult,
-} from './knowledge-ingestion.service.js'
+import { KnowledgeIngestionError, validateEmbeddingResult } from './knowledge-ingestion.service.js'
+import { toChunkSeeds } from './knowledge-chunking.js'
 import { assertStaticMetadataAllowed } from '../../../domain/knowledge/static-knowledge-validation.js'
 import { hashKnowledgeChunkContent } from '../../../domain/knowledge/knowledge-content-hash.js'
 import { areEmbeddingProfilesEqual } from './embedding-profile.js'
