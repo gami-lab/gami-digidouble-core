@@ -1,3 +1,4 @@
+import type { ReadableStreamDefaultReader, ReadableStreamReadResult } from 'node:stream/web'
 import type { AudioOutputFormat } from '@gami/shared'
 import {
   TextToSpeechError,
@@ -52,7 +53,6 @@ export async function streamAudioResponse(
   })
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
 async function* readBoundedChunks(
   body: ReadableStream<Uint8Array>,
   bounds: {
@@ -73,13 +73,7 @@ async function* readBoundedChunks(
   try {
     for (;;) {
       throwIfStopped(timeoutSignal, callerSignal)
-      let next: Awaited<ReturnType<typeof reader.read>>
-      try {
-        next = await reader.read()
-      } catch {
-        throwIfStopped(timeoutSignal, callerSignal)
-        throw invalidOutput('malformed_body')
-      }
+      const next = await readNext(reader, timeoutSignal, callerSignal)
       if (next.done) break
       if (!(next.value instanceof Uint8Array)) throw invalidOutput('malformed_body')
       total += next.value.byteLength
@@ -88,15 +82,32 @@ async function* readBoundedChunks(
     }
     // A cancelled reader ends like a finished one; the signals tell them apart.
     throwIfStopped(timeoutSignal, callerSignal)
-    if (total === 0) throw invalidOutput('empty')
-    if (declaredLength !== undefined && declaredLength !== total) {
-      throw invalidOutput('declared_size_mismatch')
-    }
+    assertCompleteBody(total, declaredLength)
     finished = true
   } finally {
     timeoutSignal.removeEventListener('abort', onAbort)
     if (!finished) await reader.cancel().catch(() => undefined)
     reader.releaseLock()
+  }
+}
+
+async function readNext(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  timeoutSignal: AbortSignal,
+  callerSignal: AbortSignal | undefined,
+): Promise<ReadableStreamReadResult<Uint8Array>> {
+  try {
+    return await reader.read()
+  } catch {
+    throwIfStopped(timeoutSignal, callerSignal)
+    throw invalidOutput('malformed_body')
+  }
+}
+
+function assertCompleteBody(total: number, declaredLength: number | undefined): void {
+  if (total === 0) throw invalidOutput('empty')
+  if (declaredLength !== undefined && declaredLength !== total) {
+    throw invalidOutput('declared_size_mismatch')
   }
 }
 

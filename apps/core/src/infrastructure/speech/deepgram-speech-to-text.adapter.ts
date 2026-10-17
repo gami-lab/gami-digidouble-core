@@ -1,3 +1,4 @@
+import { optionalField } from '../../domain/optional-field.js'
 import crypto from 'node:crypto'
 import {
   isSpeechToTextError,
@@ -123,7 +124,6 @@ export class DeepgramSpeechToTextAdapter implements ISpeechToTextAdapter {
     this.transport = transport
   }
 
-  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
   async transcribe(
     input: SpeechToTextInput,
     options?: SpeechToTextOptions,
@@ -138,13 +138,11 @@ export class DeepgramSpeechToTextAdapter implements ISpeechToTextAdapter {
       })
       normalizedInput = execution.input
       this.trace({
-        ...(options?.requestId === undefined ? {} : { requestId: options.requestId }),
+        ...optionalField('requestId', options?.requestId),
         input: normalizedInput,
         latencyMs: Date.now() - startedAt,
         outcome: 'success',
-        ...(execution.providerDurationMs === undefined
-          ? {}
-          : { providerDurationMs: execution.providerDurationMs }),
+        ...optionalField('providerDurationMs', execution.providerDurationMs),
       })
       return execution.result
     } catch (error) {
@@ -153,12 +151,12 @@ export class DeepgramSpeechToTextAdapter implements ISpeechToTextAdapter {
         normalizedInput = tryNormalizeSpeechToTextInput(input)
       }
       this.trace({
-        ...(options?.requestId === undefined ? {} : { requestId: options.requestId }),
-        ...(normalizedInput === undefined ? {} : { input: normalizedInput }),
+        ...optionalField('requestId', options?.requestId),
+        ...optionalField('input', normalizedInput),
         latencyMs: Date.now() - startedAt,
         outcome: 'failure',
         failure: mapped.failure,
-        ...(statusCode === undefined ? {} : { statusCode }),
+        ...optionalField('statusCode', statusCode),
       })
       throw mapped
     }
