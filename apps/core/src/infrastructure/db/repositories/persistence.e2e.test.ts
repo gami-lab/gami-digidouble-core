@@ -124,7 +124,7 @@ describe.skipIf(!DB_AVAILABLE)('Persistence stack — multi-avatar switch flow',
     const session = await sessionRepo.create({
       userId: 'multi-avatar-user',
       scenarioId: scenario.scenarioId,
-      unlockedAvatarIds: [],
+      unlockedAvatarIds: [avatar1.avatarId, avatar2.avatarId],
     })
 
     const conversationA = await conversationRepo.create({
