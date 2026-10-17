@@ -65,7 +65,7 @@ type ActiveChatRuntimeOptions = {
   initialConversationId?: string | null
 }
 
-// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
+// eslint-disable-next-line max-lines-per-function -- hook owns the chat session state machine whose callbacks share refs
 export function useActiveChatRuntime(
   session: SessionSummary | null,
   options?: ActiveChatRuntimeOptions,

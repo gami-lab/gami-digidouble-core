@@ -57,7 +57,7 @@ function resolveAvatarOverrideModel(
   return role === 'avatar' ? avatarOverride?.model : undefined
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+// eslint-disable-next-line complexity -- applies five override layers in a fixed precedence order
 function resolve(
   role: ModelRole,
   config: ModelConfig,

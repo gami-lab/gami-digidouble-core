@@ -171,7 +171,7 @@ export async function resolveInitialAvatarId(
   return match.avatarId
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+// eslint-disable-next-line complexity -- runner handles avatar resolution, per-message failure, and transcript bookkeeping per step
 export async function runSequentialConversation(
   client: CoreApiClient,
   input: SequentialRunnerInput,

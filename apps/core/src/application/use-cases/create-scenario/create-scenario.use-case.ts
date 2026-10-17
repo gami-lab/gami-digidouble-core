@@ -23,7 +23,7 @@ export class CreateScenarioUseCase {
   }
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+// eslint-disable-next-line complexity -- validates each create field with its own domain error message
 function buildCreateParams(input: CreateScenarioInput): CreateScenarioParams {
   const name = input.name.trim()
   if (name.length === 0) {

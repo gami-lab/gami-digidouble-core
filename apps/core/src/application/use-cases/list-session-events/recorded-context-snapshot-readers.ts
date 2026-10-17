@@ -472,7 +472,7 @@ export function hasRecordedKnowledge(
   return value.avatar_knowledge.length > 0 || value.world.length > 0 || value.media.length > 0
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+// eslint-disable-next-line complexity -- validates each field of an untrusted recorded knowledge reference
 function readRecordedKnowledgeReference(entry: unknown): RecordedKnowledgeReference | null {
   if (!isRecord(entry)) return null
   const sourceId = readOptionalString(entry['sourceId'])

@@ -32,7 +32,7 @@ type ScenarioFormFieldsProps = {
   onVoiceConfigChange: (value: VoiceConfiguration | null) => void
 }
 
-// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
+// eslint-disable-next-line max-lines-per-function -- declarative form lists every scenario field in display order
 export function ScenarioFormFields({
   name,
   status,

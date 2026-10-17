@@ -147,7 +147,7 @@ function isFastifyBodyParsingError(
   )
 }
 
-// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
+// eslint-disable-next-line max-lines-per-function -- composition root registers every route plugin and shared hook
 export function createServer(config: Config, adapters: ServerAdapters = {}): FastifyInstance {
   const resolvedAdapters = resolveServerAdapters(adapters)
 

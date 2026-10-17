@@ -74,7 +74,7 @@ export class TypedRetrievalService {
     private readonly queryEmbeddingService: QueryEmbeddingService,
   ) {}
 
-  // eslint-disable-next-line complexity, max-lines-per-function -- retained fixture or orchestration setup is clearer together
+  // eslint-disable-next-line complexity, max-lines-per-function -- embedding, per-type search, merge, and trace steps share one timing and failure span
   async retrieve(input: TypedRetrievalInput): Promise<TypedRetrievalResult> {
     const startedAt = Date.now()
     const limit = Math.min(

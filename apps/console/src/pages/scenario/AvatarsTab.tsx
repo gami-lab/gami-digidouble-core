@@ -76,7 +76,7 @@ function usePreparation(
   return { run, isRunning, error, results }
 }
 
-// eslint-disable-next-line complexity -- render-only branching
+// eslint-disable-next-line complexity -- renders each optional Avatar trait group conditionally
 function AvatarSection({
   avatar,
   result,

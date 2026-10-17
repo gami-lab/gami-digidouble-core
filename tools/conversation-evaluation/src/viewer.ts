@@ -147,7 +147,7 @@ async function readRequestBody(request: IncomingMessage): Promise<string> {
   })
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+// eslint-disable-next-line complexity -- validates each field of an untrusted review request body
 function parseReviewRequest(value: unknown): ReviewRequest {
   if (!isRecord(value)) throw new Error('Review request must be a JSON object.')
   const questionNumber = value['questionNumber']

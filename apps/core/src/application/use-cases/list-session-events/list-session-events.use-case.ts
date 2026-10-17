@@ -148,7 +148,7 @@ function toSafePayload(payload: Record<string, unknown>): GmSessionEventPayload 
   }
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+// eslint-disable-next-line complexity -- allow-lists each optional recorded memory field from an untrusted event payload
 function toSafeMemoryRefreshPayload(payload: Record<string, unknown>): MemoryRefreshEventPayload {
   const base: MemoryRefreshEventPayload = {
     sessionId: readString(payload['sessionId']),

@@ -8,7 +8,7 @@ import { MemoryInputsView } from './AvatarContextView'
 import { avatarName } from './SessionHeader'
 import type { SessionData } from './use-session-data'
 
-// eslint-disable-next-line complexity -- render-only branching
+// eslint-disable-next-line complexity -- summarizes each Game Master run outcome variant
 export function gmSummary(run: GmRun | null, hasGm: boolean): JSX.Element {
   if (run === null) return <span className="small muted">{hasGm ? 'pending' : 'disabled'}</span>
   if (run.status === 'error') return <Badge tone="error">{run.payload.errorCode ?? 'error'}</Badge>
@@ -57,7 +57,7 @@ export function GmRunView({ run, data }: { run: GmRun; data: SessionData }): JSX
   )
 }
 
-// eslint-disable-next-line complexity -- render-only branching
+// eslint-disable-next-line complexity -- renders each optional Game Master decision field conditionally
 function DecisionView({
   payload,
   data,

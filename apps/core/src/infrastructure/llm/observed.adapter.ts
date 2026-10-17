@@ -28,7 +28,7 @@ export class ObservedLlmAdapter implements ILlmAdapter {
     }
   }
 
-  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+  // eslint-disable-next-line complexity -- must record exactly one terminal trace across complete-fallback, abort, and error paths
   async *stream(request: LlmRequest, options?: LlmStreamOptions): AsyncIterable<LlmStreamEvent> {
     const { trace, ...providerRequest } = request
     const traceContext = this.buildTraceContext(trace, providerRequest)

@@ -11,7 +11,7 @@ import { Badge, Empty, KeyValues, Section, TextList } from '../../ui/ui'
 type ContextSelection = TurnCompletedEventPayload['contextSelection']
 
 /** The structured inputs of the Avatar prompt, in prompt order; the rendered text is in Langfuse. */
-// eslint-disable-next-line complexity -- render-only branching
+// eslint-disable-next-line complexity -- renders each optional Avatar context section conditionally
 export function AvatarContextView({
   context,
   selection,

@@ -252,7 +252,7 @@ function readStringArray(value: unknown, field: string): string[] {
   return value.map((item) => item as string)
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+// eslint-disable-next-line complexity -- validates each field of untrusted judge LLM JSON
 export function parseJudgeResult(reply: string): JudgeResult {
   if (reply.length > MAX_JUDGE_REPLY_LENGTH) {
     throw createError(
@@ -349,7 +349,7 @@ export class SemanticJudgeClient {
     this.fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis)
   }
 
-  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+  // eslint-disable-next-line complexity -- request maps timeout, abort, transport, status, and parse failures separately
   async evaluate(input: JudgeInput, options?: JudgeRequestOptions): Promise<JudgeEvaluation> {
     const message = serializeJudgeInput(input)
     if (JUDGE_SYSTEM_PROMPT.length > MAX_EXCHANGE_SYSTEM_PROMPT_LENGTH) {
@@ -392,7 +392,7 @@ export class SemanticJudgeClient {
           }),
         })
       } catch {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- retained because the boundary is clearer as one unit
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- timedOut is set by the timer callback, which narrowing cannot see
         if (timedOut) throw createError('TIMEOUT', 'Judge request timed out.', 'transport_error')
         if (isSignalAborted(options?.signal)) {
           throw createError('ABORTED', 'Judge request was aborted.', 'transport_error')

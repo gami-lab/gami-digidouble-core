@@ -97,7 +97,7 @@ export class VoiceTurnUseCase {
     }
   }
 
-  // eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+  // eslint-disable-next-line complexity -- generator tracks reservation, transcription, and downstream phases so cleanup matches the failed phase
   async *executeStream(
     input: VoiceTurnInput,
     options?: VoiceTurnOptions,

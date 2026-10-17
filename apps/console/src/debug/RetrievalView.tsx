@@ -46,7 +46,7 @@ export function RetrievalView({ trace, items, sourceNames }: RetrievalViewProps)
   )
 }
 
-// eslint-disable-next-line complexity -- render-only branching
+// eslint-disable-next-line complexity -- renders each optional retrieval trace field conditionally
 export function RetrievalSummary({ trace }: { trace: RetrievalTraceDto }): JSX.Element {
   const queries = trace.queries ?? [{ source: 'last_user_input' as const, text: trace.query }]
   return (

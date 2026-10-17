@@ -76,7 +76,7 @@ function qualityOutcome(score: 1 | 2 | 3 | 4 | 5): 'passed' | 'partial' | 'faile
   return 'failed'
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+// eslint-disable-next-line complexity -- maps judge success, retryable failure, and terminal failure per question
 async function judgeQuestion(
   judgeClient: SemanticJudgeClient,
   result: QuestionResult,
@@ -128,7 +128,7 @@ async function judgeQuestion(
   }
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+// eslint-disable-next-line complexity -- aggregates per-question outcomes, retries, and usage into one report
 export async function runEvaluation(input: EvaluationRunInput): Promise<EvaluationRunOutput> {
   const startedAt = input.startedAt ?? new Date().toISOString()
   const now = input.now ?? (() => new Date().toISOString())

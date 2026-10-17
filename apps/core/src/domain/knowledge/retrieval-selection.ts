@@ -20,7 +20,7 @@ export type RetrievalSelectionOptions = {
   minimumChunksBySource?: Partial<Record<RetrievalQuerySource, number>>
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+// eslint-disable-next-line complexity -- round-robin selection across query sources with per-source caps and fill-up
 export function selectBalancedRetrievedItems(
   items: RetrievedKnowledgeItem[],
   limit: number,

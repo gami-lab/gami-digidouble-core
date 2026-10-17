@@ -33,7 +33,7 @@ export function countConsecutiveModelFailures(
   return status === 'completed' ? 0 : previousCount + 1
 }
 
-// eslint-disable-next-line complexity, max-lines-per-function -- retained fixture or orchestration setup is clearer together
+// eslint-disable-next-line complexity, max-lines-per-function -- dispatches every CLI command and flag combination with its own exit code
 export async function runCli(
   argv: readonly string[] = process.argv.slice(2),
   environment: Readonly<Record<string, string | undefined>> = process.env,

@@ -170,7 +170,7 @@ function buildTracePolicy(policy: ContextEnginePolicy): ContextEngineOutput['tra
   }
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+// eslint-disable-next-line complexity -- counts each optional context input for the bounded trace
 function buildTraceSelectedInputs(
   input: ContextEngineInput,
 ): ContextEngineOutput['trace']['selectedInputs'] {

@@ -6,7 +6,7 @@ import type { GameMasterMemoryContext } from '../../../domain/memory/memory.type
 import type { TypedRetrievalResult } from '../../../domain/knowledge/knowledge.types.js'
 import { toGameMasterAvailableAvatars } from './run-game-master.avatar-unlocks.js'
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+// eslint-disable-next-line complexity -- assembles each optional Game Master context section from separate sources
 export function buildGmContextSnapshot(args: {
   session: Session | null
   currentState: GameMasterState

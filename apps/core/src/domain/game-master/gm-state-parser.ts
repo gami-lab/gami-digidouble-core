@@ -29,7 +29,7 @@ const ROUTING_ACTIONS = new Set<RoutingDecision['action']>([
 const PROGRESSION_STATES = new Set<ProgressionUpdate['progression']>(['none', 'increase'])
 
 /** Deserialize only the current JSONB orchestration shape. */
-// eslint-disable-next-line complexity -- validates the complete persisted orchestration boundary together
+// eslint-disable-next-line complexity -- validates every field of the persisted orchestration JSON
 export function parsePersistedGameMasterOrchestration(
   value: unknown,
 ): GameMasterOrchestrationState | undefined {

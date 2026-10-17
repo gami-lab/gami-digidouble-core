@@ -25,7 +25,7 @@ export class NullLlmAdapter implements ILlmAdapter {
   }
 
   // A deterministic generator has no asynchronous work until a consumer requests a value.
-  // eslint-disable-next-line @typescript-eslint/require-await -- implementation preserves the async port shape
+  // eslint-disable-next-line @typescript-eslint/require-await -- null adapter yields synchronously but must satisfy the async stream port
   async *stream(_request: LlmRequest, options?: LlmStreamOptions): AsyncIterable<LlmStreamEvent> {
     throwIfAborted(options?.signal)
 

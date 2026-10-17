@@ -104,7 +104,7 @@ function TurnList({
   )
 }
 
-// eslint-disable-next-line complexity -- render-only branching
+// eslint-disable-next-line complexity -- renders each optional field of a debug turn conditionally
 function TurnItem({
   entry,
   data,
@@ -232,8 +232,7 @@ function Composer({ data, onSent }: { data: SessionData; onSent: () => void }): 
 
   if (active === undefined) {
     const candidates = data.avatars.filter(
-      (avatar) =>
-        avatar.status === 'active' && session.unlockedAvatarIds.includes(avatar.avatarId),
+      (avatar) => avatar.status === 'active' && session.unlockedAvatarIds.includes(avatar.avatarId),
     )
     return (
       <form

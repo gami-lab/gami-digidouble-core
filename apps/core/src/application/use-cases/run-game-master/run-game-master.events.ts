@@ -185,7 +185,7 @@ export function buildStateSummary(state: GameMasterState): GameMasterStateSummar
   }
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+// eslint-disable-next-line complexity -- projects each optional Game Master decision field into the event payload
 export function buildTriggeredDecision(
   output: GameMasterOutput,
   unlockedAvatarIds: string[],

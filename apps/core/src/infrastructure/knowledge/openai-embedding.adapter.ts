@@ -275,7 +275,7 @@ function validateInputs(request: EmbeddingBatchRequest): readonly string[] {
 }
 
 // Response validation intentionally keeps every provider-shape check in one boundary.
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+// eslint-disable-next-line complexity -- validates each field of an untrusted provider embedding payload
 function validateResponse(
   response: unknown,
   expectedCount: number,

@@ -32,7 +32,7 @@ import { ConsolidationView, MemoryRunView } from './MemoryRunView'
 import { avatarName } from './SessionHeader'
 import type { SessionData } from './use-session-data'
 
-// eslint-disable-next-line complexity -- render-only branching
+// eslint-disable-next-line complexity -- renders each optional turn latency and trace field conditionally
 export function TurnDetail({ entry, data }: { entry: TurnEntry; data: SessionData }): JSX.Element {
   const { turn } = entry
   const retrieved = turn.avatarContext?.sections.retrievedContext

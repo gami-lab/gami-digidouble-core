@@ -11,7 +11,7 @@ const triggerLabels: Record<MemoryRun['trigger'], string> = {
 }
 
 /** One working-memory rewrite: what the compaction LLM produced from the recent messages. */
-// eslint-disable-next-line complexity -- render-only branching
+// eslint-disable-next-line complexity -- renders each optional memory run field conditionally
 export function MemoryRunView({ run }: { run: MemoryRun }): JSX.Element {
   const payload = run.payload
   return (

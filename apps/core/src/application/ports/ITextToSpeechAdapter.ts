@@ -113,7 +113,7 @@ export function isTextToSpeechError(error: unknown): error is TextToSpeechError 
   return error instanceof TextToSpeechError
 }
 
-// eslint-disable-next-line complexity -- retained non-linear boundary mapping is clearer together
+// eslint-disable-next-line complexity -- validates each untrusted synthesis field with its own failure code
 export function normalizeTextToSpeechInput(input: unknown): TextToSpeechInput {
   if (!isRecord(input)) {
     throw invalidRequest('invalid_identity')

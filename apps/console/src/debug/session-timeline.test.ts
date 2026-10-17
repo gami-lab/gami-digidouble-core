@@ -42,7 +42,7 @@ function memoryEvent(
 }
 
 describe('buildSessionTimeline', () => {
-  // eslint-disable-next-line complexity -- render-only branching
+  // eslint-disable-next-line complexity -- assertions read optional timeline entries through optional chaining
   it('attaches messages, the GM run, and memory work to the turn that caused them', () => {
     const timeline = buildSessionTimeline(
       [

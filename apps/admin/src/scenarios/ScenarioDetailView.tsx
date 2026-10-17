@@ -369,7 +369,7 @@ type KnowledgeSourceRowProps = {
   onViewKnowledgeChunks: (sourceId: string) => void
 }
 
-// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
+// eslint-disable-next-line max-lines-per-function -- row keeps its view and inline edit form state together
 function KnowledgeSourceRow({
   source,
   avatarNamesById,
