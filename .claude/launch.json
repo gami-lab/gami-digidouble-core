@@ -6,7 +6,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/gami_core REDIS_URL=redis://localhost:6379 API_KEY_SECRET=e2e-stack-secret LLM_PROVIDER=null npx --prefix apps/core tsx apps/core/src/index.ts"
+        "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/gami_core REDIS_URL=redis://localhost:6379 ADMIN_ORIGINS=http://localhost:5173 LLM_PROVIDER=null npx --prefix apps/core tsx apps/core/src/index.ts"
       ],
       "port": 3000
     },

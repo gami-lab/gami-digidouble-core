@@ -9,7 +9,6 @@ export {
   normalizeApiPath,
   normalizeApiUrl,
   isAdminApiPath,
-  shouldInjectApiKey,
 } from './api-client-protocol.js'
 export { ADMIN_SERVICE_KEY_HEADER } from './auth-contract-types.js'
 export type {

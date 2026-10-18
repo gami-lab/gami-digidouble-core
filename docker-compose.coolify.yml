@@ -1,7 +1,5 @@
 # Coolify requires these environment variables:
-#   API_KEY_SECRET
-#   VITE_API_URL
-#   VITE_API_KEY is derived from API_KEY_SECRET for the web build
+#   VITE_API_URL (public Core URL baked into the web and admin builds; not a secret)
 #   ADMIN_PASSWORD_HASH (pnpm --filter @gami/core hash-admin-password)
 #   ADMIN_SESSION_SECRET, ADMIN_SERVICE_KEY (at least 32 characters each)
 #   ADMIN_ORIGINS (origin of the admin app, e.g. https://app.example.com)
@@ -78,7 +76,6 @@ services:
       LOG_LEVEL: info
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/gami_core
       REDIS_URL: redis://redis:6379
-      API_KEY_SECRET: ${API_KEY_SECRET}
       PLAYER_ORIGINS: ${PLAYER_ORIGINS:?}
       TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
       ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?}
@@ -123,7 +120,6 @@ services:
       dockerfile: Dockerfile.web
       args:
         VITE_API_URL: ${VITE_API_URL:?}
-        VITE_API_KEY: ${API_KEY_SECRET:?}
     restart: unless-stopped
     expose:
       - '80'

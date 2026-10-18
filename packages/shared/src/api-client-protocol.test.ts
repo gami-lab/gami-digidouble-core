@@ -7,7 +7,6 @@ import {
   normalizeApiPath,
   normalizeApiUrl,
   isAdminApiPath,
-  shouldInjectApiKey,
 } from './api-client-protocol.js'
 
 describe('api client protocol helpers', () => {
@@ -15,12 +14,6 @@ describe('api client protocol helpers', () => {
     expect(normalizeApiUrl('https://example.test///')).toBe('https://example.test//')
     expect(normalizeApiPath('v1/scenarios')).toBe('/v1/scenarios')
     expect(normalizeApiPath('/v1/admin/scenarios')).toBe('/v1/admin/scenarios')
-  })
-
-  it('only omits authentication for the health path', () => {
-    expect(shouldInjectApiKey('/health')).toBe(false)
-    expect(shouldInjectApiKey('health/')).toBe(true)
-    expect(shouldInjectApiKey('/v1/health')).toBe(true)
   })
 
   it('recognizes admin API paths', () => {

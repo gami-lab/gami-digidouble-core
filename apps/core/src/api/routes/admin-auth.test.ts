@@ -115,7 +115,7 @@ describe('admin session cookie', () => {
     const response = await createAuthServer().inject({
       method: 'GET',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': TEST_CONFIG.apiKeySecret },
+      headers: { 'x-api-key': 'legacy-shared-key' },
     })
 
     expect(response.statusCode).toBe(401)

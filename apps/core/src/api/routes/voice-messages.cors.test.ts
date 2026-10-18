@@ -13,7 +13,7 @@ describe('voice message routes — browser CORS', () => {
         origin: 'http://localhost:5173',
         'access-control-request-method': 'POST',
         'access-control-request-headers':
-          'content-type,x-api-key,x-utterance-id,x-language,x-audio-duration-ms',
+          'content-type,authorization,x-utterance-id,x-language,x-audio-duration-ms',
       },
     })
 

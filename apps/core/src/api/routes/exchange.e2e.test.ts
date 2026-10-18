@@ -10,7 +10,6 @@ import { credentialHeaders } from './test-auth.js'
 function makeConfig(overrides: Partial<Config> = {}): Config {
   return {
     ...TEST_CONFIG,
-    apiKeySecret: 'e2e-secret',
     adminServiceKey: 'e2e-secret',
     openaiApiKey: process.env['OPENAI_API_KEY'],
     anthropicApiKey: process.env['ANTHROPIC_API_KEY'],

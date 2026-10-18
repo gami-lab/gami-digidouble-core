@@ -33,7 +33,6 @@ export interface Config {
   logLevel: string
   databaseUrl: string
   redisUrl: string
-  apiKeySecret: string
   /** Browser origins allowed to call player routes (no credentials); `*` allows any origin. */
   playerOrigins: string[]
   /** Proxy hops in front of Core, so rate limits key on the client IP rather than the proxy. */
@@ -111,7 +110,6 @@ export function loadConfig(): Config {
     logLevel: process.env['LOG_LEVEL'] ?? 'info',
     databaseUrl: requireEnv('DATABASE_URL'),
     redisUrl: requireEnv('REDIS_URL'),
-    apiKeySecret: requireEnv('API_KEY_SECRET'),
     playerOrigins: parseList(process.env['PLAYER_ORIGINS'] ?? '*'),
     trustProxyHops: parseTrustProxyHops(process.env['TRUST_PROXY_HOPS']),
     rateLimits: loadRateLimitPolicies(),

@@ -13,7 +13,6 @@ describe('loadConfig Deepgram settings', () => {
   beforeEach(() => {
     vi.stubEnv('DATABASE_URL', 'postgresql://test')
     vi.stubEnv('REDIS_URL', 'redis://test')
-    vi.stubEnv('API_KEY_SECRET', 'test-secret')
     vi.stubEnv('DEEPGRAM_API_KEY', '')
     vi.stubEnv('DEEPGRAM_MODEL', '')
     vi.stubEnv('DEEPGRAM_TIMEOUT_MS', '')
@@ -104,7 +103,6 @@ describe('loadConfig admin authentication settings', () => {
   beforeEach(() => {
     vi.stubEnv('DATABASE_URL', 'postgresql://test')
     vi.stubEnv('REDIS_URL', 'redis://test')
-    vi.stubEnv('API_KEY_SECRET', 'test-secret')
     vi.stubEnv('NODE_ENV', 'production')
     vi.stubEnv('ADMIN_PASSWORD_HASH', validHash)
     vi.stubEnv('ADMIN_SESSION_SECRET', longSecret)
@@ -170,7 +168,6 @@ describe('loadConfig abuse controls', () => {
   beforeEach(() => {
     vi.stubEnv('DATABASE_URL', 'postgresql://test')
     vi.stubEnv('REDIS_URL', 'redis://test')
-    vi.stubEnv('API_KEY_SECRET', 'test-secret')
   })
 
   afterEach(() => {

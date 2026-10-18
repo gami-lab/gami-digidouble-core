@@ -15,7 +15,6 @@ export const TEST_CONFIG: Config = {
   logLevel: 'silent',
   databaseUrl: 'postgresql://test',
   redisUrl: 'redis://test',
-  apiKeySecret: 'test-secret',
   playerOrigins: ['*'],
   trustProxyHops: 0,
   rateLimits: DEFAULT_RATE_LIMIT_POLICIES,

@@ -82,7 +82,7 @@ describe('POST /v1/auth/player', () => {
 describe('public route credentials', () => {
   it.each([
     ['no credential', {}],
-    ['the old shared API key', { 'x-api-key': TEST_CONFIG.apiKeySecret }],
+    ['the old shared API key header', { 'x-api-key': 'legacy-shared-key' }],
     ['the admin service key', serviceKeyHeaders()],
     ['a malformed bearer token', { authorization: 'Bearer forged.token' }],
   ])('rejects %s with 401', async (_label, headers) => {

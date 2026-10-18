@@ -42,7 +42,6 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/gami_core
       REDIS_URL: redis://redis:6379
       # Fixed test secrets — known by the stack-e2e test suite
-      API_KEY_SECRET: e2e-stack-secret-0123456789abcdef0123
       ADMIN_SERVICE_KEY: e2e-stack-secret-0123456789abcdef0123
       ADMIN_SESSION_SECRET: e2e-admin-session-secret-0123456789abcdef
       # Hash of the password `e2e-admin-password`

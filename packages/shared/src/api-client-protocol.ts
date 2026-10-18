@@ -8,10 +8,6 @@ export function normalizeApiPath(path: string): string {
   return path.startsWith('/') ? path : `/${path}`
 }
 
-export function shouldInjectApiKey(path: string): boolean {
-  return normalizeApiPath(path) !== '/health'
-}
-
 export function isAdminApiPath(path: string): boolean {
   return normalizeApiPath(path).startsWith('/v1/admin/')
 }

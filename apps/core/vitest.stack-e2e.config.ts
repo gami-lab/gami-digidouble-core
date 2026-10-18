@@ -14,7 +14,7 @@ import { defineConfig } from 'vitest/config'
 // File naming convention: *.stack-e2e.test.ts
 //
 // Required env var: APP_URL (defaults to http://localhost:3000)
-// Auth key expected by tests: e2e-stack-secret (matches docker-compose.e2e.yml)
+// Credentials expected by tests live in src/api/routes/stack-e2e-auth.ts (matching docker-compose.e2e.yml)
 export default defineConfig({
   test: {
     environment: 'node',
