@@ -22,8 +22,5 @@ function createAvatar(avatarId: string, scenarioId: string): AvailableAvatarSumm
     scenarioId,
     name: `Avatar ${avatarId}`,
     status: 'active',
-    personaPrompt: 'Prompt',
-    createdAt: '2026-06-01T00:00:00.000Z',
-    updatedAt: '2026-06-01T00:00:00.000Z',
   }
 }

@@ -38,11 +38,7 @@ export function toAvailableAvatarSummary(avatar: AvatarConfig): AvailableAvatarS
     scenarioId: avatar.scenarioId,
     name: avatar.name,
     status: avatar.status,
-    personaPrompt: avatar.personaPrompt,
     ...(avatar.tone !== undefined ? { tone: avatar.tone } : {}),
     ...(avatar.description !== undefined ? { description: avatar.description } : {}),
-    ...(avatar.adjustments !== undefined ? { adjustments: avatar.adjustments } : {}),
-    createdAt: avatar.createdAt,
-    updatedAt: avatar.updatedAt,
   }
 }

@@ -6,7 +6,6 @@ import { GetUserPersonaUseCase } from '../../application/use-cases/get-user-pers
 import { UpsertUserPersonaUseCase } from '../../application/use-cases/upsert-user-persona/upsert-user-persona.use-case.js'
 import type { Config } from '../../config.js'
 import type { UserPersona } from '../../domain/user/index.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 
 type UsersRouteOptions = {
   config: Config
@@ -39,8 +38,6 @@ export const usersRoute: FastifyPluginCallback<UsersRouteOptions> = (app, option
   }
   const upsertUserPersonaUseCase = new UpsertUserPersonaUseCase(userRepository)
   const getUserPersonaUseCase = new GetUserPersonaUseCase(userRepository)
-  app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
-
   app.put<{ Params: UserParams; Body: unknown }>(
     '/:userId/persona',
     { schema: { params: userParamsSchema } },

@@ -24,6 +24,11 @@ API -> Application -> Domain
 - **Domain** owns entities, policies, deterministic selection, prompt/context contracts, and typed failures.
 - **Infrastructure** implements ports and contains provider, database, cache, and logging details.
 
+Authentication is one hook registered in `api/server.ts` at Fastify's `onRequest` stage, before
+any content-type parser, so voice, upload, and audio bodies are never read for an unauthenticated
+caller. Route plugins never attach their own authentication hooks; credential types plug in as
+verifiers (`api/hooks/authenticate.ts`).
+
 No layer skips the boundary. The API layer must not contain orchestration logic, SQL, or prompt
 logic; the domain layer must stay framework-agnostic so business rules can evolve safely.
 Infrastructure implementations (Postgres repositories, provider adapters, cache, observability) are

@@ -9,7 +9,6 @@ import {
 import type { Config } from '../../config.js'
 import type { ModelConfig } from '../../domain/model-config/index.js'
 import { DomainError } from '../../domain/errors.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 
 export type AdminModelConfigRouteOptions = {
   config: Config
@@ -71,8 +70,6 @@ export const adminModelConfigRoute: FastifyPluginCallback<AdminModelConfigRouteO
     options.modelConfigFallback,
   )
   const updateModelConfigUseCase = new UpdateModelConfigUseCase(options.modelConfigRepository)
-
-  app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
 
   app.get('/model-config', async (_request, reply) => {
     const output = await getModelConfigUseCase.execute()

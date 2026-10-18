@@ -8,7 +8,6 @@ import {
 import type { TextToSpeechProviders } from '../../application/voice/text-to-speech-providers.js'
 import { ListVoicesUseCase } from '../../application/use-cases/list-voices/list-voices.use-case.js'
 import type { Config } from '../../config.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 import { handleRouteError } from './route-error.js'
 
 export type AdminVoicesRouteOptions = {
@@ -29,8 +28,6 @@ const querySchema = {
 
 export const adminVoicesRoute: FastifyPluginCallback<AdminVoicesRouteOptions> = (app, options) => {
   const useCase = new ListVoicesUseCase(options.textToSpeechProviders)
-  app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
-
   app.get<{ Querystring: ListVoicesQuery }>(
     '/voices',
     { schema: { querystring: querySchema } },

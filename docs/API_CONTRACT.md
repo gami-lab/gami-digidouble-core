@@ -10,6 +10,11 @@ schemas belong to `packages/shared/src/` and route schemas; do not copy them her
 - IDs are opaque strings; timestamps are ISO-8601 UTC strings.
 - JSON success/error responses use `ApiResponse<T>`. SSE uses shared event DTOs. Binary audio is the only intentional non-envelope success response.
 - Public payloads are projections, never database rows. Unknown fields are rejected at input boundaries.
+- Player-facing projections (`AvailableAvatarSummary`) are explicit field picks and never carry
+  authoring internals: `personaPrompt`, `adjustments`, raw `config`, `computedTraits`, model or
+  voice configuration stay on admin projections.
+- Authentication runs before the request body is read, so an unauthenticated request gets `401`
+  even when its body is malformed or oversized.
 - Errors use stable `ErrorCode` categories: `UNAUTHORIZED`, `VALIDATION_ERROR`, `FORBIDDEN`,
   `NOT_FOUND`, `CONFLICT`, `RATE_LIMITED`, `EXTERNAL_SERVICE_ERROR`/`PROVIDER_ERROR`, `TIMEOUT`, and
   `INTERNAL_ERROR`. Do not invent a route-local error code.

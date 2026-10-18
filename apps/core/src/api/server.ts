@@ -40,6 +40,7 @@ import { InMemoryConversationWorkingMemoryRepository } from '../infrastructure/d
 import { InMemorySessionEventPublisher } from '../infrastructure/events/in-memory-session-event-publisher.js'
 import { buildLlmConfig, createLlmAdapter } from '../infrastructure/llm/index.js'
 import type { LlmAdapterRegistry } from '../infrastructure/llm/llm-adapter-registry.js'
+import { apiKeyVerifier, registerAuthentication } from './hooks/authenticate.js'
 import { adminMemoryRoute } from './routes/admin-memory.js'
 import { adminSessionsRoute } from './routes/admin-sessions.js'
 import { adminHealthRoute } from './routes/admin-health.js'
@@ -117,21 +118,12 @@ type FastifyBodyParsingError = {
 }
 
 /**
- * Fastify throws these during the parsing phase — before preValidation and
- * before any route's own preHandler/try-catch — whenever a client sends
+ * Fastify throws these during the parsing phase whenever a client sends
  * `Content-Type: application/json` with a body that is empty, malformed, or
  * size-mismatched (`FST_ERR_CTP_EMPTY_JSON_BODY`, `FST_ERR_CTP_INVALID_JSON_BODY`,
  * `FST_ERR_CTP_INVALID_CONTENT_LENGTH`, `FST_ERR_CTP_INVALID_MEDIA_TYPE`, ...).
  * They carry a 4xx `statusCode` but no `.validation` property, so
- * `isFastifyValidationError` doesn't recognize them and they used to fall
- * through to the generic 500 branch below.
- *
- * Because parsing runs ahead of any route's `preHandler` auth hook, these
- * errors surface before authentication is checked — an unauthenticated
- * malformed request gets 400 instead of 401. That's acceptable: no
- * privileged data or behavior is exposed, and it matches standard REST
- * practice of rejecting a structurally invalid request before doing
- * anything else with it.
+ * `isFastifyValidationError` doesn't recognize them.
  */
 function isFastifyBodyParsingError(
   error: unknown,
@@ -198,6 +190,8 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
 
     return reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
   })
+
+  registerAuthentication(app, apiKeyVerifier(config.apiKeySecret))
 
   app.register(healthRoute)
   app.register(exchangeRoute, { config, ...resolvedAdapters })

@@ -74,9 +74,6 @@ describe('useScenarioAvatarDiscovery behavior', () => {
           scenarioId: 'scenario_1',
           name: 'Avatar 1',
           status: 'active',
-          personaPrompt: 'Prompt 1',
-          createdAt: '2026-06-01T00:00:00.000Z',
-          updatedAt: '2026-06-01T00:00:00.000Z',
         },
       ])
       .mockResolvedValueOnce([
@@ -85,9 +82,6 @@ describe('useScenarioAvatarDiscovery behavior', () => {
           scenarioId: 'scenario_1',
           name: 'Avatar 1',
           status: 'active',
-          personaPrompt: 'Prompt 1',
-          createdAt: '2026-06-01T00:00:00.000Z',
-          updatedAt: '2026-06-01T00:00:00.000Z',
         },
       ])
       .mockResolvedValueOnce([
@@ -96,18 +90,12 @@ describe('useScenarioAvatarDiscovery behavior', () => {
           scenarioId: 'scenario_1',
           name: 'Avatar 1',
           status: 'active',
-          personaPrompt: 'Prompt 1',
-          createdAt: '2026-06-01T00:00:00.000Z',
-          updatedAt: '2026-06-01T00:00:00.000Z',
         },
         {
           avatarId: 'avatar_2',
           scenarioId: 'scenario_1',
           name: 'Avatar 2',
           status: 'active',
-          personaPrompt: 'Prompt 2',
-          createdAt: '2026-06-01T00:00:00.000Z',
-          updatedAt: '2026-06-01T00:00:00.000Z',
         },
       ])
 
@@ -165,9 +153,6 @@ describe('useScenarioAvatarDiscovery behavior', () => {
           scenarioId: 'scenario_1',
           name: 'Avatar 1',
           status: 'active',
-          personaPrompt: 'Prompt 1',
-          createdAt: '2026-06-01T00:00:00.000Z',
-          updatedAt: '2026-06-01T00:00:00.000Z',
         },
       ])
       .mockResolvedValueOnce([
@@ -176,9 +161,6 @@ describe('useScenarioAvatarDiscovery behavior', () => {
           scenarioId: 'scenario_1',
           name: 'Avatar 1',
           status: 'active',
-          personaPrompt: 'Prompt 1',
-          createdAt: '2026-06-01T00:00:00.000Z',
-          updatedAt: '2026-06-01T00:00:00.000Z',
         },
       ])
       .mockResolvedValueOnce([
@@ -187,18 +169,12 @@ describe('useScenarioAvatarDiscovery behavior', () => {
           scenarioId: 'scenario_1',
           name: 'Avatar 1',
           status: 'active',
-          personaPrompt: 'Prompt 1',
-          createdAt: '2026-06-01T00:00:00.000Z',
-          updatedAt: '2026-06-01T00:00:00.000Z',
         },
         {
           avatarId: 'avatar_2',
           scenarioId: 'scenario_1',
           name: 'Avatar 2',
           status: 'active',
-          personaPrompt: 'Prompt 2',
-          createdAt: '2026-06-01T00:00:00.000Z',
-          updatedAt: '2026-06-01T00:00:00.000Z',
         },
       ])
 
@@ -242,9 +218,6 @@ describe('useScenarioAvatarDiscovery behavior', () => {
         scenarioId: 'scenario_1',
         name: 'Avatar 1',
         status: 'active',
-        personaPrompt: 'Prompt 1',
-        createdAt: '2026-06-01T00:00:00.000Z',
-        updatedAt: '2026-06-01T00:00:00.000Z',
       },
     ])
     vi.mocked(getAvailableAvatarsForSession).mockResolvedValueOnce([
@@ -253,9 +226,6 @@ describe('useScenarioAvatarDiscovery behavior', () => {
         scenarioId: 'scenario_1',
         name: 'Avatar 1',
         status: 'active',
-        personaPrompt: 'Prompt 1',
-        createdAt: '2026-06-01T00:00:00.000Z',
-        updatedAt: '2026-06-01T00:00:00.000Z',
       },
     ])
 

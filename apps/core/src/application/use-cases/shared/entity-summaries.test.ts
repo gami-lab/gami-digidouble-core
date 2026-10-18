@@ -81,10 +81,8 @@ describe('canonical entity projection mappers', () => {
       scenarioId: 'scenario_1',
       name: 'Guide',
       status: 'active',
-      personaPrompt: 'You are a guide.',
-      createdAt: timestamps.startedAt,
-      updatedAt: timestamps.lastActivityAt,
     })
+    expect(summary).not.toHaveProperty('personaPrompt')
     expect(summary).not.toHaveProperty('config')
     expect(summary).not.toHaveProperty('llmOverride')
   })

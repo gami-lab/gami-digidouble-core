@@ -4,7 +4,6 @@ import { AUDIO_OUTPUT_FORMATS, fail } from '@gami/shared'
 import type { AudioDeliveryRequest } from '@gami/shared'
 import type { SynthesizeMessageAudioUseCase } from '../../application/use-cases/synthesize-message-audio/synthesize-message-audio.use-case.js'
 import type { Config } from '../../config.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 import { handleRouteError } from './route-error.js'
 
 type ConversationMessageAudioRouteOptions = {
@@ -44,7 +43,6 @@ export const conversationMessageAudioRoute: FastifyPluginCallback<
   }>(
     '/:conversationId/messages/:messageId/audio',
     {
-      onRequest: authenticateApiKey(options.config.apiKeySecret),
       schema: { params: paramsSchema, body: bodySchema },
     },
     async (request, reply) => {

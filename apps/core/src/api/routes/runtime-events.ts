@@ -46,7 +46,7 @@ function registerStreamRuntimeEventsRoute(
 ): void {
   app.get<{ Params: SessionParams }>(
     '/:sessionId/events/stream',
-    { config: { rawBody: true }, schema: { params: sessionParamsSchema, response: {} } },
+    { schema: { params: sessionParamsSchema, response: {} } },
     async (request, reply) => {
       const { sessionId } = request.params
       const session = await sessionRepository.findById(sessionId)

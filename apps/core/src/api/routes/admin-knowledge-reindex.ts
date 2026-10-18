@@ -13,7 +13,6 @@ import {
 import { KnowledgeReindexService } from '../../application/services/knowledge/knowledge-reindex.service.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 
 export type AdminKnowledgeReindexRouteOptions = {
   config: Config
@@ -59,8 +58,6 @@ export const adminKnowledgeReindexRoute: FastifyPluginCallback<
   const startUseCase = new StartKnowledgeReindexUseCase(reindexService, options.corpusRepository)
   const retryUseCase = new RetryKnowledgeReindexUseCase(reindexService, options.corpusRepository)
   const getUseCase = new GetKnowledgeReindexUseCase(options.corpusRepository)
-
-  app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
 
   app.addHook('onReady', async () => {
     const interruptedOperationIds = await options.corpusRepository.recoverRunningReindexOperations()

@@ -40,7 +40,6 @@ import { InMemoryKnowledgeSourceRepository } from '../../infrastructure/db/in-me
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 import {
   mapCreateAvatarInput,
   mapCreateScenarioInput,
@@ -229,8 +228,6 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
     options.modelConfigFallback,
     options.observabilityAdapter,
   )
-
-  app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
 
   registerListScenariosRoute(app, listScenariosUseCase)
   registerCreateScenarioRoute(app, createScenarioUseCase, options.textToSpeechProviders)

@@ -9,7 +9,6 @@ import type { IMessageRepository } from '../../application/ports/IMessageReposit
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { GetSessionMemoryLayersUseCase } from '../../application/use-cases/get-session-memory-layers/get-session-memory-layers.use-case.js'
 import type { Config } from '../../config.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 import {
   mapInspectorDomainError,
   sessionParamsSchema,
@@ -35,8 +34,6 @@ export const adminMemoryRoute: FastifyPluginCallback<AdminMemoryRouteOptions> = 
     options.conversationMemoryRepository,
     options.eventLogRepository,
   )
-  app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
-
   app.get<{ Params: SessionParams }>(
     '/sessions/:sessionId/memory-layers',
     { schema: { params: sessionParamsSchema } },

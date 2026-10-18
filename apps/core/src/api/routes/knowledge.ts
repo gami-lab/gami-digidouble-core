@@ -44,7 +44,6 @@ import { ListKnowledgeSourcesUseCase } from '../../application/use-cases/list-kn
 import { TriggerIngestionUseCase } from '../../application/use-cases/trigger-ingestion/trigger-ingestion.use-case.js'
 import { UpdateKnowledgeSourceUseCase } from '../../application/use-cases/update-knowledge-source/update-knowledge-source.use-case.js'
 import type { Config } from '../../config.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 import {
   buildUploadedKnowledgeSourceUpdate,
   toKnowledgeSourceUpdateInput,
@@ -196,7 +195,6 @@ const retrievalBodySchema = {
 } as const
 
 export const knowledgeRoute: FastifyPluginCallback<KnowledgeRouteOptions> = (app, options) => {
-  app.addHook('preValidation', authenticateApiKey(options.config.apiKeySecret))
   const useCases = buildUseCases(options)
   registerCreateSourceRoute(app, useCases)
   registerUploadSourceRoute(app, useCases)

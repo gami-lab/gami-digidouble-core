@@ -243,6 +243,11 @@ describe('GET /:sessionId/available-avatars behavior', () => {
     const avatarIds = body.data?.avatars.map((avatar) => avatar.avatarId) ?? []
     expect(avatarIds).toContain(seeded.avatar1Id)
     expect(avatarIds).toContain(seeded.avatar2Id)
+    const playerFields = ['avatarId', 'scenarioId', 'name', 'status', 'tone', 'description']
+    for (const avatar of body.data?.avatars ?? []) {
+      expect(Object.keys(avatar).filter((key) => !playerFields.includes(key))).toEqual([])
+    }
+    expect(response.body).not.toContain('personaPrompt')
   })
 })
 

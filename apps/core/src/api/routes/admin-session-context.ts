@@ -11,7 +11,6 @@ import type { IConversationWorkingMemoryRepository } from '../../application/por
 import type { IUserRepository } from '../../application/ports/IUserRepository.js'
 import { GetSessionContextUseCase } from '../../application/use-cases/get-session-context/get-session-context.use-case.js'
 import type { Config } from '../../config.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 import { toAdminSessionContextResponse } from './mappers/session-context.mapper.js'
 import {
   mapInspectorDomainError,
@@ -45,8 +44,6 @@ export const adminSessionContextRoute: FastifyPluginCallback<AdminSessionContext
     options.userRepository,
     options.gmStateRepository,
   )
-
-  app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
 
   app.get<{ Params: SessionParams }>(
     '/sessions/:sessionId/context',

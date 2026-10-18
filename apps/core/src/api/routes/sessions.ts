@@ -50,7 +50,6 @@ import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-sc
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { InMemorySessionEventPublisher } from '../../infrastructure/events/in-memory-session-event-publisher.js'
 import { resolveWorkingMemoryRepositories } from '../composition.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 import { startSessionBodySchema } from './start-session.schema.js'
 import { registerRuntimeEventsRoutes } from './runtime-events.js'
 import { registerDeleteSessionRoute } from './sessions.delete-route.js'
@@ -237,7 +236,6 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
       : {}),
   })
 
-  app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
   registerStartSessionRoute(app, startSessionUseCase)
   registerGetSessionRoute(app, getSessionUseCase)
   registerListSessionsRoute(app, listSessionsUseCase)

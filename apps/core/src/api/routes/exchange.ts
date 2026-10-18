@@ -12,7 +12,6 @@ import type { SendRawMessageOutput } from '../../application/use-cases/send-raw-
 import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import type { Config } from '../../config.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 import { createLlmAdapter, LlmError } from '../../infrastructure/llm/index.js'
 import { createObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import type { LlmConfig } from '../../infrastructure/llm/index.js'
@@ -86,7 +85,6 @@ export const exchangeRoute: FastifyPluginCallback<ExchangeRouteOptions> = (app, 
     '/v1/exchange',
     {
       schema: { body: exchangeBodySchema },
-      preHandler: authenticateApiKey(options.config.apiKeySecret),
     },
     async (request, reply) => {
       const requestedProvider = request.body.model?.provider

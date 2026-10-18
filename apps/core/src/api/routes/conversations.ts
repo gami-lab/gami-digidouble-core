@@ -46,7 +46,6 @@ import { InMemoryGmStateRepository } from '../../infrastructure/db/in-memory-gm-
 import { buildLlmConfig, createLlmAdapter } from '../../infrastructure/llm/index.js'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
 import { createObservabilityAdapter } from '../../infrastructure/observability/index.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 import { voiceMessagesRoute } from './voice-messages.js'
 import { conversationMessageAudioRoute } from './conversation-message-audio.js'
 import {
@@ -131,8 +130,6 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
     deps.messageRepository,
   )
 
-  app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
-
   app.addHook('onClose', async () => {
     await deps.observabilityAdapter.flush()
   })
@@ -179,7 +176,6 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
   app.post<{ Params: ConversationParams; Body: SendMessageRequest }>(
     '/:conversationId/messages/stream',
     {
-      config: { rawBody: true },
       schema: { params: conversationParamsSchema, body: sendMessageBodySchema, response: {} },
     },
     // eslint-disable-next-line complexity -- SSE handler maps abort, partial-stream, and typed failures to frames

@@ -12,7 +12,6 @@ import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
 import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 import {
   validateAvatarLlmOverride,
   validateVoiceConfiguration,
@@ -73,8 +72,6 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
   const sessionRepository = options.sessionRepository ?? new InMemorySessionRepository()
   const deleteAvatarUseCase = new DeleteAvatarUseCase(avatarRepository, sessionRepository)
   const updateAvatarUseCase = new UpdateAvatarUseCase(avatarRepository)
-
-  app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
 
   app.delete<{ Params: AvatarParams }>(
     '/:avatarId',

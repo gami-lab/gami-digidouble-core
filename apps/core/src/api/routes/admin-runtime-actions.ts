@@ -19,7 +19,6 @@ import { AdminRuntimeActionsUseCase } from '../../application/use-cases/admin-ru
 import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
 import type { Config } from '../../config.js'
 import { DomainError } from '../../domain/errors.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
 import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
@@ -85,8 +84,6 @@ export const adminRuntimeActionsRoute: FastifyPluginCallback<AdminRuntimeActions
     options.runGameMasterUseCase,
     options.userRepository,
   )
-
-  app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
 
   app.post<{ Params: SessionParams }>(
     '/sessions/:sessionId/gm/replay',

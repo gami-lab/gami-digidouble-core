@@ -18,7 +18,6 @@ import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avat
 import { InMemoryModelConfigRepository } from '../../infrastructure/db/in-memory-model-config.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 import {
   mapInspectorDomainError,
   sessionParamsSchema,
@@ -73,7 +72,6 @@ export const adminSessionsRoute: FastifyPluginCallback<AdminSessionsRouteOptions
     eventLogRepository,
   )
 
-  app.addHook('preHandler', authenticateApiKey(options.config.apiKeySecret))
   registerInspectSessionRoute(app, inspectSessionUseCase)
   registerListSessionEventsRoute(app, listSessionEventsUseCase)
 }

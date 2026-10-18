@@ -42,22 +42,13 @@ export type GetHistoryResponse = {
 /**
  * Player-facing avatar summary for the "available avatars" endpoint.
  *
- * Deliberately narrower than the canonical `AvatarSummary`: it omits `config` (may hold
- * GM-only scenario data) and `llmOverride` (internal routing detail). Derived via `Pick`
- * from the canonical type so new AvatarSummary fields must be explicitly opted in here.
+ * Deliberately narrower than the canonical `AvatarSummary`: authoring internals (`personaPrompt`,
+ * `adjustments`, `config`, `computedTraits`, `llmOverride`, `voiceConfig`) stay admin-only. Derived
+ * via `Pick` so new AvatarSummary fields must be explicitly opted in here.
  */
 export type AvailableAvatarSummary = Pick<
   AvatarSummary,
-  | 'avatarId'
-  | 'scenarioId'
-  | 'name'
-  | 'status'
-  | 'personaPrompt'
-  | 'tone'
-  | 'description'
-  | 'adjustments'
-  | 'createdAt'
-  | 'updatedAt'
+  'avatarId' | 'scenarioId' | 'name' | 'status' | 'tone' | 'description'
 >
 
 export type GetAvailableAvatarsResponse = {

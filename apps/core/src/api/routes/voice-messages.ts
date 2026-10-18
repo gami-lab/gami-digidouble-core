@@ -9,7 +9,6 @@ import {
 import type { VoiceTurnUseCase } from '../../application/use-cases/voice-turn/voice-turn.use-case.js'
 import type { StreamingSendMessageEvent } from '../../application/use-cases/send-message/streaming-send-message.types.js'
 import type { Config } from '../../config.js'
-import { authenticateApiKey } from '../hooks/authenticate.js'
 import {
   mapSendMessageResponse,
   mapStreamingEvent,
@@ -48,11 +47,9 @@ export const voiceMessagesRoute: FastifyPluginCallback<VoiceMessagesRouteOptions
     },
   )
 
-  const authenticate = authenticateApiKey(options.config.apiKeySecret)
-
   app.post<VoiceRouteGeneric>(
     '/:conversationId/voice-messages',
-    { onRequest: authenticate, schema: { params: voiceConversationParamsSchema } },
+    { schema: { params: voiceConversationParamsSchema } },
     async (request, reply) => {
       const abortController = new AbortController()
       const onClose = (): void => {
@@ -82,8 +79,6 @@ export const voiceMessagesRoute: FastifyPluginCallback<VoiceMessagesRouteOptions
   app.post<VoiceRouteGeneric>(
     '/:conversationId/voice-messages/stream',
     {
-      onRequest: authenticate,
-      config: { rawBody: true },
       schema: { params: voiceConversationParamsSchema, response: {} },
     },
     // eslint-disable-next-line complexity -- SSE handler maps abort, stream-start, and per-phase typed failures to frames
