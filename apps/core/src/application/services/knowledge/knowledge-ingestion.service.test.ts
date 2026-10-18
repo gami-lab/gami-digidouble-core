@@ -431,6 +431,74 @@ describe('KnowledgeIngestionService — header-aware chunking', () => {
   })
 })
 
+async function chunkMarkdown(content: string, chunkSize: number): Promise<string[]> {
+  const { sourceRepository, chunkRepository, jobRepository, eventLogRepository } =
+    createDefaultIngestionDeps()
+  const source = await sourceRepository.create({
+    scenarioId: 'scenario_1',
+    name: 'Sectioned memories',
+    knowledgeType: 'world',
+    format: 'markdown',
+    uriOrPath: '/tmp/sectioned-memories.md',
+    visibilityPolicy: 'all',
+  })
+  const job = await jobRepository.create({ sourceId: source.sourceId, status: 'queued', chunkSize })
+  const service = new KnowledgeIngestionService(
+    sourceRepository,
+    jobRepository,
+    new StubLoader(content),
+    new HashEmbeddingAdapter(DETERMINISTIC_HASH_EMBEDDING_PROFILE),
+    eventLogRepository,
+    new InMemoryKnowledgeCorpusRepository(chunkRepository, TEST_ACTIVE_CORPUS),
+  )
+  await service.execute({ sourceId: source.sourceId, ingestionJobId: job.ingestionJobId })
+  const chunks = await chunkRepository.listBySourceId(source.sourceId)
+  return chunks.map((chunk) => chunk.content)
+}
+
+describe('KnowledgeIngestionService — section-aware chunking', () => {
+  it('starts a new chunk at a section boundary instead of cutting the next section', async () => {
+    const first = `### One\n\n${'A'.repeat(300)}`
+    const second = `### Two\n\n${'B'.repeat(300)}\n\n${'C'.repeat(300)}`
+
+    const chunks = await chunkMarkdown(`${first}\n\n${second}`, 800)
+
+    expect(chunks).toEqual([first, second])
+  })
+
+  it('treats only ### headings as section boundaries', async () => {
+    const first = `## Permanent\n\n### One\n\n${'A'.repeat(300)}\n\n#### Detail\n\n${'B'.repeat(300)}`
+    const second = `## Past\n\n### Two\n\n${'C'.repeat(300)}`
+
+    const chunks = await chunkMarkdown(`${first}\n\n${second}`, 800)
+
+    expect(chunks).toEqual([first, second])
+  })
+
+  it('packs at most three whole sections into one chunk', async () => {
+    const sections = ['One', 'Two', 'Three', 'Four'].map((name) => `### ${name}\n\nShort ${name}.`)
+
+    const chunks = await chunkMarkdown(sections.join('\n\n'), 1500)
+
+    expect(chunks).toEqual([sections.slice(0, 3).join('\n\n'), sections[3]])
+  })
+
+  it('splits an oversized section into balanced paragraph groups that repeat the heading', async () => {
+    const paragraphs = ['A', 'B', 'C', 'D'].map((letter) => letter.repeat(300))
+
+    const chunks = await chunkMarkdown(
+      `### Long\n\n${paragraphs.join('\n\n')}\n\n### Next\n\nTail.`,
+      1000,
+    )
+
+    expect(chunks).toEqual([
+      `### Long\n\n${paragraphs.slice(0, 2).join('\n\n')}`,
+      `### Long\n\n${paragraphs.slice(2).join('\n\n')}`,
+      '### Next\n\nTail.',
+    ])
+  })
+})
+
 // eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('KnowledgeIngestionService — failure and retry behavior', () => {
   it('marks job as failed and supports deterministic retry idempotency', async () => {

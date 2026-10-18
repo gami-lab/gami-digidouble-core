@@ -57,8 +57,14 @@ Main implementation entry points: `knowledge-ingestion.service.ts`, `typed-retri
 
 - Paragraph-aware, not fixed-width: text is split on blank lines into paragraphs, Markdown headings
   (levels 1-6) are tracked and kept with the paragraph text so heading context is embedded and
-  retrieved alongside it, and consecutive paragraphs are packed into one chunk up to the configured
-  size. This preserves semantic boundaries where possible instead of cutting mid-sentence.
+  retrieved alongside it. This preserves semantic boundaries where possible instead of cutting
+  mid-sentence.
+- Section-aware packing: only `###` headings delimit sections (other heading levels vary between
+  sources and are kept as context only). One to three whole sections are packed into a chunk up to
+  the configured size; a new chunk starts at a section boundary rather than cutting the next
+  section. A section too large for one chunk is split at paragraph boundaries into balanced pieces
+  (fewest chunks, no tiny tail), each repeating the heading path. Content before the first `###`
+  is its own section.
 - Oversized paragraphs are split deterministically at sentence boundaries first, with a raw character
   fallback for long sentences. Oversized fenced code blocks use raw character splitting so the hard
   safety ceiling is always honored; a fragment may not be a standalone valid fence, but no source

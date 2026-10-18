@@ -13,7 +13,21 @@ type ChunkSeed = {
 type ParsedParagraph = {
   content: string
   headers: string[]
+  sectionIndex: number
 }
+
+type RenderedText = {
+  content: string
+  headers: string[]
+}
+
+type ChunkDraft = RenderedText & {
+  sectionCount: number
+}
+
+const MAX_SECTIONS_PER_CHUNK = 3
+// Source documents vary their other heading levels freely; only `###` reliably delimits one unit.
+const SECTION_HEADING_LEVEL = 3
 
 type MarkdownHeading = {
   level: number
@@ -42,39 +56,95 @@ export function toChunkSeeds(
   const paragraphs = parseParagraphsWithHeaders(normalized)
   const chunks: ChunkSeed[] = []
   const maxLength = Math.min(chunkSize ?? INGESTION_CHUNK_SIZE_DEFAULT, INGESTION_CHUNK_HARD_MAX)
-  const paragraphsToChunk = (
-    paragraphs.length > 0 ? paragraphs : [{ content: normalized, headers: [] }]
-  ).flatMap((paragraph) => splitParsedParagraph(paragraph, maxLength))
-
-  let current = ''
-  let currentHeaders: string[] = []
-  const flushCurrent = (): void => {
-    if (current.length === 0) return
-    appendBoundedChunk(chunks, current, source, loadedMetadata)
-    current = ''
+  const sections = groupSections(
+    paragraphs.length > 0 ? paragraphs : [{ content: normalized, headers: [], sectionIndex: 0 }],
+  )
+  for (const content of packSections(sections, maxLength)) {
+    appendBoundedChunk(chunks, content, source, loadedMetadata)
   }
-
-  for (const paragraph of paragraphsToChunk) {
-    const headerLines = headersToAdd(currentHeaders, paragraph.headers)
-    const paragraphWithHeaders = [...headerLines, paragraph.content].join('\n\n')
-    if (current.length === 0) {
-      current = paragraphWithHeaders
-      currentHeaders = paragraph.headers
-      continue
-    }
-    if (`${current}\n\n${paragraphWithHeaders}`.length <= maxLength) {
-      current = `${current}\n\n${paragraphWithHeaders}`
-      currentHeaders = paragraph.headers
-      continue
-    }
-    flushCurrent()
-    current = [...paragraph.headers, paragraph.content].join('\n\n')
-    currentHeaders = paragraph.headers
-  }
-
-  flushCurrent()
-
   return chunks
+}
+
+function packSections(sections: ParsedParagraph[][], maxLength: number): string[] {
+  const packed: string[] = []
+  let draft: ChunkDraft | null = null
+  for (const section of sections) {
+    const pieces = section.flatMap((paragraph) => splitParsedParagraph(paragraph, maxLength))
+    if (draft !== null && draft.sectionCount < MAX_SECTIONS_PER_CHUNK) {
+      const extended = appendParagraphs(draft, pieces)
+      if (extended.content.length <= maxLength) {
+        draft = { ...extended, sectionCount: draft.sectionCount + 1 }
+        continue
+      }
+    }
+    if (draft !== null) packed.push(draft.content)
+    draft = null
+    const standalone = appendParagraphs(null, pieces)
+    if (standalone.content.length <= maxLength) {
+      draft = { ...standalone, sectionCount: 1 }
+      continue
+    }
+    packed.push(...splitSection(pieces, standalone.content.length, maxLength))
+  }
+  if (draft !== null) packed.push(draft.content)
+  return packed
+}
+
+function groupSections(paragraphs: ParsedParagraph[]): ParsedParagraph[][] {
+  const sections: ParsedParagraph[][] = []
+  for (const paragraph of paragraphs) {
+    const last = sections.at(-1)
+    if (last?.[0]?.sectionIndex === paragraph.sectionIndex) last.push(paragraph)
+    else sections.push([paragraph])
+  }
+  return sections
+}
+
+function appendParagraphs(draft: RenderedText | null, paragraphs: ParsedParagraph[]): RenderedText {
+  let rendered = draft
+  for (const paragraph of paragraphs) {
+    rendered =
+      rendered === null
+        ? {
+            content: [...paragraph.headers, paragraph.content].join('\n\n'),
+            headers: paragraph.headers,
+          }
+        : {
+            content: [
+              rendered.content,
+              ...headersToAdd(rendered.headers, paragraph.headers),
+              paragraph.content,
+            ].join('\n\n'),
+            headers: paragraph.headers,
+          }
+  }
+  return rendered ?? { content: '', headers: [] }
+}
+
+// Balances an oversized section across the fewest chunks so it does not leave a tiny trailing piece.
+function splitSection(
+  paragraphs: ParsedParagraph[],
+  totalLength: number,
+  maxLength: number,
+): string[] {
+  const targetLength = Math.ceil(totalLength / Math.ceil(totalLength / maxLength))
+  const pieces: string[] = []
+  let current: RenderedText | null = null
+  for (const paragraph of paragraphs) {
+    const extended = appendParagraphs(current, [paragraph])
+    if (current !== null && extended.content.length > maxLength) {
+      pieces.push(current.content)
+      current = appendParagraphs(null, [paragraph])
+    } else {
+      current = extended
+    }
+    if (current.content.length >= targetLength) {
+      pieces.push(current.content)
+      current = null
+    }
+  }
+  if (current !== null) pieces.push(current.content)
+  return pieces
 }
 
 function splitParsedParagraph(paragraph: ParsedParagraph, maxLength: number): ParsedParagraph[] {
@@ -83,8 +153,8 @@ function splitParsedParagraph(paragraph: ParsedParagraph, maxLength: number): Pa
   const contentMaxLength = Math.max(1, maxLength - headerText.length - headerSeparatorLength - 2)
 
   return splitParagraphContent(paragraph.content, contentMaxLength).map((content) => ({
+    ...paragraph,
     content,
-    headers: paragraph.headers,
   }))
 }
 
@@ -149,6 +219,7 @@ function parseParagraphsWithHeaders(content: string): ParsedParagraph[] {
   const activeHeaders: Array<string | undefined> = []
   const paragraphLines: string[] = []
   let insideCodeFence = false
+  let sectionIndex = 0
 
   const flushParagraph = (): void => {
     const paragraph = paragraphLines.join('\n').trim()
@@ -158,6 +229,7 @@ function parseParagraphsWithHeaders(content: string): ParsedParagraph[] {
     paragraphs.push({
       content: paragraph,
       headers: activeHeaders.filter((header): header is string => header !== undefined),
+      sectionIndex,
     })
   }
 
@@ -177,6 +249,7 @@ function parseParagraphsWithHeaders(content: string): ParsedParagraph[] {
     const heading = parseMarkdownHeading(line)
     if (heading !== null) {
       flushParagraph()
+      if (heading.level === SECTION_HEADING_LEVEL) sectionIndex += 1
       activeHeaders.length = heading.level
       activeHeaders[heading.level - 1] = heading.content
       continue

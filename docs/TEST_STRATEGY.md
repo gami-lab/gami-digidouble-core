@@ -81,7 +81,7 @@ The comment-policy guardrail is tested independently with ESLint's `RuleTester` 
 ### Knowledge
 
 - canonical types and reserved metadata rejection
-- paragraph-aware chunking, oversized paragraph/code-fence splitting, no-overlap boundaries, and ingestion lifecycle
+- paragraph-aware and `###` section-aware chunking, oversized paragraph/code-fence splitting, no-overlap boundaries, and ingestion lifecycle
 - embedding profile/dimension validation and ordered complete batches
 - staged reindex completeness, same-profile reuse through the admin start route, restart/retry safety,
   rollback, and atomic promotion at the PostgreSQL boundary
