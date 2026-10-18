@@ -1,6 +1,6 @@
 # Project status
 
-Last reviewed: 2026-10-10
+Last reviewed: 2026-10-18
 
 ## Snapshot
 
@@ -76,9 +76,12 @@ that touches persistence, retrieval, or provider adapters.
 
 ## Current limitations
 
-- No standalone guided progression engine beyond current GM/scenario heuristics (`EPICS.md` 5.4).
-- No hybrid response/cache path for latency-sensitive or canonical answers (`EPICS.md` 5.6/6.4).
-- No completed real-scenario validation milestone or prototype-packaging milestone yet (`EPICS.md` 6.2/6.3).
+- Route security has one shared API key and no admin sign-in (`EPICS.md` 12.1).
+- The public player is a demo surface rather than a guided experience (`EPICS.md` 12.2).
+- Media sources are retrievable but never triggered or displayed (`EPICS.md` 12.3).
+- Evaluation measures factual recall only, not discovery pacing, persona, or GM decisions (`EPICS.md` 12.4).
+- The voice chain runs in series and has no end-to-end latency metric (`EPICS.md` 12.5).
+- No video avatar support (`EPICS.md` 12.6).
 - Retrieval Quality Hardening (`EPICS.md` 5.1e) is complete: the six-fixture harness measured
   recall@3/7/9 = 1.000000 for both the historical 16-dimensional baseline and the current native
   1536-dimensional profile, while MRR improved from 0.722222 to 0.916667. The comparison records

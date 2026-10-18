@@ -83,6 +83,12 @@ Delivered health and dependency probes for core services so operators can detect
 
 Consolidated session inspection around canonical DTO ownership, cleaner admin read paths, and one coherent operator inspection flow.
 
+#### `3.3 Replay & Recovery Tools` ✅ Done
+
+Closed on review (2026-10-18): GM replay, memory refresh/clear, and session reset are shipped, and
+each operator action is recorded as an `admin_action.*` event in `event_log`. The remaining
+permission-boundary scope moves to 12.1.
+
 ### Orchestration, Memory, And Runtime State
 
 #### `4.1 Async Game Master v1` ✅ Done
@@ -173,6 +179,17 @@ Delivered the first player-facing web app with browser-owned identity, scenario 
 
 Delivered additive message streaming with progressive Avatar rendering, ordered-delta handling, interruption cleanup, exact-once persistence, and backward-compatible JSON responses.
 
+#### `6.2 AVA Scenario Validation` ✅ Done
+
+Closed on review (2026-10-18): the AVA scenario runs on the deployed stack with Max and Emma, and
+the Max evaluation suite (21 questions) passed 16–18 questions across five `gpt-5.6-luna` runs.
+Adding characters is scenario configuration, not code. The ongoing quality bar moves to 12.4.
+
+#### `6.3 Summer Prototype Delivery` ✅ Done
+
+Closed on review (2026-10-18): Core runtime, API, admin, and player are deployed together and
+operable without code changes. Player-facing experience work moves to 12.2.
+
 ### Phase A Refinements
 
 #### `8.1 Avatar Trait Structuring` ✅ Done
@@ -246,184 +263,273 @@ are unchanged apart from the documented hack removals.
 
 ## Open Backlog
 
-### `3.3 Replay & Recovery Tools`
+Reviewed 2026-10-18 against the code, the evaluation reports, and the live AVA scenario. Order of
+work: 12.1, 12.4 and the 12.5 end-to-end metric first; then 12.3, 12.2 and per-sentence speech;
+12.6 last, because it needs per-sentence audio (12.5) and the player media layer (12.3).
+
+### `12.1 Two-Tier Route Security`
 
 **Current state**  
-Partially covered by GM replay, memory refresh/clear, and runtime inspection actions, but not closed as a dedicated milestone.
+One `API_KEY_SECRET` protects every route. `docker-compose.coolify.yml` builds it into both the
+web and admin bundles as `VITE_API_KEY`, so the full-power key is in public JavaScript. The admin
+SPA is served by nginx at `/admin` with no sign-in. Scenario, avatar, and knowledge CRUD routes are
+not under `/v1/admin`, so there is no prefix split. `userId` is chosen by the browser, so any known
+session id can be read. Absorbs the permission-boundary scope left over from 3.3.
 
 **Purpose**  
-Enable safe experimentation and faster debugging.
+Give public player routes and admin routes different security levels, and protect the admin.
 
 **Description**  
-Provide reset, replay-last-turn, and audit logging for operational recovery actions so operators can recover broken sessions without engineering intervention.
+Declare a tier for every route, authenticate admins with a real sign-in, and replace the shipped
+secret on public routes with a short-lived player token that carries ownership.
 
 **Includes**
 
-- replay last turn
-- reset runtime state
-- admin action audit log
-- action permissions groundwork
+- explicit `public` / `admin` tier on every route; authoring CRUD moves under `/v1/admin`
+- admin sign-in (session cookie or OIDC); no secret in the admin bundle
+- public player token issued by Core (short TTL); no secret in the web bundle
+- ownership checks: a session or conversation must belong to the token's user
+- rate limits and body-size limits on message and voice routes
+- tight CORS per tier
 
 **Definition of done**
 
-- operators can retry and recover sessions safely
-- recovery actions are explicit and traceable
-- sensitive actions have clear permission boundaries
+- the public bundle contains no secret
+- admin UI and admin routes require a login
+- another user's session or conversation returns 404
 
 **What can be tested**
 
-1. force a broken conversation state
-2. replay the last turn
-3. reset the affected runtime state
-4. verify the audit trail records each operator action
+1. a route-tier matrix test fails CI when a route has no tier
+2. a player token receives 403 on every admin route
+3. cross-user session and history reads return 404
+4. rate limits trigger on message and voice routes
 
 **User increment**
 
-- safe recovery tools without direct engineering support
+- the platform can be exposed publicly without exposing authoring or other users' data
+
+### `12.2 Public Experience UI`
+
+**Current state**  
+The player is one long page: identity form (four raw persona fields) → scenario list → avatar
+list → chat, with technical wording ("identité locale", "Fil actuel"). Avatars show names only.
+`runtime.avatar_suggested` and `runtime.avatar_unlocked` events arrive but are not staged. Enter
+inserts a newline instead of sending. Absorbs the player-facing scope of 6.3.
+
+**Purpose**  
+Turn the demo player into a guided experience a first-time visitor understands without help.
+
+**Description**  
+Rebuild `apps/web` as a guided flow with character presentation, voice-first states, and staged
+runtime events; author the presentation data in admin and store it in scenario/avatar `uiHints`,
+which Core orchestration ignores.
+
+**Includes**
+
+- flow: landing → intro media (12.3) → one in-world question → character choice → conversation → outro
+- character cards: portrait, one-line hook, two or three starter questions
+- voice-first screen with listening / thinking / speaking states and optional transcript
+- GM suggestions and unlocks presented as narrative moments
+- idle hint when the visitor stalls
+- Enter sends; Shift+Enter inserts a newline
+- admin fields for cover, tagline, portrait, hook, and starter questions
+
+**Definition of done**
+
+- a first-time visitor reaches a first exchange in under 30 seconds without explanation
+- debug-oriented views stay in `apps/console`
+
+**What can be tested**
+
+1. behavior tests for each flow state and transition
+2. starter questions and portraits round-trip from admin to player
+3. suggestion/unlock events render as staged moments
+4. five hallway tests with recorded notes
+
+**User increment**
+
+- the public player feels like an experience instead of a test console
+
+### `12.3 Multimedia: Media Assets, Slots, and Cues`
+
+**Current state**  
+A `media` knowledge source becomes one chunk holding a description and `mediaUri`; there is no
+file storage. Media can be retrieved into Avatar/GM context, but the GM output has no media field,
+no runtime event exists, and the player renders nothing.
+
+**Purpose**  
+Let scenarios show images and video, triggered deterministically or by the Game Master.
+
+**Description**  
+Add scenario-scoped media assets with fixed slots and validated GM cues in Core, delivered over the
+existing runtime-event stream, and rendered by the player.
+
+**Includes**
+
+- media assets (image, video): upload or URL, type, poster, duration, description
+- slots: scenario intro / outro, avatar portrait / idle loop
+- deterministic triggers: session start, avatar unlock, avatar switch
+- GM `mediaCue` output validated against the scenario media catalogue
+- `runtime.media_cue` SSE event, recorded in `event_log`
+- player: full-screen video, image overlay, skip; voice loop and TTS pause during playback
+- admin media library and slot/trigger assignment
+
+**Definition of done**
+
+- the AVA intro video plays at session start
+- a GM cue shows an image during a live conversation
+- invalid or unknown cues are ignored without affecting the turn
+
+**What can be tested**
+
+1. slot triggers fire exactly once per event
+2. GM cue parsing rejects unknown asset ids
+3. SSE delivers the cue to the player in order
+4. cue → playback timing is recorded
+
+**User increment**
+
+- conversations can cut to prepared images and film, the basis for the Koulechov research question
+
+### `12.4 Discovery Quality & Measurement`
+
+**Current state**  
+`tools/conversation-evaluation` runs single questions checked against `requiredFacts` and
+`forbiddenClaims` by an LLM judge. Five `gpt-5.6-luna` runs of the 21-question Max suite passed
+16–18 questions; `totalCostUsd` is reported as null. Persona register, revelation pacing, guidance,
+GM decisions, long-session coherence, and robustness are not measured. In a live test Max offered
+three secrets in his first reply. Absorbs 5.4 (remaining progression tuning) and the quality bar
+of 6.2.
+
+**Purpose**  
+Tune Avatar and Game Master prompts against measurements instead of impressions.
+
+**Description**  
+Extend the evaluation tool to multi-turn discovery scripts with deterministic and rubric checks,
+then tune the Avatar persona prompt, GM decision policies, and retrieval parameters one change at a
+time against an AVA baseline.
+
+**Includes**
+
+- definition v2: multi-turn scripts with per-turn assertions
+- deterministic checks: sentence count, no list/menu formatting, language, secret not revealed before turn N
+- rubric scores (1–5): in character, pacing, guidance when the user stalls
+- GM assertions from runtime events: routing, unlock, dialogue mode, director-note adherence
+- long-session (30-turn) and avatar-switch coherence scripts
+- robustness probes: "are you an AI?", off-topic, hostile user
+- simulated-visitor runs for open discovery
+- five repetitions per run reporting mean and spread; cost reporting fixed
+- judge calibration against ten human-rated sessions; golden set reviewed with Paradigma
+
+**Definition of done**
+
+- the AVA suite covers facts, persona, pacing, guidance, GM decisions, coherence, and robustness with a recorded baseline
+- every Avatar/GM prompt change ships with a before/after report
+
+**What can be tested**
+
+1. deterministic checks are unit-tested against fixed transcripts
+2. GM assertions read the recorded runtime events
+3. repeated runs report variance
+4. a regression threshold flags a drop in pass rate
+
+**User increment**
+
+- characters reveal their story at the right pace, and the team can prove it
+
+### `12.5 Latency Reduction`
+
+**Current state**  
+The voice chain runs in series: the browser waits for 1,200 ms of silence (`voice-activity.ts`),
+uploads the clip to Deepgram's pre-recorded `/v1/listen`, embeds the query and searches pgvector
+before the LLM call, generates the full reply (1.7–2.6 s at about 3,400 input tokens in the eval
+reports), and only then requests audio per saved message. Stage metrics exist, but there is no
+end-to-end metric from the visitor's point of view. Absorbs 5.6/6.4 as one lever.
+
+**Purpose**  
+Cut the time from the end of the visitor's speech to the first audio of the reply.
+
+**Description**  
+Add the end-to-end metric first, then apply levers one at a time and measure each.
+
+**Includes**
+
+- headline metric: end of speech → first audio, p50/p90, shown in the console
+- per-sentence speech: synthesize each finished sentence while the LLM streams
+- streaming STT with end-of-turn detection instead of upload after silence
+- prefetch the GM `retrievalPlan` for the next turn; cache query embeddings
+- stable prompt prefix for provider prompt caching; first-token comparison across models/providers
+- small canonical layer: pre-rendered greetings and backchannel audio
+
+**Definition of done**
+
+- the headline metric is recorded before and after each lever
+- text-only and fallback paths keep working
+- exactly-once message persistence is unchanged
+
+**What can be tested**
+
+1. sentence segmentation and ordered audio delivery
+2. interruption cancels pending sentence synthesis
+3. streaming STT finalizes one transcript per turn
+4. metric breakdown sums to the end-to-end total
+
+**User increment**
+
+- replies start noticeably sooner in voice conversations
+
+### `12.6 Video Avatar`
+
+**Current state**  
+No video port or adapter exists. Voice EPICs 9.1–9.4 provide the port/adapter/fallback pattern.
+Candidate providers are compared on the GamiWays research portal.
+
+**Purpose**  
+Give characters a real-time face while keeping our voice, prompts, and Game Master.
+
+**Description**  
+Add a provider-neutral video port that lip-syncs our own TTS stream, with one adapter chosen after
+a short spike, delivered to the player and measured.
+
+**Includes**
+
+- video port beside the TTS port; lip-sync on our audio as the default mode
+- one-week spike on two candidates using the same AVA lines
+- one adapter; WebRTC delivery to the player; idle and listening loops
+- per-avatar provider and face settings in admin
+- `firstFrameMs` and lip-sync offset metrics
+- fallback to portrait + audio when video is off or fails
+
+**Definition of done**
+
+- one AVA character speaks on video in the player
+- added latency over audio-only is measured
+- text and voice paths are unchanged when video is unconfigured
+
+**What can be tested**
+
+1. adapter contract tests with a fake provider
+2. fallback activates on provider failure
+3. video stops with interrupted audio
+4. latency metrics are recorded per turn
+
+**User increment**
+
+- visitors talk to a character they can see
+
+## Superseded Or Absorbed Items
 
 ### `5.4 Guided Progression Engine v1`
 
-**Current state**  
-No standalone progression engine exists beyond current GM heuristics and scenario-goal handling.
-
-**Purpose**  
-Ensure conversations move toward scenario objectives instead of drifting into generic chat.
-
-**Description**  
-Implement configurable progression logic that combines goals, pacing rules, milestone tracking, and role-fidelity constraints with GM orchestration.
-
-**Includes**
-
-- scenario goals model integration
-- pacing rule evaluation
-- progression milestone tracking
-- recommended user choices generation
-- guardrails for role fidelity and objective coverage
-
-**Definition of done**
-
-- progression state is visible and testable
-- stalled conversations trigger appropriate guidance
-- role breaks are reduced in guided scenarios
-
-**What can be tested**
-
-1. progression advances when objective criteria are met
-2. pacing rules trigger guidance after stalled turns
-3. recommended choices align with the active objective
-4. role-fidelity constraints block invalid guidance paths
-
-**User increment**
-
-- sessions feel directed, meaningful, and outcome-oriented
+Absorbed into 12.4. EPIC 8.5 already shipped dialogue-control modes, director notes,
+`progressionUpdate`, retrieval planning, and unlock routing; the remaining work is tuning those
+decisions against measurements.
 
 ### `5.6 / 6.4 Hybrid Response System / Hybrid Response Optimization`
 
-**Current state**  
-Still open. The original `5.6` and `6.4` scopes overlap enough that future implementation should treat them as one EPIC unless requirements diverge materially.
-
-**Purpose**  
-Improve latency, consistency, and controllability without removing live generative flexibility.
-
-**Description**  
-Introduce a hybrid response path that can choose among canonical answers, retrieval-backed answers, constrained generation, and live generation fallback.
-
-**Includes**
-
-- canonical or cached response lookup for recurring intents
-- retrieval-first response path when grounded knowledge is sufficient
-- constrained generation templates for high-risk or structured outputs
-- fallback to live generation when deterministic paths are not eligible
-- response-path observability tags and diagnostics
-
-**Definition of done**
-
-- response path is explicit and measurable on each turn
-- common queries are faster when they match deterministic paths
-- fallback behavior is safe and reliable
-- no regression in baseline conversational quality
-
-**What can be tested**
-
-1. known intents hit the canonical or cached path
-2. retrieval path activates when source confidence is sufficient
-3. constrained generation returns the required structure
-4. live-generation fallback activates when no deterministic path applies
-
-**User increment**
-
-- faster, more reliable responses without losing adaptability
-
-### `6.2 AVA Scenario Validation`
-
-**Current state**  
-The milestone is not recorded complete.
-
-**Purpose**  
-Test the platform on real content.
-
-**Description**  
-Use AVA assets, characters, and narrative material to validate conversation quality, operator workflow, and scenario realism beyond synthetic tests.
-
-**Includes**
-
-- AVA scenario configuration
-- persona materials
-- narrative test sessions
-- operator review sessions
-
-**Definition of done**
-
-- the AVA scenario runs at usable quality
-- scenario-specific issues are documented and addressed
-- operator workflows are sufficient for maintaining the scenario
-
-**What can be tested**
-
-1. real end-user sessions with AVA content
-2. narrative consistency across multiple conversations
-3. immersion and operator quality review loops
-
-**User increment**
-
-- first market-relevant validated scenario
-
-### `6.3 Summer Prototype Delivery`
-
-**Current state**  
-The delivery milestone is not recorded complete.
-
-**Purpose**  
-Deliver the agreed MVP Scenario A.
-
-**Description**  
-Package the text-in/text-out core, usable back-office, validated scenario, and supporting documentation into an external-stakeholder-ready prototype.
-
-**Includes**
-
-- back-office tooling
-- AVA scenario
-- API surface
-- core runtime
-- supporting documentation
-
-**Definition of done**
-
-- the prototype is demoable to external stakeholders
-- scenario lifecycle can be operated without code changes
-- the delivery package is documented clearly enough to hand over
-
-**What can be tested**
-
-1. end-to-end demo walkthrough
-2. stakeholder-facing prototype review
-3. operator-managed scenario lifecycle from setup through conversation
-
-**User increment**
-
-- first external prototype ready for demonstration
-
-## Superseded Or Absorbed Items
+Absorbed into 12.5 as one latency lever (pre-rendered greetings and backchannel audio). A broader
+canonical-answer path is not planned unless latency measurements require it.
 
 ### `4.1b Game Master Context Awareness Upgrade`
 
