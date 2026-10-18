@@ -8,6 +8,7 @@ import { TextToSpeechProviders } from '../../application/voice/text-to-speech-pr
 import { FakeTextToSpeechAdapter } from '../../application/voice/test-support/fake-text-to-speech.adapter.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
   return {
@@ -62,7 +63,7 @@ describe('DELETE /v1/admin/avatars/:avatarId', () => {
     const response = await app.inject({
       method: 'DELETE',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
     })
 
     expect(response.statusCode).toBe(200)
@@ -75,7 +76,7 @@ describe('DELETE /v1/admin/avatars/:avatarId', () => {
     const response = await makeApp().inject({
       method: 'DELETE',
       url: '/v1/admin/avatars/avatar_missing',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
     })
 
     expect(response.statusCode).toBe(404)
@@ -90,7 +91,7 @@ describe('DELETE /v1/admin/avatars/:avatarId', () => {
     }).inject({
       method: 'DELETE',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
     })
 
     expect(response.statusCode).toBe(409)
@@ -115,8 +116,7 @@ describe('PATCH /v1/admin/avatars/:avatarId', () => {
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
       headers: {
-        'x-api-key': 'test-secret',
-        'x-admin-service-key': 'test-secret',
+        ...credentialHeaders('test-secret'),
         'content-type': 'application/json',
       },
       payload: { personaPrompt: 'Updated prompt', tone: 'formal' },
@@ -139,8 +139,7 @@ describe('PATCH /v1/admin/avatars/:avatarId', () => {
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_missing',
       headers: {
-        'x-api-key': 'test-secret',
-        'x-admin-service-key': 'test-secret',
+        ...credentialHeaders('test-secret'),
         'content-type': 'application/json',
       },
       payload: { name: 'New name' },
@@ -158,8 +157,7 @@ describe('PATCH /v1/admin/avatars/:avatarId', () => {
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
       headers: {
-        'x-api-key': 'test-secret',
-        'x-admin-service-key': 'test-secret',
+        ...credentialHeaders('test-secret'),
         'content-type': 'application/json',
       },
       payload: {},
@@ -180,7 +178,9 @@ describe('PATCH /v1/admin/avatars/:avatarId', () => {
 
     expect(response.statusCode).toBe(401)
   })
+})
 
+describe('PATCH /v1/admin/avatars/:avatarId voice selection', () => {
   it('updates and explicitly clears the avatar voice selection', async () => {
     const app = makeApp({
       avatars: [
@@ -192,8 +192,7 @@ describe('PATCH /v1/admin/avatars/:avatarId', () => {
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
       headers: {
-        'x-api-key': 'test-secret',
-        'x-admin-service-key': 'test-secret',
+        ...credentialHeaders('test-secret'),
         'content-type': 'application/json',
       },
       payload: { voiceConfig: { provider: 'gradium', voiceId: 'new' } },
@@ -207,8 +206,7 @@ describe('PATCH /v1/admin/avatars/:avatarId', () => {
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
       headers: {
-        'x-api-key': 'test-secret',
-        'x-admin-service-key': 'test-secret',
+        ...credentialHeaders('test-secret'),
         'content-type': 'application/json',
       },
       payload: { voiceConfig: null },
@@ -224,8 +222,7 @@ describe('PATCH /v1/admin/avatars/:avatarId', () => {
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
       headers: {
-        'x-api-key': 'test-secret',
-        'x-admin-service-key': 'test-secret',
+        ...credentialHeaders('test-secret'),
         'content-type': 'application/json',
       },
       payload: { voiceConfig: { provider: 'gradium', voiceId: 'guide', apiKey: 'secret' } },
@@ -245,8 +242,7 @@ describe('PATCH /v1/admin/avatars/:avatarId voice provider', () => {
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
       headers: {
-        'x-api-key': 'test-secret',
-        'x-admin-service-key': 'test-secret',
+        ...credentialHeaders('test-secret'),
         'content-type': 'application/json',
       },
       payload: { voiceConfig: { provider: 'gradium', voiceId: 'guide' } },
@@ -266,8 +262,7 @@ describe('PATCH /v1/admin/avatars/:avatarId contract coverage', () => {
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
       headers: {
-        'x-api-key': 'test-secret',
-        'x-admin-service-key': 'test-secret',
+        ...credentialHeaders('test-secret'),
         'content-type': 'application/json',
       },
       payload: { name: 'Ava Updated' },
@@ -298,8 +293,7 @@ describe('PATCH /v1/admin/avatars/:avatarId contract coverage', () => {
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
       headers: {
-        'x-api-key': 'test-secret',
-        'x-admin-service-key': 'test-secret',
+        ...credentialHeaders('test-secret'),
         'content-type': 'application/json',
       },
       payload: { name: 'Ava Updated' },
@@ -320,8 +314,7 @@ describe('PATCH /v1/admin/avatars/:avatarId llmOverride', () => {
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
       headers: {
-        'x-api-key': 'test-secret',
-        'x-admin-service-key': 'test-secret',
+        ...credentialHeaders('test-secret'),
         'content-type': 'application/json',
       },
       payload: { llmOverride: { provider: 'invalid-provider' } },
@@ -339,8 +332,7 @@ describe('PATCH /v1/admin/avatars/:avatarId llmOverride', () => {
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
       headers: {
-        'x-api-key': 'test-secret',
-        'x-admin-service-key': 'test-secret',
+        ...credentialHeaders('test-secret'),
         'content-type': 'application/json',
       },
       payload: { llmOverride: { model: '   ' } },
@@ -358,8 +350,7 @@ describe('PATCH /v1/admin/avatars/:avatarId llmOverride', () => {
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
       headers: {
-        'x-api-key': 'test-secret',
-        'x-admin-service-key': 'test-secret',
+        ...credentialHeaders('test-secret'),
         'content-type': 'application/json',
       },
       payload: { llmOverride: { provider: 'openai' } },
@@ -379,8 +370,7 @@ describe('PATCH /v1/admin/avatars/:avatarId llmOverride', () => {
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
       headers: {
-        'x-api-key': 'test-secret',
-        'x-admin-service-key': 'test-secret',
+        ...credentialHeaders('test-secret'),
         'content-type': 'application/json',
       },
       payload: { llmOverride: { provider: 'openai', model: 'gpt-5.6-luna' } },
@@ -393,8 +383,7 @@ describe('PATCH /v1/admin/avatars/:avatarId llmOverride', () => {
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
       headers: {
-        'x-api-key': 'test-secret',
-        'x-admin-service-key': 'test-secret',
+        ...credentialHeaders('test-secret'),
         'content-type': 'application/json',
       },
       payload: { llmOverride: null },

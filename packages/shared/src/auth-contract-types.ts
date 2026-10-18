@@ -18,3 +18,15 @@ export type AdminMeResponse = {
 export type AdminLogoutResponse = {
   signedOut: true
 }
+
+/** Core-issued player identity; `token` is sent as `Authorization: Bearer <token>`. */
+export type PlayerTokenResponse = {
+  userId: string
+  token: string
+  expiresAt: string
+}
+
+/** Operator request for a token acting as an existing player (console, evaluation tool). */
+export type IssuePlayerTokenRequest = {
+  userId: string
+}

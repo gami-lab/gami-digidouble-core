@@ -5,9 +5,8 @@ import {
   normalizeApiPath,
   isAdminApiPath,
   normalizeApiUrl,
-  shouldInjectApiKey,
 } from '@gami/shared'
-import { apiKey, apiUrl } from '../env'
+import { apiUrl } from '../env'
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 export { ApiError }
@@ -26,18 +25,27 @@ export function notifySignedOut(): void {
   for (const listener of signedOutListeners) listener()
 }
 
-function buildHeaders(path: string, hasBody: boolean): HeadersInit {
+function buildHeaders(hasBody: boolean, playerToken: string | undefined): HeadersInit {
   return {
     ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-    ...(!isAdminApiPath(path) && shouldInjectApiKey(path) ? { 'x-api-key': apiKey } : {}),
+    ...(playerToken !== undefined ? { authorization: `Bearer ${playerToken}` } : {}),
   }
 }
 
-export async function coreRequest<T>(method: HttpMethod, path: string, body?: unknown): Promise<T> {
+/**
+ * Admin routes authenticate with the admin session cookie; player routes need `playerToken`
+ * (see `player.ts`), because the console acts as the session's owner there.
+ */
+export async function coreRequest<T>(
+  method: HttpMethod,
+  path: string,
+  body?: unknown,
+  playerToken?: string,
+): Promise<T> {
   const normalizedPath = normalizeApiPath(path)
   const url = `${normalizeApiUrl(apiUrl)}${normalizedPath}`
 
-  const headers = buildHeaders(normalizedPath, body !== undefined)
+  const headers = buildHeaders(body !== undefined, playerToken)
 
   let response: Response
   try {

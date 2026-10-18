@@ -30,16 +30,18 @@ describe('coreRequest', () => {
     expect(new Headers(init.headers).get('x-api-key')).toBeNull()
   })
 
-  it('sends the player API key on public routes only', async () => {
+  it('sends a player token only when the caller acts as a player', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(jsonResponse(200, { data: { ok: true }, error: null }))
     vi.stubGlobal('fetch', fetchMock)
 
-    await coreRequest('GET', '/v1/sessions/session_1/conversations')
+    await coreRequest('GET', '/v1/sessions/session_1/conversations', undefined, 'owner-token')
+    await coreRequest('GET', '/v1/admin/scenarios')
 
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(new Headers(init.headers).get('x-api-key')).toEqual(expect.any(String))
+    const calls = fetchMock.mock.calls as [string, RequestInit][]
+    expect(new Headers(calls[0]?.[1].headers).get('authorization')).toBe('Bearer owner-token')
+    expect(new Headers(calls[1]?.[1].headers).get('authorization')).toBeNull()
   })
 
   it('reports a signed-out admin session when an admin route answers 401', async () => {

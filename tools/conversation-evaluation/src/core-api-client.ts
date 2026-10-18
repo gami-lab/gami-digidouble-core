@@ -5,6 +5,7 @@ import type {
   ConversationSummary,
   ListScenarioAvatarsResponse,
   Message,
+  PlayerTokenResponse,
   SendMessageApiResponse,
   SessionSummary,
   StartConversationRequest,
@@ -24,7 +25,6 @@ export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
 
 export type CoreApiClientOptions = {
   baseUrl: string
-  apiKey: string
   serviceKey: string
   timeoutMs: number
   fetchImpl?: FetchLike
@@ -237,6 +237,10 @@ function isDebugMetrics(value: unknown): boolean {
   )
 }
 
+function isPlayerTokenResponse(value: unknown): value is PlayerTokenResponse {
+  return isRecord(value) && isNonEmptyString(value['userId']) && isNonEmptyString(value['token'])
+}
+
 function isStartSessionResponse(value: unknown): value is StartSessionResponse {
   return isRecord(value) && isSessionSummary(value['session'])
 }
@@ -391,17 +395,37 @@ async function decodeResponse<T>(
 
 export class CoreApiClient {
   private readonly baseUrl: string
-  private readonly apiKey: string
   private readonly serviceKey: string
+  private playerToken: string | undefined
   private readonly timeoutMs: number
   private readonly fetchImpl: FetchLike
 
   constructor(options: CoreApiClientOptions) {
     this.baseUrl = normalizeBaseUrl(options.baseUrl)
-    this.apiKey = options.apiKey
     this.serviceKey = options.serviceKey
     this.timeoutMs = options.timeoutMs
     this.fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis)
+  }
+
+  /**
+   * Acts as `userId` on player routes from now on, with a token the service key obtains from
+   * Core. Runs are sequential, so one current player per client is enough.
+   */
+  async usePlayer(userId: string, options?: CoreApiRequestOptions): Promise<void> {
+    const response = await this.request(
+      'POST',
+      '/v1/admin/player-tokens',
+      { userId },
+      isPlayerTokenResponse,
+      'session_bootstrap',
+      options,
+    )
+    this.playerToken = response.token
+  }
+
+  private credentialHeaders(path: string): Record<string, string> {
+    if (isAdminApiPath(path)) return { [ADMIN_SERVICE_KEY_HEADER]: this.serviceKey }
+    return this.playerToken === undefined ? {} : { authorization: `Bearer ${this.playerToken}` }
   }
 
   async createSession(
@@ -519,9 +543,7 @@ export class CoreApiClient {
           headers: {
             Accept: 'application/json',
             'Content-Type': 'application/json',
-            ...(isAdminApiPath(normalizedPath)
-              ? { [ADMIN_SERVICE_KEY_HEADER]: this.serviceKey }
-              : { 'x-api-key': this.apiKey }),
+            ...this.credentialHeaders(normalizedPath),
           },
           signal: controller.signal,
           ...(body !== undefined ? { body: JSON.stringify(body) } : {}),

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 import { prepareAndActivateAvatar } from './stack-e2e-current-fixtures.js'
+import { stackCredentialHeaders } from './stack-e2e-auth.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret-0123456789abcdef0123'
@@ -11,8 +12,7 @@ async function postJson(path: string, body: unknown): Promise<Response> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': API_KEY,
-      'x-admin-service-key': API_KEY,
+      ...stackCredentialHeaders(API_KEY),
     },
     body: JSON.stringify(body),
   })
@@ -21,7 +21,7 @@ async function postJson(path: string, body: unknown): Promise<Response> {
 async function getJson(path: string): Promise<Response> {
   return fetch(`${APP_URL}${path}`, {
     method: 'GET',
-    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
+    headers: { ...stackCredentialHeaders(API_KEY) },
   })
 }
 
@@ -35,7 +35,7 @@ function requireValue(value: string | undefined, label: string): string {
 async function deleteJson(path: string): Promise<void> {
   await fetch(`${APP_URL}${path}`, {
     method: 'DELETE',
-    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
+    headers: { ...stackCredentialHeaders(API_KEY) },
   })
 }
 
@@ -44,7 +44,7 @@ async function cleanupScenario(ids: {
   avatarId: string | undefined
   scenarioId: string
 }): Promise<void> {
-  if (ids.sessionId !== undefined) await deleteJson(`/v1/sessions/${ids.sessionId}`)
+  if (ids.sessionId !== undefined) await deleteJson(`/v1/admin/sessions/${ids.sessionId}`)
   if (ids.avatarId !== undefined) await deleteJson(`/v1/admin/avatars/${ids.avatarId}`)
   await deleteJson(`/v1/admin/scenarios/${ids.scenarioId}`)
 }

@@ -1,7 +1,10 @@
 import type { FastifyRequest } from 'fastify'
 import { ADMIN_SERVICE_KEY_HEADER } from '@gami/shared'
 import type { AdminAuthService } from '../../application/auth/admin-auth.service.js'
-import { areSecretsEqual, readHeader, type CredentialVerifier } from './authenticate.js'
+import type { PlayerTokenService } from '../../application/auth/player-token.service.js'
+import { areSecretsEqual } from '../../application/auth/secret-compare.js'
+import { readHeader, type CredentialVerifier } from './authenticate.js'
+import { readBearerToken } from './player-credentials.js'
 
 export const ADMIN_SESSION_COOKIE = 'gami_admin_session'
 const ADMIN_COOKIE_PATH = '/v1/admin'
@@ -11,10 +14,12 @@ export type AdminVerifierOptions = {
   authService: AdminAuthService
   serviceKey: string | undefined
   allowedOrigins: readonly string[]
+  playerTokens: PlayerTokenService
 }
 
 /**
- * Accepts the server-side service key or a signed-in admin session cookie, nothing else.
+ * Accepts the server-side service key or a signed-in admin session cookie, nothing else; a valid
+ * player token is recognised and refused with `403`.
  * Cookie-authenticated state changes must come from an allowed admin origin (CSRF protection on
  * top of `SameSite=Strict`); service-key requests carry no ambient credential and skip that check.
  */
@@ -31,7 +36,10 @@ export function adminVerifier(options: AdminVerifierOptions): CredentialVerifier
 
     const sessionId = readAdminSessionCookie(request)
     if (sessionId === undefined || !(await options.authService.isSignedIn(sessionId))) {
-      return { outcome: 'unauthenticated' }
+      const playerToken = readBearerToken(request)
+      return playerToken !== undefined && options.playerTokens.verify(playerToken) !== null
+        ? { outcome: 'forbidden', message: 'Player credentials cannot access admin routes' }
+        : { outcome: 'unauthenticated' }
     }
     if (!SAFE_METHODS.has(request.method) && !isAllowedOrigin(request, options.allowedOrigins)) {
       return { outcome: 'forbidden', message: 'Request origin is not an allowed admin origin' }

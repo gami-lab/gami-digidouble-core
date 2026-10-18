@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearLocalWebIdentity,
-  createGeneratedUserId,
   createInitialIdentityFormValues,
   createLocalWebIdentity,
   LOCAL_WEB_IDENTITY_STORAGE_KEY,
@@ -74,9 +73,7 @@ describe('local identity', () => {
     expect(storage.getItem(LOCAL_WEB_IDENTITY_STORAGE_KEY)).toBeNull()
   })
 
-  it('exposes stable helpers for generated userId and empty persona values', () => {
-    expect(createGeneratedUserId()).toMatch(/^user_[a-f0-9]{8}$/)
-
+  it('normalizes empty persona values', () => {
     expect(
       normalizePersonaInput({
         ...createInitialIdentityFormValues(),

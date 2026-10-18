@@ -5,15 +5,7 @@ import type {
 } from '@gami/shared'
 import { webRequest } from './client'
 
-export async function upsertUserPersona(
-  userId: string,
-  persona: UpsertUserPersonaRequest,
-): Promise<UserSummary> {
-  const payload = await webRequest<UpsertUserPersonaApiResponse>(
-    'PUT',
-    `/v1/users/${encodeURIComponent(userId)}/persona`,
-    persona,
-  )
-
+export async function upsertUserPersona(persona: UpsertUserPersonaRequest): Promise<UserSummary> {
+  const payload = await webRequest<UpsertUserPersonaApiResponse>('PUT', '/v1/me/persona', persona)
   return payload.user
 }

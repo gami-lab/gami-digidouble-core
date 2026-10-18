@@ -18,6 +18,8 @@ import { NullLlmAdapter } from '../../infrastructure/llm/index.js'
 import { NullObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders, TEST_PLAYER_ID } from './test-auth.js'
+import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 
 const conversation: Conversation = {
   conversationId: 'conversation_1',
@@ -125,6 +127,17 @@ function createApp(tts: ITextToSpeechAdapter, extraMessages: Message[] = []) {
     avatarRepository: new InMemoryAvatarRepository([avatar]),
     scenarioRepository: new InMemoryScenarioRepository([scenario]),
     conversationRepository: new InMemoryConversationRepository([conversation]),
+    sessionRepository: new InMemorySessionRepository([
+      {
+        sessionId: conversation.sessionId,
+        userId: TEST_PLAYER_ID,
+        scenarioId: scenario.scenarioId,
+        unlockedAvatarIds: [],
+        status: 'active',
+        startedAt: '2026-10-18T10:00:00.000Z',
+        lastActivityAt: '2026-10-18T10:00:00.000Z',
+      },
+    ]),
     messageRepository: new InMemoryMessageRepository([
       avatarMessage,
       userMessage,
@@ -136,8 +149,7 @@ function createApp(tts: ITextToSpeechAdapter, extraMessages: Message[] = []) {
 
 function headers(overrides: Record<string, string> = {}): Record<string, string> {
   return {
-    'x-api-key': 'test-secret',
-    'x-admin-service-key': 'test-secret',
+    ...credentialHeaders('test-secret'),
     'content-type': 'application/json',
     ...overrides,
   }
@@ -162,7 +174,7 @@ function expectError(
 describe('conversation message audio route', () => {
   it.each([
     [{}, 401],
-    [{ 'x-api-key': 'wrong-secret', 'x-admin-service-key': 'wrong-secret' }, 401],
+    [{ ...credentialHeaders('wrong-secret') }, 401],
   ] as const)('rejects unauthorized requests', async (authHeaders, status) => {
     const app = createApp(createTtsAdapter())
     const response = await app.inject({
@@ -318,6 +330,17 @@ describe('conversation message audio route', () => {
       avatarRepository: new InMemoryAvatarRepository([avatarWithoutVoice]),
       scenarioRepository: new InMemoryScenarioRepository([scenarioWithoutVoice]),
       conversationRepository: new InMemoryConversationRepository([conversation]),
+      sessionRepository: new InMemorySessionRepository([
+        {
+          sessionId: conversation.sessionId,
+          userId: TEST_PLAYER_ID,
+          scenarioId: scenario.scenarioId,
+          unlockedAvatarIds: [],
+          status: 'active',
+          startedAt: '2026-10-18T10:00:00.000Z',
+          lastActivityAt: '2026-10-18T10:00:00.000Z',
+        },
+      ]),
       messageRepository: new InMemoryMessageRepository([avatarMessage]),
       textToSpeechProviders: new TextToSpeechProviders([missingVoiceTts], 'gradium'),
     })

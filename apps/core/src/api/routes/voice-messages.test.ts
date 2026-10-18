@@ -20,6 +20,7 @@ import { NullLlmAdapter } from '../../infrastructure/llm/index.js'
 import { NullObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 const conversation: Conversation = {
   conversationId: 'conversation_1',
@@ -101,8 +102,7 @@ function makeApp(
 
 function headers(overrides: Record<string, string> = {}): Record<string, string> {
   return {
-    'x-api-key': 'test-secret',
-    'x-admin-service-key': 'test-secret',
+    ...credentialHeaders('test-secret'),
     'content-type': 'audio/webm',
     'x-utterance-id': 'utterance_1',
     ...overrides,
@@ -146,8 +146,7 @@ describe('voice message HTTP routes', () => {
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',
       headers: {
-        'x-api-key': 'test-secret',
-        'x-admin-service-key': 'test-secret',
+        ...credentialHeaders('test-secret'),
         'content-type': 'application/json',
       },
       payload: { message: { content: 'Text still works' } },
@@ -208,30 +207,33 @@ describe('voice message HTTP routes', () => {
     )
   })
 
-  it.each([undefined, 'wrong-secret'])('returns 401 for %s API key', async (apiKey) => {
-    const { app } = makeApp()
-    const requestHeaders = headers()
-    if (apiKey === undefined) delete requestHeaders['x-api-key']
-    else requestHeaders['x-api-key'] = apiKey
+  it.each([undefined, 'Bearer not-a-player-token'])(
+    'returns 401 for %s credential',
+    async (authorization) => {
+      const { app } = makeApp()
+      const requestHeaders: Record<string, string> = headers()
+      if (authorization === undefined) delete requestHeaders['authorization']
+      else requestHeaders['authorization'] = authorization
 
-    const sync = await app.inject({
-      method: 'POST',
-      url: '/v1/conversations/conversation_1/voice-messages',
-      headers: requestHeaders,
-      payload: Buffer.from([1]),
-    })
-    const stream = await app.inject({
-      method: 'POST',
-      url: '/v1/conversations/conversation_1/voice-messages/stream',
-      headers: requestHeaders,
-      payload: Buffer.from([1]),
-    })
+      const sync = await app.inject({
+        method: 'POST',
+        url: '/v1/conversations/conversation_1/voice-messages',
+        headers: requestHeaders,
+        payload: Buffer.from([1]),
+      })
+      const stream = await app.inject({
+        method: 'POST',
+        url: '/v1/conversations/conversation_1/voice-messages/stream',
+        headers: requestHeaders,
+        payload: Buffer.from([1]),
+      })
 
-    expect(sync.statusCode).toBe(401)
-    expect(sync.json<ApiResponse<null>>().error?.code).toBe('UNAUTHORIZED')
-    expect(stream.statusCode).toBe(401)
-    expect(stream.json<ApiResponse<null>>().error?.code).toBe('UNAUTHORIZED')
-  })
+      expect(sync.statusCode).toBe(401)
+      expect(sync.json<ApiResponse<null>>().error?.code).toBe('UNAUTHORIZED')
+      expect(stream.statusCode).toBe(401)
+      expect(stream.json<ApiResponse<null>>().error?.code).toBe('UNAUTHORIZED')
+    },
+  )
 
   it.each([
     { name: 'missing utterance ID', headers: headers(), payload: Buffer.from([1]) },

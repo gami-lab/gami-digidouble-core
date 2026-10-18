@@ -1,6 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import { subscribeToRuntimeEvents } from './runtime-events-stream'
 
+vi.mock('./player-session', () => ({
+  playerFetch: (url: string, init: RequestInit = {}) =>
+    fetch(url, {
+      ...init,
+      headers: { ...(init.headers as Record<string, string>), authorization: 'Bearer test-token' },
+    }),
+}))
+
 describe('subscribeToRuntimeEvents', () => {
   it('parses runtime event SSE frames from the session stream', async () => {
     const onEvent = vi.fn()

@@ -182,9 +182,9 @@ export async function runSequentialConversation(
   reportProgress(input, 'Resolving initial Avatar.')
   const avatarId = await resolveInitialAvatarId(client, definition, input.signal)
   reportProgress(input, 'Creating evaluation session.')
+  await client.usePlayer(userId, requestOptions(input.signal))
   const sessionResponse = await client.createSession(
     {
-      userId,
       scenarioId: definition.scenarioId,
       ...(modelOverride === undefined ? {} : { model: modelOverride }),
       ...(definition.avatarOptions !== undefined

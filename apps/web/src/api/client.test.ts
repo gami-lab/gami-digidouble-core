@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, webRequest } from './client'
 
+vi.mock('./player-session', () => ({
+  playerFetch: (url: string, init: RequestInit = {}) =>
+    fetch(url, {
+      ...init,
+      headers: { ...(init.headers as Record<string, string>), authorization: 'Bearer test-token' },
+    }),
+}))
+
 function jsonResponse(status: number, body: unknown): Response {
   return {
     ok: status >= 200 && status < 300,
@@ -24,19 +32,7 @@ describe('webRequest', () => {
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     expect(url).toBe('http://localhost:3000/v1/scenarios')
-    expect(new Headers(init.headers).get('x-api-key')).toEqual(expect.any(String))
-  })
-
-  it('omits the API key only for the health path', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(jsonResponse(200, { data: { ok: true }, error: null }))
-    vi.stubGlobal('fetch', fetchMock)
-
-    await webRequest('GET', '/health')
-
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(new Headers(init.headers).get('x-api-key')).toBeNull()
+    expect(new Headers(init.headers).get('authorization')).toBe('Bearer test-token')
   })
 
   it('serializes request bodies and preserves the browser JSON request contract', async () => {
@@ -45,7 +41,7 @@ describe('webRequest', () => {
       .mockResolvedValue(jsonResponse(200, { data: { id: 'user_1' }, error: null }))
     vi.stubGlobal('fetch', fetchMock)
 
-    await webRequest('PUT', '/v1/users/user_1/persona', { displayName: 'Nora' })
+    await webRequest('PUT', '/v1/me/persona', { displayName: 'Nora' })
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     expect(init.method).toBe('PUT')
@@ -53,7 +49,7 @@ describe('webRequest', () => {
     expect(new Headers(init.headers).get('Content-Type')).toBe('application/json')
   })
 
-  it('keeps JSON content type for bodyless actions', async () => {
+  it('omits the JSON content type for bodyless actions', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(jsonResponse(200, { data: { ok: true }, error: null }))
@@ -63,7 +59,7 @@ describe('webRequest', () => {
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     expect(init.body).toBeUndefined()
-    expect(new Headers(init.headers).get('Content-Type')).toBe('application/json')
+    expect(new Headers(init.headers).get('Content-Type')).toBeNull()
   })
 
   it('maps API errors, malformed responses, and unsuccessful envelopes to client errors', async () => {

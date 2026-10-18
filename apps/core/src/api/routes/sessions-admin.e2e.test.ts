@@ -11,6 +11,7 @@ import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-sc
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 const appsToClose: FastifyInstance[] = []
 
@@ -45,11 +46,8 @@ function makeApp(params?: {
   )
 }
 
-function authHeaders(apiKey = 'test-secret'): {
-  'x-api-key': string
-  'x-admin-service-key': string
-} {
-  return { 'x-api-key': apiKey, 'x-admin-service-key': apiKey }
+function authHeaders(apiKey = 'test-secret'): Record<string, string> {
+  return { ...credentialHeaders(apiKey) }
 }
 
 function requireId<T extends Record<string, unknown>>(value: T | undefined, key: keyof T): string {
@@ -257,7 +255,7 @@ describe('GET /v1/sessions behavior', () => {
   })
 })
 
-describe('GET /v1/sessions contract behavior', () => {
+describe('session listing contract behavior', () => {
   it('returns sessions ordered by lastActivityAt DESC', async () => {
     const app = registerApp(
       makeApp({
@@ -295,9 +293,10 @@ describe('GET /v1/sessions contract behavior', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: '/v1/sessions',
+      url: '/v1/admin/sessions',
       headers: authHeaders(),
     })
+    const own = await app.inject({ method: 'GET', url: '/v1/sessions', headers: authHeaders() })
     expect(response.statusCode).toBe(200)
 
     const body = response.json<ApiResponse<{ sessions: Array<{ sessionId: string }> }>>()
@@ -307,6 +306,9 @@ describe('GET /v1/sessions contract behavior', () => {
       'session_middle',
       'session_old',
     ])
+    const ownBody = own.json<ApiResponse<{ sessions: Array<{ userId: string }> }>>()
+    expect(ownBody.data?.sessions.length).toBeGreaterThan(0)
+    expect(ownBody.data?.sessions.every((session) => session.userId === 'user_1')).toBe(true)
   })
 
   it('applies scenarioId and status filters through HTTP contract', async () => {

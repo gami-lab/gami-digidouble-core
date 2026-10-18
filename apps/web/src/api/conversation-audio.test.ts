@@ -3,6 +3,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from './client'
 import { requestMessageAudio } from './conversations'
 
+vi.mock('./player-session', () => ({
+  playerFetch: (url: string, init: RequestInit = {}) =>
+    fetch(url, {
+      ...init,
+      headers: { ...(init.headers as Record<string, string>), authorization: 'Bearer test-token' },
+    }),
+}))
+
 const metadata: AudioDeliveryMetadata = {
   requestId: 'request_1',
   messageId: 'message_1',

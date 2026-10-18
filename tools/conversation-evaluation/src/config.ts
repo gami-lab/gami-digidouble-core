@@ -5,7 +5,6 @@ export const DEFAULT_EVALUATION_OUTPUT_PATH = 'reports/evaluation-report.json'
 export type EvaluationConfig = {
   definitionPath: string
   avatarApiBaseUrl: string
-  apiKey: string
   serviceKey: string
   judgeBaseUrl?: string
   outputPath: string
@@ -17,7 +16,6 @@ export type EvaluationConfig = {
 export type EvaluationCliOptions = {
   definition?: string
   'avatar-api-base-url'?: string
-  'api-key'?: string
   'service-key'?: string
   'judge-base-url'?: string
   output?: string
@@ -44,7 +42,6 @@ type ParsedToken = {
 const OPTION_NAMES = new Set([
   'definition',
   'avatar-api-base-url',
-  'api-key',
   'service-key',
   'judge-base-url',
   'output',
@@ -161,10 +158,6 @@ export function loadEvaluationConfig(
     'Avatar API base URL',
     true,
   )
-  const apiKey = requireNonEmpty(
-    resolveValue(options, 'api-key', environment, 'EVALUATION_API_KEY', 'API_KEY'),
-    'Missing API key. Use --api-key, EVALUATION_API_KEY, or API_KEY.',
-  )
   const serviceKey = requireNonEmpty(
     resolveValue(
       options,
@@ -197,7 +190,6 @@ export function loadEvaluationConfig(
   return {
     definitionPath,
     avatarApiBaseUrl,
-    apiKey,
     serviceKey,
     ...(judgeBaseUrl !== undefined ? { judgeBaseUrl } : {}),
     outputPath,

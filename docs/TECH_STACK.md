@@ -21,7 +21,9 @@ product code rather than in an external agent framework.
 hash-admin-password`) with a Redis-backed session cookie (`ADMIN_SESSION_SECRET`,
   `ADMIN_SESSION_TTL_SECONDS`, `ADMIN_ORIGINS`); tools use `ADMIN_SERVICE_KEY`. Cookies are parsed
   and written without a cookie plugin. Production refuses to start without the hash, the session
-  secret, and a service key of at least 32 characters. No OIDC/multi-tenant auth yet (deferred).
+  secret, and a service key of at least 32 characters. Players get a Core-issued HMAC-SHA256
+  token (`PLAYER_TOKEN_SECRET`, `PLAYER_TOKEN_TTL_SECONDS`, `PLAYER_TOKEN_REFRESH_WINDOW_SECONDS`)
+  signed with `node:crypto`; there is no JWT library. No OIDC/multi-tenant auth yet (deferred).
 - PostgreSQL with pgvector; Redis for cache, coordination, and runtime idempotency.
 - Docker Compose for local infra and Coolify deployment.
 

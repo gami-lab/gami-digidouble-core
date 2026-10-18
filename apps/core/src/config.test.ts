@@ -110,6 +110,7 @@ describe('loadConfig admin authentication settings', () => {
     vi.stubEnv('ADMIN_SESSION_SECRET', longSecret)
     vi.stubEnv('ADMIN_SERVICE_KEY', longSecret)
     vi.stubEnv('ADMIN_ORIGINS', 'https://app.example.com, https://console.example.com')
+    vi.stubEnv('PLAYER_TOKEN_SECRET', longSecret)
   })
 
   afterEach(() => {
@@ -125,20 +126,25 @@ describe('loadConfig admin authentication settings', () => {
     expect(config.adminOrigins).toEqual(['https://app.example.com', 'https://console.example.com'])
   })
 
-  it.each(['ADMIN_PASSWORD_HASH', 'ADMIN_SESSION_SECRET', 'ADMIN_SERVICE_KEY'])(
-    'refuses to start in production without %s',
-    (key) => {
-      vi.stubEnv(key, '')
+  it.each([
+    'ADMIN_PASSWORD_HASH',
+    'ADMIN_SESSION_SECRET',
+    'ADMIN_SERVICE_KEY',
+    'PLAYER_TOKEN_SECRET',
+  ])('refuses to start in production without %s', (key) => {
+    vi.stubEnv(key, '')
 
-      expect(() => loadConfig()).toThrow(`Missing required environment variable: ${key}`)
+    expect(() => loadConfig()).toThrow(`Missing required environment variable: ${key}`)
+  })
+
+  it.each(['ADMIN_SESSION_SECRET', 'ADMIN_SERVICE_KEY', 'PLAYER_TOKEN_SECRET'])(
+    'rejects a short %s',
+    (key) => {
+      vi.stubEnv(key, 'too-short')
+
+      expect(() => loadConfig()).toThrow(`Invalid ${key}`)
     },
   )
-
-  it.each(['ADMIN_SESSION_SECRET', 'ADMIN_SERVICE_KEY'])('rejects a short %s', (key) => {
-    vi.stubEnv(key, 'too-short')
-
-    expect(() => loadConfig()).toThrow(`Invalid ${key}`)
-  })
 
   it('rejects a password hash that is not a scrypt hash', () => {
     vi.stubEnv('ADMIN_PASSWORD_HASH', 'plain-password')

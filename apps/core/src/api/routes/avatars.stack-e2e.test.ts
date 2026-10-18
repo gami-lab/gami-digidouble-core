@@ -7,6 +7,7 @@ import type {
   ListScenarioAvatarsResponse,
   UpdateAvatarResponse,
 } from '@gami/shared'
+import { stackCredentialHeaders } from './stack-e2e-auth.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret-0123456789abcdef0123'
@@ -31,8 +32,7 @@ describe('Stack E2E — POST /v1/admin/scenarios/:scenarioId/avatars — auth', 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'wrong-key',
-        'x-admin-service-key': 'wrong-key',
+        ...stackCredentialHeaders('wrong-key'),
       },
       body: JSON.stringify({
         name: 'Avatar',
@@ -50,8 +50,7 @@ describe('Stack E2E — POST /v1/admin/scenarios/:scenarioId/avatars — validat
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'x-admin-service-key': API_KEY,
+        ...stackCredentialHeaders(API_KEY),
       },
       body: JSON.stringify({
         personaPrompt: 'You are a helpful avatar.',
@@ -66,8 +65,7 @@ describe('Stack E2E — POST /v1/admin/scenarios/:scenarioId/avatars — validat
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'x-admin-service-key': API_KEY,
+        ...stackCredentialHeaders(API_KEY),
       },
       body: JSON.stringify({
         name: 'Avatar',
@@ -84,8 +82,7 @@ describe('Stack E2E — POST /v1/admin/scenarios/:scenarioId/avatars — resourc
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'x-admin-service-key': API_KEY,
+        ...stackCredentialHeaders(API_KEY),
       },
       body: JSON.stringify({
         name: 'Avatar',
@@ -100,14 +97,14 @@ describe('Stack E2E — POST /v1/admin/scenarios/:scenarioId/avatars — resourc
 async function deleteAvatar(avatarId: string): Promise<void> {
   await fetch(`${APP_URL}/v1/admin/avatars/${avatarId}`, {
     method: 'DELETE',
-    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
+    headers: { ...stackCredentialHeaders(API_KEY) },
   })
 }
 
 async function deleteScenario(scenarioId: string): Promise<void> {
   await fetch(`${APP_URL}/v1/admin/scenarios/${scenarioId}`, {
     method: 'DELETE',
-    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
+    headers: { ...stackCredentialHeaders(API_KEY) },
   })
 }
 
@@ -117,8 +114,7 @@ describe('Stack E2E — POST /v1/admin/scenarios/:scenarioId/avatars — success
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'x-admin-service-key': API_KEY,
+        ...stackCredentialHeaders(API_KEY),
       },
       body: JSON.stringify({
         name: `Avatar E2E Scenario ${String(Date.now())}`,
@@ -134,8 +130,7 @@ describe('Stack E2E — POST /v1/admin/scenarios/:scenarioId/avatars — success
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-          'x-admin-service-key': API_KEY,
+          ...stackCredentialHeaders(API_KEY),
         },
         body: JSON.stringify({
           name: 'E2E Avatar',
@@ -166,8 +161,7 @@ describe('Stack E2E — scenario/avatar management full flow', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'x-admin-service-key': API_KEY,
+        ...stackCredentialHeaders(API_KEY),
       },
       body: JSON.stringify({
         name: `Ops Flow Scenario ${String(Date.now())}`,
@@ -182,8 +176,7 @@ describe('Stack E2E — scenario/avatar management full flow', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'x-admin-service-key': API_KEY,
+        ...stackCredentialHeaders(API_KEY),
       },
       body: JSON.stringify({
         name: 'Ops Flow Avatar',
@@ -197,7 +190,7 @@ describe('Stack E2E — scenario/avatar management full flow', () => {
 
     const listScenariosRes = await fetch(`${APP_URL}/v1/admin/scenarios`, {
       method: 'GET',
-      headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
+      headers: { ...stackCredentialHeaders(API_KEY) },
     })
     expect(listScenariosRes.status).toBe(200)
     const listScenariosBody = (await listScenariosRes.json()) as ApiResponse<ListScenariosResponse>
@@ -207,7 +200,7 @@ describe('Stack E2E — scenario/avatar management full flow', () => {
 
     const listAvatarsRes = await fetch(`${APP_URL}/v1/admin/scenarios/${scenarioId}/avatars`, {
       method: 'GET',
-      headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
+      headers: { ...stackCredentialHeaders(API_KEY) },
     })
     expect(listAvatarsRes.status).toBe(200)
     const listAvatarsBody =
@@ -219,13 +212,13 @@ describe('Stack E2E — scenario/avatar management full flow', () => {
 
     const deleteAvatarRes = await fetch(`${APP_URL}/v1/admin/avatars/${avatarId}`, {
       method: 'DELETE',
-      headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
+      headers: { ...stackCredentialHeaders(API_KEY) },
     })
     expect(deleteAvatarRes.status).toBe(200)
 
     const deleteScenarioRes = await fetch(`${APP_URL}/v1/admin/scenarios/${scenarioId}`, {
       method: 'DELETE',
-      headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
+      headers: { ...stackCredentialHeaders(API_KEY) },
     })
     expect(deleteScenarioRes.status).toBe(200)
   })
@@ -247,8 +240,7 @@ describe('Stack E2E — PATCH /v1/admin/avatars/:avatarId — auth', () => {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'wrong-key',
-        'x-admin-service-key': 'wrong-key',
+        ...stackCredentialHeaders('wrong-key'),
       },
       body: JSON.stringify({ name: 'New name' }),
     })
@@ -263,8 +255,7 @@ describe('Stack E2E — PATCH /v1/admin/avatars/:avatarId — validation', () =>
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'x-admin-service-key': API_KEY,
+        ...stackCredentialHeaders(API_KEY),
       },
       body: JSON.stringify({}),
     })
@@ -281,8 +272,7 @@ describe('Stack E2E — PATCH /v1/admin/avatars/:avatarId — resource lookup', 
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'x-admin-service-key': API_KEY,
+        ...stackCredentialHeaders(API_KEY),
       },
       body: JSON.stringify({ name: 'New name' }),
     })
@@ -299,8 +289,7 @@ describe('Stack E2E — PATCH /v1/admin/avatars/:avatarId — success', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'x-admin-service-key': API_KEY,
+        ...stackCredentialHeaders(API_KEY),
       },
       body: JSON.stringify({ name: `PATCH Avatar E2E Scenario ${String(Date.now())}` }),
     })
@@ -313,8 +302,7 @@ describe('Stack E2E — PATCH /v1/admin/avatars/:avatarId — success', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-          'x-admin-service-key': API_KEY,
+          ...stackCredentialHeaders(API_KEY),
         },
         body: JSON.stringify({
           name: 'PATCH E2E Avatar',
@@ -330,8 +318,7 @@ describe('Stack E2E — PATCH /v1/admin/avatars/:avatarId — success', () => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-          'x-admin-service-key': API_KEY,
+          ...stackCredentialHeaders(API_KEY),
         },
         body: JSON.stringify({ personaPrompt: 'Patched prompt.' }),
       })
@@ -357,8 +344,7 @@ async function createScenarioAndAvatarForOverride(): Promise<{
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': API_KEY,
-      'x-admin-service-key': API_KEY,
+      ...stackCredentialHeaders(API_KEY),
     },
     body: JSON.stringify({ name: `Llm Override Scenario ${String(Date.now())}` }),
   })
@@ -370,8 +356,7 @@ async function createScenarioAndAvatarForOverride(): Promise<{
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': API_KEY,
-      'x-admin-service-key': API_KEY,
+      ...stackCredentialHeaders(API_KEY),
     },
     body: JSON.stringify({
       name: 'Override Avatar',
@@ -394,8 +379,7 @@ describe('Stack E2E — avatar llmOverride flow', () => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-          'x-admin-service-key': API_KEY,
+          ...stackCredentialHeaders(API_KEY),
         },
         body: JSON.stringify({ llmOverride: { provider: 'openai', model: 'gpt-5.6-luna' } }),
       })
@@ -410,8 +394,7 @@ describe('Stack E2E — avatar llmOverride flow', () => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-          'x-admin-service-key': API_KEY,
+          ...stackCredentialHeaders(API_KEY),
         },
         body: JSON.stringify({ llmOverride: { provider: 'not-a-provider' } }),
       })
@@ -423,8 +406,7 @@ describe('Stack E2E — avatar llmOverride flow', () => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-          'x-admin-service-key': API_KEY,
+          ...stackCredentialHeaders(API_KEY),
         },
         body: JSON.stringify({ llmOverride: { provider: '' } }),
       })
@@ -436,8 +418,7 @@ describe('Stack E2E — avatar llmOverride flow', () => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-          'x-admin-service-key': API_KEY,
+          ...stackCredentialHeaders(API_KEY),
         },
         body: JSON.stringify({ llmOverride: { model: '   ' } }),
       })
@@ -449,8 +430,7 @@ describe('Stack E2E — avatar llmOverride flow', () => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-          'x-admin-service-key': API_KEY,
+          ...stackCredentialHeaders(API_KEY),
         },
         body: JSON.stringify({ llmOverride: { provider: 'anthropic' } }),
       })
@@ -463,7 +443,9 @@ describe('Stack E2E — avatar llmOverride flow', () => {
       await deleteScenario(scenarioId)
     }
   })
+})
 
+describe('Stack E2E — avatar llmOverride clearing', () => {
   it('clears llmOverride and returns override in GET list after set', async () => {
     const { scenarioId, avatarId } = await createScenarioAndAvatarForOverride()
 
@@ -472,8 +454,7 @@ describe('Stack E2E — avatar llmOverride flow', () => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-          'x-admin-service-key': API_KEY,
+          ...stackCredentialHeaders(API_KEY),
         },
         body: JSON.stringify({
           llmOverride: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
@@ -483,7 +464,7 @@ describe('Stack E2E — avatar llmOverride flow', () => {
 
       const listRes = await fetch(`${APP_URL}/v1/admin/scenarios/${scenarioId}/avatars`, {
         method: 'GET',
-        headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
+        headers: { ...stackCredentialHeaders(API_KEY) },
       })
       expect(listRes.status).toBe(200)
       const listBody = (await listRes.json()) as ApiResponse<ListScenarioAvatarsResponse>
@@ -494,8 +475,7 @@ describe('Stack E2E — avatar llmOverride flow', () => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-          'x-admin-service-key': API_KEY,
+          ...stackCredentialHeaders(API_KEY),
         },
         body: JSON.stringify({ llmOverride: null }),
       })

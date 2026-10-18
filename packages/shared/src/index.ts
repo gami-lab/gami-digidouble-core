@@ -18,6 +18,8 @@ export type {
   AdminLoginResponse,
   AdminLogoutResponse,
   AdminMeResponse,
+  IssuePlayerTokenRequest,
+  PlayerTokenResponse,
 } from './auth-contract-types.js'
 export { mapAvatarOverride, mapModelConfigFormToRequest } from './model-config-contract-mappers.js'
 export type { ModelConfigFormInput, ModelConfigFormValue } from './model-config-contract-mappers.js'
@@ -270,6 +272,7 @@ export type {
   StartSessionResponse,
   GetSessionResponse,
   ListSessionsQuery,
+  AdminListSessionsQuery,
   ListSessionsResponse,
   ResetSessionResponse,
   StartConversationRequest,

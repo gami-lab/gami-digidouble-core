@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ApiResponse, MessageStreamEvent } from '@gami/shared'
 import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 import { prepareAndActivateAvatar } from './stack-e2e-current-fixtures.js'
+import { stackCredentialHeaders } from './stack-e2e-auth.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret-0123456789abcdef0123'
@@ -12,8 +13,7 @@ function buildUrl(path: string): string {
 
 function authHeaders(apiKey = API_KEY): Record<string, string> {
   return {
-    'x-api-key': apiKey,
-    'x-admin-service-key': apiKey,
+    ...stackCredentialHeaders(apiKey),
     'content-type': 'application/json',
   }
 }
@@ -29,7 +29,7 @@ async function postJson(path: string, body: unknown): Promise<Response> {
 async function deleteJson(path: string): Promise<void> {
   await fetch(buildUrl(path), {
     method: 'DELETE',
-    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
+    headers: { ...stackCredentialHeaders(API_KEY) },
   })
 }
 
@@ -38,7 +38,7 @@ async function cleanupFixture(ids: {
   avatarId: string
   scenarioId: string
 }): Promise<void> {
-  await deleteJson(`/v1/sessions/${ids.sessionId}`)
+  await deleteJson(`/v1/admin/sessions/${ids.sessionId}`)
   await deleteJson(`/v1/admin/avatars/${ids.avatarId}`)
   await deleteJson(`/v1/admin/scenarios/${ids.scenarioId}`)
 }
@@ -155,20 +155,20 @@ describe('Stack E2E — POST /v1/conversations/:conversationId/messages/stream a
 })
 
 describe('Stack E2E — POST /v1/conversations/:conversationId/messages/stream validation', () => {
-  it('returns 400 for missing message.content', async () => {
-    const result = await postStream('conversation_1', { message: {} })
+  it.each([
+    ['missing message.content', { message: {} }],
+    ['empty message.content', { message: { content: '' } }],
+  ])('returns 400 for %s', async (_label, body) => {
+    const fixture = await seedConversation()
+    try {
+      const result = await postStream(fixture.conversationId, body)
 
-    expect(result.response.status).toBe(400)
-    const body = JSON.parse(result.text) as ApiResponse<null>
-    expect(body.error?.code).toBe('VALIDATION_ERROR')
-  })
-
-  it('returns 400 for empty message.content', async () => {
-    const result = await postStream('conversation_1', { message: { content: '' } })
-
-    expect(result.response.status).toBe(400)
-    const body = JSON.parse(result.text) as ApiResponse<null>
-    expect(body.error?.code).toBe('VALIDATION_ERROR')
+      expect(result.response.status).toBe(400)
+      const parsed = JSON.parse(result.text) as ApiResponse<null>
+      expect(parsed.error?.code).toBe('VALIDATION_ERROR')
+    } finally {
+      await cleanupFixture(fixture)
+    }
   })
 })
 

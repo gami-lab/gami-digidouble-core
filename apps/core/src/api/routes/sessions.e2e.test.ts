@@ -8,6 +8,7 @@ import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-sc
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 const appsToClose: FastifyInstance[] = []
 
@@ -42,11 +43,8 @@ function makeApp(params?: {
   )
 }
 
-function authHeaders(apiKey = 'test-secret'): {
-  'x-api-key': string
-  'x-admin-service-key': string
-} {
-  return { 'x-api-key': apiKey, 'x-admin-service-key': apiKey }
+function authHeaders(apiKey = 'test-secret'): Record<string, string> {
+  return { ...credentialHeaders(apiKey) }
 }
 
 function requireId<T extends Record<string, unknown>>(value: T | undefined, key: keyof T): string {
@@ -405,10 +403,11 @@ describe('POST /:sessionId/switch-avatar auth', () => {
 describe('POST /:sessionId/switch-avatar validation and conflicts', () => {
   it('returns 400 VALIDATION_ERROR when avatarId is missing', async () => {
     const app = registerApp(makeApp())
+    const seeded = await seedSwitchScenario(app)
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/sessions/session_1/switch-avatar',
+      url: `/v1/sessions/${seeded.sessionId}/switch-avatar`,
       headers: authHeaders(),
       payload: {},
     })

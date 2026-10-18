@@ -9,6 +9,7 @@ import { InMemoryGmStateRepository } from '../../infrastructure/db/in-memory-gm-
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 const appsToClose: FastifyInstance[] = []
 
@@ -119,11 +120,8 @@ function makeApp(params?: {
   return app
 }
 
-function authHeaders(apiKey = 'test-secret'): {
-  'x-api-key': string
-  'x-admin-service-key': string
-} {
-  return { 'x-api-key': apiKey, 'x-admin-service-key': apiKey }
+function authHeaders(apiKey = 'test-secret'): Record<string, string> {
+  return { ...credentialHeaders(apiKey) }
 }
 
 describe('GET /v1/admin/sessions/:sessionId/inspect', () => {

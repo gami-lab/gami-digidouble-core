@@ -45,6 +45,8 @@ These are easy to regress silently because they are policy, not type-level const
   execute at most once (covers in-flight duplicates, completed replays, expired reservations, and
   conflicting fingerprints). An unconfigured voice provider must leave the text route unaffected.
   Utterance keys always carry a Redis TTL, set in the same command as the write.
+- Player identity comes only from a Core-signed token; another player's session, conversation,
+  history, runtime state, events stream, or audio is indistinguishable from a missing one (`404`).
 - Session unlock state is fixed at session start and changes only through Game Master unlocks; the
   Avatar prompt's awareness and the available-Avatars endpoint must agree for the same session.
 - Retrieval and admin/console diagnostics must never leak vectors, prompts, credentials, or provider

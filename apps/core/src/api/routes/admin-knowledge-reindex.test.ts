@@ -13,6 +13,7 @@ import { InMemoryKnowledgeSourceContentLoader } from '../../infrastructure/knowl
 import { InMemoryKnowledgeSourceRepository } from '../../infrastructure/db/in-memory-knowledge-source.repository.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 const targetProfile = {
   provider: TEST_CONFIG.embeddingProvider,
@@ -75,11 +76,8 @@ async function makeApp(adapter = new TestEmbeddingAdapter()) {
   return { app, adapter }
 }
 
-function authHeaders(apiKey = 'test-secret'): {
-  'x-api-key': string
-  'x-admin-service-key': string
-} {
-  return { 'x-api-key': apiKey, 'x-admin-service-key': apiKey }
+function authHeaders(apiKey = 'test-secret'): Record<string, string> {
+  return { ...credentialHeaders(apiKey) }
 }
 
 async function waitForOperation(app: FastifyInstance, operationId: string, status: string) {
@@ -110,7 +108,7 @@ describe('Admin knowledge reindex routes', () => {
       app.inject({
         method: 'POST',
         url: '/v1/admin/knowledge/reindex',
-        headers: { 'x-api-key': 'wrong-secret', 'x-admin-service-key': 'wrong-secret' },
+        headers: { ...credentialHeaders('wrong-secret') },
         payload: {},
       }),
     ).resolves.toMatchObject({ statusCode: 401 })
@@ -128,7 +126,7 @@ describe('Admin knowledge reindex routes', () => {
       app.inject({
         method: 'GET',
         url: '/v1/admin/knowledge/reindex/reindex_operation_missing',
-        headers: { 'x-api-key': 'wrong-secret', 'x-admin-service-key': 'wrong-secret' },
+        headers: { ...credentialHeaders('wrong-secret') },
       }),
     ).resolves.toMatchObject({ statusCode: 401 })
   })
@@ -146,7 +144,7 @@ describe('Admin knowledge reindex routes', () => {
       app.inject({
         method: 'POST',
         url: '/v1/admin/knowledge/reindex/reindex_operation_missing/retry',
-        headers: { 'x-api-key': 'wrong-secret', 'x-admin-service-key': 'wrong-secret' },
+        headers: { ...credentialHeaders('wrong-secret') },
         payload: {},
       }),
     ).resolves.toMatchObject({ statusCode: 401 })

@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse, RawExchangeResponse } from '@gami/shared'
 import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
+import { stackCredentialHeaders } from './stack-e2e-auth.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret-0123456789abcdef0123'
@@ -22,8 +23,7 @@ describe('Stack E2E — POST /v1/admin/exchange — auth', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'wrong-key',
-        'x-admin-service-key': 'wrong-key',
+        ...stackCredentialHeaders('wrong-key'),
       },
       body: JSON.stringify({ message: 'hello' }),
     })
@@ -36,8 +36,7 @@ describe('Stack E2E — POST /v1/admin/exchange — auth', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'x-admin-service-key': API_KEY,
+        ...stackCredentialHeaders(API_KEY),
       },
       body: JSON.stringify({}),
     })
@@ -54,8 +53,7 @@ describe.skipIf(!isNullProvider)('Stack E2E — POST /v1/admin/exchange — null
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'x-admin-service-key': API_KEY,
+        ...stackCredentialHeaders(API_KEY),
       },
       body: JSON.stringify({
         message: 'hello',
@@ -81,8 +79,7 @@ describe('Stack E2E — POST /v1/admin/exchange — provider-backed flow', () =>
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'x-admin-service-key': API_KEY,
+        ...stackCredentialHeaders(API_KEY),
       },
       body: JSON.stringify({
         message: 'Reply with exactly two words: "stack ok".',

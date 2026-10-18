@@ -97,7 +97,7 @@ export function useScenarioAvatarDiscovery(
 
     scenarioSelectionRequestIdRef.current += 1
     const requestId = scenarioSelectionRequestIdRef.current
-    void loadScenarioSessionAndAvatars(identity.userId, selectedScenarioId, requestId, {
+    void loadScenarioSessionAndAvatars(selectedScenarioId, requestId, {
       setSession,
       setAvatars,
       setAvatarStatus,
@@ -253,16 +253,12 @@ type SelectionRequestRef = {
 }
 
 async function loadScenarioSessionAndAvatars(
-  userId: string,
   scenarioId: string,
   requestId: number,
   setters: SessionAvatarSetters,
 ): Promise<void> {
   try {
-    const activeSession = await ensureActiveSession({
-      userId,
-      scenarioId,
-    })
+    const activeSession = await ensureActiveSession({ scenarioId })
 
     if (requestId !== setters.scenarioSelectionRequestIdRef.current) {
       return

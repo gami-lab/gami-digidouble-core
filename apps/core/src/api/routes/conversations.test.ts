@@ -21,6 +21,7 @@ import { NullLlmAdapter } from '../../infrastructure/llm/index.js'
 import { NullObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
   return {
@@ -265,7 +266,7 @@ async function sendMessageAndCapturePrompt(persona: {
   const response = await app.inject({
     method: 'POST',
     url: '/v1/conversations/conversation_1/messages',
-    headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+    headers: { ...credentialHeaders('test-secret') },
     payload: { message: { content: 'How should I proceed?' } },
   })
 
@@ -279,7 +280,7 @@ describe('session API', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/sessions',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { userId: 'user_x', scenarioId: 'scenario_1' },
     })
     expect(response.statusCode).toBe(201)
@@ -292,7 +293,7 @@ describe('session API', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/sessions/session_1/conversations',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { avatarId: 'avatar_1' },
     })
     expect(response.statusCode).toBe(201)
@@ -305,7 +306,7 @@ describe('session API', () => {
     const response = await makeApp({ sessions: [] }).inject({
       method: 'POST',
       url: '/v1/sessions/session_missing/conversations',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { avatarId: 'avatar_1' },
     })
     expect(response.statusCode).toBe(404)
@@ -328,7 +329,7 @@ describe('session API', () => {
     }).inject({
       method: 'POST',
       url: '/v1/sessions/session_1/conversations',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { avatarId: 'avatar_theo' },
     })
 
@@ -360,7 +361,7 @@ describe('conversation message/history API', () => {
     const sendResponse = await app.inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: { content: 'Hello from conversation 1' } },
     })
     expect(sendResponse.statusCode).toBe(200)
@@ -368,12 +369,12 @@ describe('conversation message/history API', () => {
     const history1 = await app.inject({
       method: 'GET',
       url: '/v1/conversations/conversation_1/history',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
     })
     const history2 = await app.inject({
       method: 'GET',
       url: '/v1/conversations/conversation_2/history',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
     })
     expect(history1.statusCode).toBe(200)
     expect(history2.statusCode).toBe(200)
@@ -393,7 +394,7 @@ describe('conversation message/history API', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: { content: 'Previous JSON message' } },
     })
 
@@ -439,7 +440,7 @@ describe('conversation message/history API', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/v1/conversations/conversation_1/messages',
-        headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+        headers: { ...credentialHeaders('test-secret') },
         payload: { message: { content: 'Tell me more.' } },
       })
 
@@ -461,13 +462,13 @@ describe('conversation message/history API', () => {
     const sendResponse = await app.inject({
       method: 'POST',
       url: '/v1/conversations/conversation_missing/messages',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: { content: 'Hello' } },
     })
     const historyResponse = await app.inject({
       method: 'GET',
       url: '/v1/conversations/conversation_missing/history',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
     })
     expect(sendResponse.statusCode).toBe(404)
     expect(historyResponse.statusCode).toBe(404)
@@ -507,7 +508,7 @@ describe('conversation message stream API', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages/stream',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: {} },
     })
 
@@ -519,7 +520,7 @@ describe('conversation message stream API', () => {
     const response = await makeApp({ conversations: [] }).inject({
       method: 'POST',
       url: '/v1/conversations/conversation_missing/messages/stream',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: { content: 'Hello' } },
     })
 
@@ -532,7 +533,7 @@ describe('conversation message stream API', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages/stream',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: { content: 'Hello stream' } },
     })
 
@@ -557,7 +558,7 @@ describe('conversation message stream API', () => {
     const history = await app.inject({
       method: 'GET',
       url: '/v1/conversations/conversation_1/history',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
     })
     const historyBody = history.json<ApiResponse<{ messages: Message[] }>>()
     expect(historyBody.data?.messages.map((message) => message.role)).toEqual(['user', 'avatar'])
@@ -579,7 +580,7 @@ describe('conversation message stream API — client disconnects', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages/stream',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: { content: 'Hello' } },
     })
 
@@ -601,7 +602,7 @@ describe('conversation message stream API — client disconnects', () => {
       app.inject({
         method: 'POST',
         url: '/v1/conversations/conversation_1/messages/stream',
-        headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+        headers: { ...credentialHeaders('test-secret') },
         payload: { message: { content: 'Hello disconnect' } },
       }),
     ).rejects.toThrow('response destroyed')
@@ -626,7 +627,7 @@ describe('session conversation listing API', () => {
     }).inject({
       method: 'GET',
       url: '/v1/sessions/session_1/conversations',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
     })
     expect(response.statusCode).toBe(200)
     const body = response.json<ApiResponse<{ conversations: Array<{ conversationId: string }> }>>()

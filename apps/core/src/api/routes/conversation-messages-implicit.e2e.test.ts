@@ -12,6 +12,7 @@ import { NullLlmAdapter } from '../../infrastructure/llm/index.js'
 import { NullObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
   return {
@@ -105,7 +106,7 @@ describe('POST /v1/conversations/:conversationId/messages auth', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',
-      headers: { 'x-api-key': 'wrong-key', 'x-admin-service-key': 'wrong-key' },
+      headers: { ...credentialHeaders('wrong-key') },
       payload: { message: { content: 'hello' } },
     })
     expect(response.statusCode).toBe(401)
@@ -118,7 +119,7 @@ describe('POST /v1/conversations/:conversationId/messages behavior', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: {} },
     })
     expect(response.statusCode).toBe(400)
@@ -129,7 +130,7 @@ describe('POST /v1/conversations/:conversationId/messages behavior', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/conversations/conversation_unknown/messages',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: { content: 'hello' } },
     })
     expect(response.statusCode).toBe(404)
@@ -140,7 +141,7 @@ describe('POST /v1/conversations/:conversationId/messages behavior', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: { content: 'Tell me more.' } },
     })
     expect(response.statusCode).toBe(200)
@@ -154,7 +155,7 @@ describe('POST /v1/conversations/:conversationId/messages behavior', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: { content: 'bye' } },
     })
     expect(response.statusCode).toBe(200)

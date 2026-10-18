@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify'
 import { InMemoryUserRepository } from '../../infrastructure/db/in-memory-user.repository.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 const appsToClose: FastifyInstance[] = []
 
@@ -11,11 +12,8 @@ afterEach(async () => {
   await Promise.all(appsToClose.splice(0).map(async (app) => app.close()))
 })
 
-function authHeaders(apiKey = 'test-secret'): {
-  'x-api-key': string
-  'x-admin-service-key': string
-} {
-  return { 'x-api-key': apiKey, 'x-admin-service-key': apiKey }
+function authHeaders(apiKey = 'test-secret'): Record<string, string> {
+  return { ...credentialHeaders(apiKey) }
 }
 
 function makeApp(): FastifyInstance {
@@ -38,12 +36,12 @@ function makeFailingApp(): FastifyInstance {
   return app
 }
 
-describe('PUT /v1/users/:userId/persona', () => {
+describe('PUT /v1/me/persona', () => {
   it('stores valid persona and returns user', async () => {
     const app = makeApp()
     const response = await app.inject({
       method: 'PUT',
-      url: '/v1/users/user_1/persona',
+      url: '/v1/me/persona',
       headers: authHeaders(),
       payload: {
         name: 'Sam',
@@ -64,7 +62,7 @@ describe('PUT /v1/users/:userId/persona', () => {
 
     const first = await app.inject({
       method: 'PUT',
-      url: '/v1/users/user_1/persona',
+      url: '/v1/me/persona',
       headers: authHeaders(),
       payload: { name: 'Sam', roleInWorld: 'mentor', avatarRelationships: ['Friend of Eva'] },
     })
@@ -72,7 +70,7 @@ describe('PUT /v1/users/:userId/persona', () => {
 
     const second = await app.inject({
       method: 'PUT',
-      url: '/v1/users/user_1/persona',
+      url: '/v1/me/persona',
       headers: authHeaders(),
       payload: { name: 'Lina', roleInWorld: 'architect', dialogGuidance: 'Be direct' },
     })
@@ -90,7 +88,7 @@ describe('PUT /v1/users/:userId/persona', () => {
     const app = makeApp()
     const response = await app.inject({
       method: 'PUT',
-      url: '/v1/users/user_1/persona',
+      url: '/v1/me/persona',
       headers: authHeaders(),
       payload: {},
     })
@@ -105,7 +103,7 @@ describe('PUT /v1/users/:userId/persona', () => {
     const app = makeApp()
     const response = await app.inject({
       method: 'PUT',
-      url: '/v1/users/user_1/persona',
+      url: '/v1/me/persona',
       headers: authHeaders(),
       payload: { unknownField: 'x' },
     })
@@ -113,23 +111,35 @@ describe('PUT /v1/users/:userId/persona', () => {
     expect(response.statusCode).toBe(400)
   })
 
-  it('returns 400 when userId is whitespace only', async () => {
+  it('stores the persona for the token player only', async () => {
     const app = makeApp()
-    const response = await app.inject({
+    await app.inject({
       method: 'PUT',
-      url: '/v1/users/%20%20%20/persona',
+      url: '/v1/me/persona',
       headers: authHeaders(),
-      payload: {},
+      payload: { name: 'Sam' },
     })
 
-    expect(response.statusCode).toBe(400)
+    const other = await app.inject({
+      method: 'GET',
+      url: '/v1/me/persona',
+      headers: credentialHeaders('test-secret', 'user_2'),
+    })
+    const removedPath = await app.inject({
+      method: 'GET',
+      url: '/v1/users/user_1/persona',
+      headers: authHeaders(),
+    })
+
+    expect(other.json<ApiResponse<{ persona: null }>>().data?.persona).toBeNull()
+    expect(removedPath.statusCode).toBe(404)
   })
 
   it('returns 500 when repository upsert throws unexpectedly', async () => {
     const app = makeFailingApp()
     const response = await app.inject({
       method: 'PUT',
-      url: '/v1/users/user_1/persona',
+      url: '/v1/me/persona',
       headers: authHeaders(),
       payload: { name: 'Sam' },
     })
@@ -140,13 +150,13 @@ describe('PUT /v1/users/:userId/persona', () => {
   })
 })
 
-describe('GET /v1/users/:userId/persona', () => {
+describe('GET /v1/me/persona', () => {
   it('returns persona after put', async () => {
     const app = makeApp()
 
     const put = await app.inject({
       method: 'PUT',
-      url: '/v1/users/user_1/persona',
+      url: '/v1/me/persona',
       headers: authHeaders(),
       payload: { name: 'Sam', roleInWorld: 'mentor', avatarRelationships: ['Friend of Eva'] },
     })
@@ -154,7 +164,7 @@ describe('GET /v1/users/:userId/persona', () => {
 
     const get = await app.inject({
       method: 'GET',
-      url: '/v1/users/user_1/persona',
+      url: '/v1/me/persona',
       headers: authHeaders(),
     })
     expect(get.statusCode).toBe(200)
@@ -173,8 +183,8 @@ describe('GET /v1/users/:userId/persona', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: '/v1/users/missing/persona',
-      headers: authHeaders(),
+      url: '/v1/me/persona',
+      headers: credentialHeaders('test-secret', 'missing'),
     })
     expect(response.statusCode).toBe(200)
     const body = response.json<ApiResponse<{ persona: null }>>()
@@ -186,7 +196,7 @@ describe('GET /v1/users/:userId/persona', () => {
     const app = makeFailingApp()
     const response = await app.inject({
       method: 'GET',
-      url: '/v1/users/user_1/persona',
+      url: '/v1/me/persona',
       headers: authHeaders(),
     })
 

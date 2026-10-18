@@ -9,6 +9,7 @@ import { InMemoryMessageRepository } from '../../infrastructure/db/in-memory-mes
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 const config = TEST_CONFIG
 
@@ -94,7 +95,7 @@ describe('GET /v1/admin/sessions/:sessionId/memory-layers observability', () => 
     const response = await app.inject({
       method: 'GET',
       url: '/v1/admin/sessions/session_1/memory-layers',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
     })
 
     const body = response.json<ApiResponse<{ session: SessionMemoryLayers }>>()

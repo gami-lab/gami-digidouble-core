@@ -1,5 +1,6 @@
 import { normalizeApiUrl, processSseFrames, type RuntimeEvent } from '@gami/shared'
-import { apiKey, apiUrl } from '../env'
+import { apiUrl } from '../env'
+import { playerFetch } from './player-session'
 
 export type RuntimeEventStreamHandlers = {
   onOpen?: () => void
@@ -33,15 +34,9 @@ async function streamRuntimeEvents(
 
   while (!signal.aborted) {
     try {
-      const response = await fetch(
+      const response = await playerFetch(
         `${normalizeApiUrl(apiUrl)}/v1/sessions/${sessionId}/events/stream`,
-        {
-          method: 'GET',
-          headers: {
-            'x-api-key': apiKey,
-          },
-          signal,
-        },
+        { method: 'GET', signal },
       )
 
       if (!response.ok || response.body === null) {

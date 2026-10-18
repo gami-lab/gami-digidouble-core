@@ -8,6 +8,7 @@ import {
 import { TextToSpeechProviders } from '../../application/voice/text-to-speech-providers.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 const appsToClose: FastifyInstance[] = []
 
@@ -21,7 +22,7 @@ function createApp(adapters: Parameters<typeof createServer>[1] = {}): FastifyIn
   return app
 }
 
-const headers = { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' }
+const headers = { ...credentialHeaders('test-secret') }
 
 describe('GET /v1/admin/voices', () => {
   it('requires the API key', async () => {

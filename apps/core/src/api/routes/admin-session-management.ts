@@ -1,6 +1,6 @@
 import type { FastifyPluginCallback } from 'fastify'
 import { fail, ok } from '@gami/shared'
-import type { LifecycleStatus } from '@gami/shared'
+import type { AdminListSessionsQuery } from '@gami/shared'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { DeleteSessionUseCase } from '../../application/use-cases/delete-session/delete-session.use-case.js'
 import type { DeleteSessionOutput } from '../../application/use-cases/delete-session/delete-session.types.js'
@@ -12,12 +12,6 @@ import { sessionParamsSchema, type SessionParams } from './inspector-route-utils
 
 export type AdminSessionManagementRouteOptions = {
   sessionRepository?: ISessionRepository
-}
-
-type ListSessionsQuerystring = {
-  scenarioId?: string
-  userId?: string
-  status?: LifecycleStatus
 }
 
 const listSessionsQuerySchema = {
@@ -38,7 +32,7 @@ export const adminSessionManagementRoute: FastifyPluginCallback<
   const listSessionsUseCase = new ListSessionsUseCase(sessionRepository)
   const deleteSessionUseCase = new DeleteSessionUseCase(sessionRepository)
 
-  app.get<{ Querystring: ListSessionsQuerystring }>(
+  app.get<{ Querystring: AdminListSessionsQuery }>(
     '/sessions',
     { schema: { querystring: listSessionsQuerySchema } },
     async (request, reply) => {

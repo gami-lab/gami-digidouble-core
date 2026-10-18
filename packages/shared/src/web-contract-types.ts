@@ -125,8 +125,8 @@ export type PrepareAvatarTraitsResponse = {
   results: AvatarTraitPreparationResult[]
 }
 
+/** The session owner is the authenticated player; the request never names a user. */
 export type StartSessionRequest = {
-  userId: string
   scenarioId: string
   model?: ModelSelectionOverride
   avatarOptions?: AvatarRequestOptions
@@ -140,10 +140,14 @@ export type GetSessionResponse = {
   session: SessionSummary
 }
 
+/** Public listing is always limited to the authenticated player's sessions. */
 export type ListSessionsQuery = {
   scenarioId?: string
-  userId?: string
   status?: LifecycleStatus
+}
+
+export type AdminListSessionsQuery = ListSessionsQuery & {
+  userId?: string
 }
 
 export type ListSessionsResponse = {

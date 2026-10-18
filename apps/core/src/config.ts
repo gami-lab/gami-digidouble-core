@@ -38,6 +38,10 @@ export interface Config {
   adminServiceKey: string | undefined
   /** Browser origins allowed to make credentialed admin requests (CORS and CSRF origin check). */
   adminOrigins: string[]
+  /** Signs player tokens; tokens are the only source of a player's `userId`. */
+  playerTokenSecret: string
+  playerTokenTtlSeconds: number
+  playerTokenRefreshWindowSeconds: number
   llmProvider: string
   embeddingProvider: string
   embeddingModel: string
@@ -78,6 +82,8 @@ export const DEFAULT_GRADIUM_BASE_URL = 'https://api.gradium.ai/api'
 export const DEFAULT_GRADIUM_TIMEOUT_MS = 30_000
 export const DEFAULT_ADMIN_SESSION_TTL_SECONDS = 8 * 60 * 60
 export const MIN_ADMIN_SECRET_LENGTH = 32
+export const DEFAULT_PLAYER_TOKEN_TTL_SECONDS = 2 * 60 * 60
+export const DEFAULT_PLAYER_TOKEN_REFRESH_WINDOW_SECONDS = 7 * 24 * 60 * 60
 
 function requireEnv(key: string): string {
   const value = process.env[key]
@@ -98,6 +104,7 @@ export function loadConfig(): Config {
     apiKeySecret: requireEnv('API_KEY_SECRET'),
     corsOrigin: process.env['CORS_ORIGIN'] ?? '*',
     ...loadAdminAuthConfig(process.env['NODE_ENV'] === 'production'),
+    ...loadPlayerTokenConfig(process.env['NODE_ENV'] === 'production'),
     llmProvider: process.env['LLM_PROVIDER'] ?? 'null',
     embeddingProvider: process.env['EMBEDDING_PROVIDER'] ?? DEFAULT_EMBEDDING_PROVIDER,
     embeddingModel: process.env['EMBEDDING_MODEL'] ?? DEFAULT_EMBEDDING_MODEL,
@@ -209,6 +216,34 @@ function loadAdminAuthConfig(isProduction: boolean): AdminAuthConfig {
     ),
     adminServiceKey: serviceKey,
     adminOrigins: parseList(process.env['ADMIN_ORIGINS']),
+  }
+}
+
+function loadPlayerTokenConfig(
+  isProduction: boolean,
+): Pick<Config, 'playerTokenSecret' | 'playerTokenTtlSeconds' | 'playerTokenRefreshWindowSeconds'> {
+  const secret = optionalEnv('PLAYER_TOKEN_SECRET')
+  if (isProduction && secret === undefined) {
+    throw new Error('Missing required environment variable: PLAYER_TOKEN_SECRET')
+  }
+  requireSecretLength('PLAYER_TOKEN_SECRET', secret)
+
+  return {
+    playerTokenSecret: secret ?? randomBytes(MIN_ADMIN_SECRET_LENGTH).toString('base64url'),
+    playerTokenTtlSeconds: parseBoundedPositiveInteger(
+      'PLAYER_TOKEN_TTL_SECONDS',
+      process.env['PLAYER_TOKEN_TTL_SECONDS'],
+      DEFAULT_PLAYER_TOKEN_TTL_SECONDS,
+      60,
+      24 * 60 * 60,
+    ),
+    playerTokenRefreshWindowSeconds: parseBoundedPositiveInteger(
+      'PLAYER_TOKEN_REFRESH_WINDOW_SECONDS',
+      process.env['PLAYER_TOKEN_REFRESH_WINDOW_SECONDS'],
+      DEFAULT_PLAYER_TOKEN_REFRESH_WINDOW_SECONDS,
+      60,
+      30 * 24 * 60 * 60,
+    ),
   }
 }
 

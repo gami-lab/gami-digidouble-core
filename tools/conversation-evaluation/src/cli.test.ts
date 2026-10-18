@@ -38,7 +38,7 @@ describe('runCli', () => {
   it('reports configuration failures without exposing credentials', async () => {
     const io = createIo()
 
-    await expect(runCli(['--api-key', 'secret-value'], {}, io)).resolves.toBe(1)
+    await expect(runCli(['--service-key', 'secret-value'], {}, io)).resolves.toBe(1)
     expect(io.logs).toEqual([])
     expect(io.errors[0]).toContain('Missing definition path')
     expect(io.errors.join('\n')).not.toContain('secret-value')

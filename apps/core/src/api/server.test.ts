@@ -2,11 +2,9 @@ import { describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import { createServer } from './server.js'
 import { TEST_CONFIG } from './routes/test-config.js'
+import { credentialHeaders } from './routes/test-auth.js'
 
-const AUTH_HEADERS = {
-  'x-api-key': TEST_CONFIG.apiKeySecret,
-  'x-admin-service-key': TEST_CONFIG.apiKeySecret,
-}
+const AUTH_HEADERS = credentialHeaders()
 
 function expectError(
   response: { statusCode: number; json: () => unknown },
@@ -88,8 +86,7 @@ describe('authentication hook', () => {
         url,
         headers: {
           'content-type': contentType,
-          'x-api-key': 'wrong-secret',
-          'x-admin-service-key': 'wrong-secret',
+          ...credentialHeaders('wrong-secret'),
         },
         payload: Buffer.alloc(11_000_000, 1),
       })

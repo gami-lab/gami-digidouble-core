@@ -5,6 +5,7 @@
 #   ADMIN_PASSWORD_HASH (pnpm --filter @gami/core hash-admin-password)
 #   ADMIN_SESSION_SECRET, ADMIN_SERVICE_KEY (at least 32 characters each)
 #   ADMIN_ORIGINS (origin of the admin app, e.g. https://app.example.com)
+#   PLAYER_TOKEN_SECRET (at least 32 characters)
 #
 # The default embedding provider requires OPENAI_API_KEY at startup.
 # Optional env vars:
@@ -82,6 +83,7 @@ services:
       ADMIN_SERVICE_KEY: ${ADMIN_SERVICE_KEY:?}
       ADMIN_SESSION_TTL_SECONDS: ${ADMIN_SESSION_TTL_SECONDS:-28800}
       ADMIN_ORIGINS: ${ADMIN_ORIGINS:?}
+      PLAYER_TOKEN_SECRET: ${PLAYER_TOKEN_SECRET:?}
       LLM_PROVIDER: ${LLM_PROVIDER:-null}
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}

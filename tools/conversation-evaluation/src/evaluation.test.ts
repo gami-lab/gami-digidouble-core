@@ -122,6 +122,17 @@ function createClients(
 } {
   let messageCount = 0
   const avatarFetch = vi.fn<FetchLike>().mockImplementation((url) => {
+    if (url.endsWith('/v1/admin/player-tokens'))
+      return Promise.resolve(
+        jsonResponse(
+          okEnvelope({
+            userId: 'evaluation-user',
+            token: 'player-token',
+            expiresAt: '2026-10-18T12:00:00.000Z',
+          }),
+          201,
+        ),
+      )
     if (url.endsWith('/v1/sessions')) return Promise.resolve(jsonResponse(okEnvelope({ session })))
     if (url.endsWith('/v1/sessions/session_1/conversations')) {
       return Promise.resolve(jsonResponse(okEnvelope({ conversation }), 201))
@@ -156,7 +167,6 @@ function createClients(
   return {
     avatarClient: new CoreApiClient({
       baseUrl: 'https://avatar.example',
-      apiKey: 'key',
       serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: avatarFetch,

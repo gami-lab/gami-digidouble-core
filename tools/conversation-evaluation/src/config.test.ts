@@ -11,7 +11,6 @@ import {
 const environment = {
   EVALUATION_DEFINITION_PATH: './definition.json',
   AVATAR_API_BASE_URL: 'http://localhost:3000/',
-  EVALUATION_API_KEY: 'secret-api-key',
   EVALUATION_SERVICE_KEY: 'secret-service-key',
 }
 
@@ -22,7 +21,7 @@ describe('evaluation configuration', () => {
         '--definition',
         './from-cli.json',
         '--avatar-api-base-url=http://localhost:4000/',
-        '--api-key',
+        '--service-key',
         'cli-secret',
         '--judge-base-url',
         'https://judge.example/',
@@ -36,8 +35,7 @@ describe('evaluation configuration', () => {
     expect(config).toMatchObject({
       definitionPath: './from-cli.json',
       avatarApiBaseUrl: 'http://localhost:4000',
-      apiKey: 'cli-secret',
-      serviceKey: 'secret-service-key',
+      serviceKey: 'cli-secret',
       judgeBaseUrl: 'https://judge.example',
       outputPath: './reports/run.json',
       timeoutMs: 1200,
@@ -60,22 +58,19 @@ describe('evaluation configuration', () => {
 
   it('rejects missing secrets without including the secret in the error', () => {
     expect(() =>
-      loadEvaluationConfig([], { ...environment, EVALUATION_API_KEY: undefined }),
+      loadEvaluationConfig([], { ...environment, EVALUATION_SERVICE_KEY: undefined }),
     ).toThrow(ConfigurationError)
-    expect(() =>
-      loadEvaluationConfig([], { ...environment, EVALUATION_API_KEY: undefined }),
-    ).toThrow('Missing API key.')
     expect(() =>
       loadEvaluationConfig([], { ...environment, EVALUATION_SERVICE_KEY: undefined }),
     ).toThrow('Missing admin service key.')
     expect(() =>
-      loadEvaluationConfig(['--api-key=secret-value'], {
+      loadEvaluationConfig(['--service-key=secret-value'], {
         ...environment,
         AVATAR_API_BASE_URL: undefined,
       }),
     ).toThrow('Missing Avatar API base URL.')
     expect(() =>
-      loadEvaluationConfig(['--api-key=secret-value'], {
+      loadEvaluationConfig(['--service-key=secret-value'], {
         ...environment,
         AVATAR_API_BASE_URL: undefined,
       }),

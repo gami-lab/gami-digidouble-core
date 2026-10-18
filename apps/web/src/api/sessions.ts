@@ -8,14 +8,13 @@ import type {
 } from '@gami/shared'
 import { webRequest } from './client'
 
+/** Core scopes the listing to the signed-in player. */
 export async function listActiveSessionsForScenario(query: {
   scenarioId: string
-  userId: string
 }): Promise<SessionSummary[]> {
   const params = new URLSearchParams()
   params.set('status', 'active')
   params.set('scenarioId', query.scenarioId)
-  params.set('userId', query.userId)
 
   const payload = await webRequest<ListSessionsResponse>('GET', `/v1/sessions?${params.toString()}`)
   return payload.sessions
@@ -27,10 +26,7 @@ export async function startSession(request: StartSessionRequest): Promise<Sessio
 }
 
 export async function ensureActiveSession(request: StartSessionRequest): Promise<SessionSummary> {
-  const existingSessions = await listActiveSessionsForScenario({
-    scenarioId: request.scenarioId,
-    userId: request.userId,
-  })
+  const existingSessions = await listActiveSessionsForScenario({ scenarioId: request.scenarioId })
 
   const existingSession = existingSessions[0]
   if (existingSession !== undefined) {

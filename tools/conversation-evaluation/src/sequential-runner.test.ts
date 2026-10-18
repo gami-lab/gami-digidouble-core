@@ -101,7 +101,6 @@ function messageResponse(content: string, model = 'observed-model'): SendMessage
 function createClient(fetchMock: FetchLike): CoreApiClient {
   return new CoreApiClient({
     baseUrl: 'https://core.example/',
-    apiKey: 'test-key',
     serviceKey: 'service-key',
     timeoutMs: 1000,
     fetchImpl: fetchMock,
@@ -127,6 +126,17 @@ describe('runSequentialConversation', () => {
     const firstQuestion = definition.questions[0]
     if (firstQuestion === undefined) throw new Error('Test definition has no first question.')
     const fetchMock = vi.fn<FetchLike>().mockImplementation((url) => {
+      if (url.endsWith('/v1/admin/player-tokens'))
+        return Promise.resolve(
+          jsonResponse(
+            okEnvelope({
+              userId: 'evaluation-user',
+              token: 'player-token',
+              expiresAt: '2026-10-18T12:00:00.000Z',
+            }),
+            201,
+          ),
+        )
       if (url.endsWith('/v1/sessions'))
         return Promise.resolve(jsonResponse(okEnvelope({ session })))
       if (url.endsWith('/v1/sessions/session_1/conversations')) {
@@ -141,8 +151,8 @@ describe('runSequentialConversation', () => {
       modelOverride: 'openai/gpt-5.6-luna-fast',
     })
 
-    const sessionRequest = fetchMock.mock.calls[0]?.[1]
-    const messageRequest = fetchMock.mock.calls[2]?.[1]
+    const sessionRequest = fetchMock.mock.calls[1]?.[1]
+    const messageRequest = fetchMock.mock.calls[3]?.[1]
     if (typeof sessionRequest?.body !== 'string' || typeof messageRequest?.body !== 'string') {
       throw new Error('Expected JSON request bodies.')
     }
@@ -159,6 +169,17 @@ describe('runSequentialConversation', () => {
     let resolveFirst: ((response: Response) => void) | undefined
     const fetchMock = vi.fn<FetchLike>().mockImplementation((url) => {
       calls.push(url)
+      if (url.endsWith('/v1/admin/player-tokens'))
+        return Promise.resolve(
+          jsonResponse(
+            okEnvelope({
+              userId: 'evaluation-user',
+              token: 'player-token',
+              expiresAt: '2026-10-18T12:00:00.000Z',
+            }),
+            201,
+          ),
+        )
       if (url.endsWith('/v1/sessions'))
         return Promise.resolve(jsonResponse(okEnvelope({ session })))
       if (url.endsWith('/v1/sessions/session_1/conversations')) {
@@ -183,9 +204,10 @@ describe('runSequentialConversation', () => {
       userId: 'evaluation-user',
     })
     await vi.waitFor(() => {
-      expect(calls).toHaveLength(3)
+      expect(calls).toHaveLength(4)
     })
     expect(calls).toEqual([
+      'https://core.example/v1/admin/player-tokens',
       'https://core.example/v1/sessions',
       'https://core.example/v1/sessions/session_1/conversations',
       'https://core.example/v1/conversations/conversation_1/messages',
@@ -196,7 +218,7 @@ describe('runSequentialConversation', () => {
     expect(firstResponseResolver).toBeDefined()
     firstResponseResolver?.(jsonResponse(okEnvelope(messageResponse('First question'))))
     const execution = await executionPromise
-    expect(calls).toHaveLength(4)
+    expect(calls).toHaveLength(5)
     expect(execution.results.map((result) => result.question)).toEqual([
       'First question',
       'Second question',
@@ -225,6 +247,17 @@ describe('runSequentialConversation', () => {
           ),
         )
       }
+      if (url.endsWith('/v1/admin/player-tokens'))
+        return Promise.resolve(
+          jsonResponse(
+            okEnvelope({
+              userId: 'evaluation-user',
+              token: 'player-token',
+              expiresAt: '2026-10-18T12:00:00.000Z',
+            }),
+            201,
+          ),
+        )
       if (url.endsWith('/v1/sessions'))
         return Promise.resolve(jsonResponse(okEnvelope({ session })))
       if (url.endsWith('/v1/sessions/session_1/conversations')) {
@@ -289,6 +322,17 @@ describe('runSequentialConversation', () => {
   it('retains completed results and records a message API error as a partial run', async () => {
     let messageNumber = 0
     const fetchMock = vi.fn<FetchLike>().mockImplementation((url) => {
+      if (url.endsWith('/v1/admin/player-tokens'))
+        return Promise.resolve(
+          jsonResponse(
+            okEnvelope({
+              userId: 'evaluation-user',
+              token: 'player-token',
+              expiresAt: '2026-10-18T12:00:00.000Z',
+            }),
+            201,
+          ),
+        )
       if (url.endsWith('/v1/sessions'))
         return Promise.resolve(jsonResponse(okEnvelope({ session })))
       if (url.endsWith('/v1/sessions/session_1/conversations')) {

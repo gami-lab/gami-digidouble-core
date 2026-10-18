@@ -5,6 +5,7 @@ import { LlmError, NullLlmAdapter } from '../../infrastructure/llm/index.js'
 import { NullObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 function makeApp(llmReply = 'null adapter response', model = 'null') {
   return createServer(TEST_CONFIG, {
@@ -24,7 +25,7 @@ describe('POST /v1/admin/exchange — auth and validation', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: 'Hello, who are you?', systemPrompt: 'You are a pirate.' },
     })
 
@@ -55,7 +56,7 @@ describe('POST /v1/admin/exchange — auth and validation', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'wrong-secret', 'x-admin-service-key': 'wrong-secret' },
+      headers: { ...credentialHeaders('wrong-secret') },
       payload: { message: 'Hello' },
     })
 
@@ -69,7 +70,7 @@ describe('POST /v1/admin/exchange — auth and validation', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {},
     })
 
@@ -83,7 +84,7 @@ describe('POST /v1/admin/exchange — auth and validation', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: '' },
     })
 
@@ -107,7 +108,7 @@ describe('POST /v1/admin/exchange — error handling and response shaping', () =
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: 'Hello' },
     })
 
@@ -129,7 +130,7 @@ describe('POST /v1/admin/exchange — error handling and response shaping', () =
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: 'Hello' },
     })
 
@@ -144,7 +145,7 @@ describe('POST /v1/admin/exchange — error handling and response shaping', () =
     const response = await makeApp('Arr pir8!').inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: 'Hello', systemPrompt },
     })
 
@@ -169,7 +170,7 @@ describe('POST /v1/admin/exchange — error handling and response shaping', () =
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: 'Hello', model: { model: 'gpt-5.4-mini' } },
     })
 
@@ -193,7 +194,7 @@ describe('POST /v1/admin/exchange — error handling and response shaping', () =
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {
         message: 'Hello',
         model: { model: 'gpt-5.6-luna', serviceTier: 'fast' },
@@ -219,7 +220,7 @@ describe('POST /v1/admin/exchange — error handling and response shaping', () =
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: 'hello' },
     })
 

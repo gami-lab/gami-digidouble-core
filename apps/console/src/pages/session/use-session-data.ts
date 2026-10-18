@@ -61,7 +61,9 @@ async function loadSessionData(sessionId: string): Promise<SessionData> {
     getScenario(scenarioId),
     listScenarioAvatars(scenarioId),
     listKnowledgeSources(scenarioId),
-    Promise.all(conversations.map((conversation) => getHistory(conversation.conversationId))),
+    Promise.all(
+      conversations.map((conversation) => getHistory(sessionId, conversation.conversationId)),
+    ),
   ])
   const messagesByConversation: Record<string, Message[]> = Object.fromEntries(
     histories.map((history) => [history.conversation.conversationId, history.messages]),

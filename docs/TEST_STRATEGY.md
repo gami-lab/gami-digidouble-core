@@ -16,8 +16,12 @@ per module) live in [TEST_COVERAGE_PLAN.md](TEST_COVERAGE_PLAN.md).
 - Test HTTP routes as contracts: auth, validation, error envelope, success shape, and cancellation.
 - The route-tier matrix (`apps/core/src/api/route-tiers.test.ts`) builds the real server and
   enumerates every registered route: each has exactly one tier, every `/v1/admin/*` route is
-  `admin`, public routes stay player-facing, and `open` routes are an explicit list. New plugins
-  are covered automatically.
+  `admin`, public routes stay player-facing, `open` routes are an explicit list, and a player token
+  gets `403` on every admin route. New plugins are covered automatically.
+- Ownership is proven at the HTTP boundary (`player-auth.test.ts`, `player-auth.stack-e2e.test.ts`):
+  every public route that names a session or conversation answers another player's id with the
+  same `404` as an unknown one. Route tests build credentials with `api/routes/test-auth.ts`
+  (signed player tokens plus the test service key); stack tests use `stack-e2e-auth.ts`.
 - Test shared client protocol guards and pure contract mappers in `packages/shared`; keep JSON
   request, streaming, binary, and abort behavior covered at each app boundary.
 - Test the application exchange-window selector for ordering, complete-pair rules, caps, and

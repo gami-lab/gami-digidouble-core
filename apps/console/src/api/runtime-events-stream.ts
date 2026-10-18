@@ -1,5 +1,6 @@
 import { normalizeApiUrl, processSseFrames, type RuntimeEvent } from '@gami/shared'
-import { apiKey, apiUrl } from '../env'
+import { apiUrl } from '../env'
+import { playerTokenForSession } from './player'
 
 export type RuntimeEventStreamHandlers = {
   onEvent: (event: RuntimeEvent) => void
@@ -34,7 +35,7 @@ async function streamRuntimeEvents(
       {
         method: 'GET',
         headers: {
-          'x-api-key': apiKey,
+          authorization: `Bearer ${await playerTokenForSession(sessionId)}`,
         },
         signal,
       },

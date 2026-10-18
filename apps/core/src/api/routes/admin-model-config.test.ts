@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify'
 import type { ModelConfig } from '../../domain/model-config/index.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 const appsToClose: FastifyInstance[] = []
 
@@ -23,11 +24,8 @@ function makeAppWithFallback(modelConfigFallback: ModelConfig): FastifyInstance 
   return app
 }
 
-function authHeaders(apiKey = 'test-secret'): {
-  'x-api-key': string
-  'x-admin-service-key': string
-} {
-  return { 'x-api-key': apiKey, 'x-admin-service-key': apiKey }
+function authHeaders(apiKey = 'test-secret'): Record<string, string> {
+  return { ...credentialHeaders(apiKey) }
 }
 
 describe('GET /v1/admin/model-config', () => {

@@ -3,9 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { createServer } from './server.js'
 import { TEST_CONFIG } from './routes/test-config.js'
 import { enforceRouteTiers, registerTierScope } from './route-tiers.js'
+import { playerHeaders } from './routes/test-auth.js'
 
-const OPEN_ROUTES = ['GET /health', 'POST /v1/admin/auth/login']
-const PLAYER_ROUTE_PATTERN = /^\/v1\/(sessions|conversations|users|scenarios\/?$)/
+const OPEN_ROUTES = ['GET /health', 'POST /v1/auth/player', 'POST /v1/admin/auth/login']
+const PLAYER_ROUTE_PATTERN = /^\/v1\/(sessions|conversations|me|scenarios\/?$)/
 
 async function listRegisteredRoutes(): Promise<{ route: string; tier: unknown }[]> {
   const app = createServer(TEST_CONFIG)
@@ -56,6 +57,28 @@ describe('route tier matrix', () => {
     expect(routes.filter(({ tier }) => tier === 'open').map(({ route }) => route)).toEqual(
       OPEN_ROUTES,
     )
+  })
+
+  it('refuses a player token with 403 on every admin route', async () => {
+    const routes = await listRegisteredRoutes()
+    const app = createServer(TEST_CONFIG)
+
+    const adminRoutes = routes.filter(({ tier }) => tier === 'admin')
+    const statuses = await Promise.all(
+      adminRoutes.map(async ({ route }) => {
+        const [method, url] = route.split(' ')
+        const response = await app.inject({
+          method: method as 'GET',
+          url: (url ?? '').replace(/:\w+/g, 'x'),
+          headers: playerHeaders(),
+        })
+        return `${route} ${String(response.statusCode)}`
+      }),
+    )
+    await app.close()
+
+    expect(adminRoutes.length).toBeGreaterThan(30)
+    expect(statuses.filter((status) => !status.endsWith(' 403'))).toEqual([])
   })
 
   it('fails startup when a route has no tier', async () => {

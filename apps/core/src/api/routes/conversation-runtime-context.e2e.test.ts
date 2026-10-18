@@ -26,6 +26,7 @@ import {
 import { NullObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 const SAMPLE_TRAITS: AvatarComputedTraits = {
   identity: ['Harbor archivist'],
@@ -264,7 +265,7 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
     const response = await app.inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: { content: 'What should I do?' } },
     })
 
@@ -316,7 +317,7 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
     const response = await app.inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { message: { content: 'What should I do?' } },
     })
 

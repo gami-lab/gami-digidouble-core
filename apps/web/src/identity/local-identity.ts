@@ -21,14 +21,6 @@ export function createInitialIdentityFormValues(): LocalIdentityFormValues {
   }
 }
 
-export function createGeneratedUserId(): string {
-  if ('crypto' in globalThis && typeof globalThis.crypto.randomUUID === 'function') {
-    return `user_${globalThis.crypto.randomUUID().replaceAll('-', '').slice(0, 8)}`
-  }
-
-  return `user_${Math.random().toString(16).slice(2, 10).padEnd(8, '0')}`
-}
-
 export function normalizePersonaInput(values: LocalIdentityFormValues): UserPersona {
   const name = toOptionalTrimmed(values.name)
   const roleInWorld = toOptionalTrimmed(values.roleInWorld)
@@ -43,10 +35,11 @@ export function normalizePersonaInput(values: LocalIdentityFormValues): UserPers
   }
 }
 
+/** `userId` is the Core-issued player id; the browser never invents one. */
 export function createLocalWebIdentity(
   formValues: LocalIdentityFormValues,
   nowIso: string,
-  userId: string = createGeneratedUserId(),
+  userId: string,
 ): LocalWebIdentity {
   return {
     version: 1,

@@ -36,9 +36,24 @@ schemas belong to `packages/shared/src/` and route schemas; do not copy them her
 Every route declares one tier: `public` (player), `admin` (authoring, operators, tools), or `open`
 (no credential). All `/v1/admin/*` routes are `admin`; no authoring route exists outside it.
 
+## Player identity and ownership
+
+- `POST /v1/auth/player` (open) returns `PlayerTokenResponse` (`userId`, `token`, `expiresAt`). With
+  no credential it creates a Core-generated player; with `Authorization: Bearer <token>` (valid, or
+  expired by less than `PLAYER_TOKEN_REFRESH_WINDOW_SECONDS`) it issues a fresh token for the same
+  player; a token it cannot verify returns `401`.
+- Every public route requires `Authorization: Bearer <player token>`; `userId` always comes from the
+  token. No public request names a user: `StartSessionRequest` has no `userId`, `GET /v1/sessions`
+  lists only the caller's sessions, and persona lives at `/v1/me/persona`.
+- A `sessionId` or `conversationId` in a public path must belong to the caller. A foreign id returns
+  the same `404 NOT_FOUND` as an unknown one, checked before the body is read (voice, audio, and SSE
+  routes never start work for another player).
+- A player token on an admin route returns `403 FORBIDDEN`.
+
 ## Open routes
 
 - `GET /health`
+- `POST /v1/auth/player`
 - `POST /v1/admin/auth/login` — `AdminLoginRequest` (`password`); sets the admin session cookie.
   A wrong password returns `401 UNAUTHORIZED` with no hint about what was wrong.
 
@@ -81,7 +96,7 @@ the scenario afterwards stay locked for existing sessions.
 
 ### User persona
 
-- `PUT|GET /v1/users/{userId}/persona`
+- `PUT|GET /v1/me/persona` — the caller's persona.
 
 ## Admin routes
 
@@ -94,6 +109,8 @@ All admin routes use `/v1/admin/*` and accept only an admin session cookie or th
 
 - `POST /v1/admin/auth/logout` — ends the cookie session and clears the cookie.
 - `GET /v1/admin/auth/me` — `AdminMeResponse` (`authenticatedBy: 'session' | 'service_key'`).
+- `POST /v1/admin/player-tokens` — `IssuePlayerTokenRequest` (`userId`) returns a player token
+  acting as that player, for the console and the evaluation tool.
 
 ### Raw exchange
 

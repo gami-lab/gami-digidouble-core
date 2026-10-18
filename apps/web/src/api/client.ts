@@ -5,9 +5,9 @@ import {
   isApiResponseEnvelope,
   normalizeApiPath,
   normalizeApiUrl,
-  shouldInjectApiKey,
 } from '@gami/shared'
-import { apiKey, apiUrl } from '../env'
+import { apiUrl } from '../env'
+import { playerFetch } from './player-session'
 
 type HttpMethod = 'GET' | 'POST' | 'PUT'
 export { ApiError }
@@ -16,14 +16,12 @@ export async function webRequest<T>(method: HttpMethod, path: string, body?: unk
   const normalizedPath = normalizeApiPath(path)
   const url = `${normalizeApiUrl(apiUrl)}${normalizedPath}`
 
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(shouldInjectApiKey(normalizedPath) ? { 'x-api-key': apiKey } : {}),
-  }
+  const headers: Record<string, string> =
+    body !== undefined ? { 'Content-Type': 'application/json' } : {}
 
   let response: Response
   try {
-    response = await fetch(url, {
+    response = await playerFetch(url, {
       method,
       headers,
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -70,12 +68,11 @@ export async function webBinaryRequest(
 
   let response: Response
   try {
-    response = await fetch(url, {
+    response = await playerFetch(url, {
       method,
       headers: {
         'Content-Type': 'application/json',
         Accept: 'audio/*',
-        ...(shouldInjectApiKey(normalizedPath) ? { 'x-api-key': apiKey } : {}),
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       ...(signal === undefined ? {} : { signal }),

@@ -1,4 +1,5 @@
 import { coreRequest } from './client'
+import { playerTokenFor, rememberSessionOwner, sessionPlayerRequest } from './player'
 import type {
   AdminClearMemoryResponse,
   AdminRefreshMemoryResponse,
@@ -32,20 +33,28 @@ export async function listSessions(scenarioId: string): Promise<SessionSummary[]
 }
 
 export async function startSession(userId: string, scenarioId: string): Promise<SessionSummary> {
-  const payload = await coreRequest<StartSessionResponse>('POST', '/v1/sessions', {
-    userId,
-    scenarioId,
-  })
+  const payload = await coreRequest<StartSessionResponse>(
+    'POST',
+    '/v1/sessions',
+    { scenarioId },
+    await playerTokenFor(userId),
+  )
+  rememberSessionOwner(payload.session.sessionId, payload.session.userId)
   return payload.session
 }
 
 export async function resetSession(sessionId: string): Promise<SessionSummary> {
-  const payload = await coreRequest<ResetSessionResponse>('POST', `/v1/sessions/${sessionId}/reset`)
+  const payload = await sessionPlayerRequest<ResetSessionResponse>(
+    sessionId,
+    'POST',
+    `/v1/sessions/${sessionId}/reset`,
+  )
   return payload.session
 }
 
 export async function listSessionConversations(sessionId: string): Promise<ConversationSummary[]> {
-  const payload = await coreRequest<ListSessionConversationsResponse>(
+  const payload = await sessionPlayerRequest<ListSessionConversationsResponse>(
+    sessionId,
     'GET',
     `/v1/sessions/${sessionId}/conversations`,
   )
@@ -53,7 +62,8 @@ export async function listSessionConversations(sessionId: string): Promise<Conve
 }
 
 export async function getAvailableAvatars(sessionId: string): Promise<GetAvailableAvatarsResponse> {
-  return coreRequest<GetAvailableAvatarsApiResponse>(
+  return sessionPlayerRequest<GetAvailableAvatarsApiResponse>(
+    sessionId,
     'GET',
     `/v1/sessions/${sessionId}/available-avatars`,
   )
@@ -63,7 +73,8 @@ export async function startConversation(
   sessionId: string,
   avatarId: string,
 ): Promise<ConversationSummary> {
-  const payload = await coreRequest<StartConversationResponse>(
+  const payload = await sessionPlayerRequest<StartConversationResponse>(
+    sessionId,
     'POST',
     `/v1/sessions/${sessionId}/conversations`,
     { avatarId },
@@ -71,15 +82,24 @@ export async function startConversation(
   return payload.conversation
 }
 
-export async function getHistory(conversationId: string): Promise<GetHistoryResponse> {
-  return coreRequest<GetHistoryResponse>('GET', `/v1/conversations/${conversationId}/history`)
+export async function getHistory(
+  sessionId: string,
+  conversationId: string,
+): Promise<GetHistoryResponse> {
+  return sessionPlayerRequest<GetHistoryResponse>(
+    sessionId,
+    'GET',
+    `/v1/conversations/${conversationId}/history`,
+  )
 }
 
 export async function sendMessage(
+  sessionId: string,
   conversationId: string,
   content: string,
 ): Promise<SendMessageApiResponse> {
-  return coreRequest<SendMessageApiResponse>(
+  return sessionPlayerRequest<SendMessageApiResponse>(
+    sessionId,
     'POST',
     `/v1/conversations/${conversationId}/messages`,
     { message: { content } },

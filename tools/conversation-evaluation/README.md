@@ -168,25 +168,27 @@ Run the foundation command from the repository root:
 pnpm --filter @gami/conversation-evaluation evaluate \
   --definition ./path/to/definition.json \
   --avatar-api-base-url http://localhost:3000 \
-  --api-key "$API_KEY"
+  --service-key "$ADMIN_SERVICE_KEY"
 ```
 
 The command validates the definition before making requests, then creates one session and one
 conversation, sends questions in order, and judges each returned Avatar response through the
-authenticated conversation API routes. The API key is accepted only through `--api-key`,
-`EVALUATION_API_KEY`, or `API_KEY` and is never printed. Other options can be supplied by flag or
+authenticated conversation API routes. The admin service key is accepted only through
+`--service-key`, `EVALUATION_SERVICE_KEY`, or `ADMIN_SERVICE_KEY` and is never printed. Admin
+routes (scenario Avatars, session events, the judge's exchange) use it directly; for player routes
+the tool obtains a player token for the run's user ID from `POST /v1/admin/player-tokens`. Other options can be supplied by flag or
 environment variable:
 
-| Option                  | Environment                       | Default                          |
-| ----------------------- | --------------------------------- | -------------------------------- |
-| `--definition`          | `EVALUATION_DEFINITION_PATH`      | required                         |
-| `--avatar-api-base-url` | `AVATAR_API_BASE_URL`             | required                         |
-| `--api-key`             | `EVALUATION_API_KEY` or `API_KEY` | required                         |
-| `--judge-base-url`      | `JUDGE_API_BASE_URL`              | omitted                          |
-| `--output`              | `EVALUATION_OUTPUT_PATH`          | `reports/evaluation-report.json` |
-| `--timeout-ms`          | `EVALUATION_TIMEOUT_MS`           | `30000`                          |
-| `--user-id`             | `EVALUATION_USER_ID`              | unique run-scoped ID             |
-| `--append`              | —                                 | `false`                          |
+| Option                  | Environment                                     | Default                          |
+| ----------------------- | ----------------------------------------------- | -------------------------------- |
+| `--definition`          | `EVALUATION_DEFINITION_PATH`                    | required                         |
+| `--avatar-api-base-url` | `AVATAR_API_BASE_URL`                           | required                         |
+| `--service-key`         | `EVALUATION_SERVICE_KEY` or `ADMIN_SERVICE_KEY` | required                         |
+| `--judge-base-url`      | `JUDGE_API_BASE_URL`                            | omitted                          |
+| `--output`              | `EVALUATION_OUTPUT_PATH`                        | `reports/evaluation-report.json` |
+| `--timeout-ms`          | `EVALUATION_TIMEOUT_MS`                         | `30000`                          |
+| `--user-id`             | `EVALUATION_USER_ID`                            | unique run-scoped ID             |
+| `--append`              | —                                               | `false`                          |
 
 The generated user ID prevents repeated runs from unintentionally sharing memory. Set
 `--user-id` when deliberately testing continuity across runs. `--judge-base-url` defaults to the
@@ -267,7 +269,8 @@ question. It never polls Game Master or memory work. Message failures are retain
 `api_error` results and stop the run conservatively because a timed-out request may have been
 committed by Core.
 
-The client decodes only the standard `ApiResponse<T>` envelope, sends `x-api-key`, validates
+The client decodes only the standard `ApiResponse<T>` envelope, sends the service key on admin
+routes and the player bearer token on player routes, validates
 consumed successful response payloads at runtime, bounds surfaced error messages, and supports
 request timeout and caller abort signals. Missing `costUsd` is
 normalized to `null`; total tokens are derived only from input plus output tokens when the API
@@ -317,7 +320,7 @@ For example:
 ```sh
 curl -X POST http://localhost:3000/v1/admin/knowledge-sources/knowledge_source_123/ingest \
   -H 'content-type: application/json' \
-  -H 'x-api-key: e2e-stack-secret' \
+  -H "x-admin-service-key: $ADMIN_SERVICE_KEY" \
   -d '{"chunkSize":500}'
 ```
 
@@ -332,10 +335,10 @@ First seed a Core environment using the documented API bootstrap, then run the e
 
 ```sh
 MURDER_PARTY_API_BASE_URL=http://localhost:3000 \
-MURDER_PARTY_API_KEY="$API_KEY" \
+ADMIN_SERVICE_KEY="$ADMIN_SERVICE_KEY" \
 pnpm seed:murder-party:api
 
-EVALUATION_API_KEY="$API_KEY" \
+EVALUATION_SERVICE_KEY="$ADMIN_SERVICE_KEY" \
 pnpm --filter @gami/conversation-evaluation evaluate \
   --definition ./definitions/murder-party-villa-miralac.json \
   --avatar-api-base-url http://localhost:3000 \

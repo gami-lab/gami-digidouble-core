@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ApiResponse, AdminSessionContextResponse } from '@gami/shared'
 import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 import { prepareAndActivateAvatar } from './stack-e2e-current-fixtures.js'
+import { stackCredentialHeaders } from './stack-e2e-auth.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret-0123456789abcdef0123'
@@ -11,7 +12,7 @@ function buildUrl(path: string): string {
 }
 
 function authHeaders(apiKey = API_KEY): Record<string, string> {
-  return { 'x-api-key': apiKey, 'x-admin-service-key': apiKey }
+  return { ...stackCredentialHeaders(apiKey) }
 }
 
 function requireId<T extends Record<string, unknown>>(value: T | undefined, key: keyof T): string {
@@ -42,7 +43,7 @@ async function cleanupSession(ids: {
   avatarId: string
   scenarioId: string
 }): Promise<void> {
-  await deleteJson(`/v1/sessions/${ids.sessionId}`)
+  await deleteJson(`/v1/admin/sessions/${ids.sessionId}`)
   await deleteJson(`/v1/admin/avatars/${ids.avatarId}`)
   await deleteJson(`/v1/admin/scenarios/${ids.scenarioId}`)
 }

@@ -140,6 +140,12 @@ function createScriptedFetch(events: string[]): {
     if (path === `/v1/admin/scenarios/${session.scenarioId}/avatars`) {
       return jsonResponse(okEnvelope({ avatars: [avatar] }))
     }
+    if (path === '/v1/admin/player-tokens') {
+      return jsonResponse(
+        okEnvelope({ userId: session.userId, token: 'player-token', expiresAt: session.startedAt }),
+        201,
+      )
+    }
     if (path === '/v1/sessions') return jsonResponse(okEnvelope({ session }), 201)
     if (path === `/v1/sessions/${session.sessionId}/conversations`) {
       return jsonResponse(okEnvelope({ conversation }), 201)
@@ -201,7 +207,6 @@ describe('composed scripted evaluation', () => {
     const scripted = createScriptedFetch(events)
     const avatarClient = new CoreApiClient({
       baseUrl: 'https://core.example',
-      apiKey: 'evaluation-key',
       serviceKey: 'evaluation-service-key',
       timeoutMs: 1000,
       fetchImpl: scripted.fetch,
@@ -276,12 +281,12 @@ describe('composed scripted evaluation', () => {
         expect.objectContaining(
           isAdminCall
             ? { 'x-admin-service-key': 'evaluation-service-key' }
-            : { 'x-api-key': 'evaluation-key' },
+            : { authorization: 'Bearer player-token' },
         ),
       )
-      expect(call.headers).not.toHaveProperty(isAdminCall ? 'x-api-key' : 'x-admin-service-key')
+      expect(call.headers).not.toHaveProperty(isAdminCall ? 'authorization' : 'x-admin-service-key')
     }
-    expect(scripted.calls.filter((call) => call.method === 'POST')).toHaveLength(8)
+    expect(scripted.calls.filter((call) => call.method === 'POST')).toHaveLength(9)
     expect(scripted.calls.filter((call) => call.url.endsWith('/messages'))).toHaveLength(3)
     expect(
       scripted.calls.filter((call) => call.url.endsWith('/messages')).map((call) => call.url),
@@ -296,8 +301,11 @@ describe('composed scripted evaluation', () => {
     })
     expect(scripted.calls.find((call) => call.url.endsWith('/v1/sessions'))).toMatchObject({
       method: 'POST',
-      body: { userId: session.userId, scenarioId: session.scenarioId },
+      body: { scenarioId: session.scenarioId },
     })
+    expect(
+      scripted.calls.find((call) => call.url.endsWith('/v1/admin/player-tokens')),
+    ).toMatchObject({ method: 'POST', body: { userId: session.userId } })
     expect(
       scripted.calls.find((call) =>
         call.url.endsWith(`/sessions/${session.sessionId}/conversations`),

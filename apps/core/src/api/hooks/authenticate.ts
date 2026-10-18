@@ -1,11 +1,11 @@
-import { timingSafeEqual } from 'node:crypto'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { fail } from '@gami/shared'
 import type { AdminAuthenticationMethod } from '@gami/shared'
 import type { RouteTier } from '../route-tiers.js'
 
 export type RequestAuth =
-  { tier: 'admin'; method: AdminAuthenticationMethod; sessionId?: string } | { tier: 'public' }
+  | { tier: 'admin'; method: AdminAuthenticationMethod; sessionId?: string }
+  | { tier: 'public'; userId: string }
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -29,20 +29,11 @@ export function readHeader(raw: string | string[] | undefined): string | undefin
   return raw?.[0]
 }
 
-export function areSecretsEqual(received: string, expected: string): boolean {
-  const receivedBuffer = Buffer.from(received)
-  const expectedBuffer = Buffer.from(expected)
-  if (receivedBuffer.length !== expectedBuffer.length) return false
-  return timingSafeEqual(receivedBuffer, expectedBuffer)
-}
-
-export function apiKeyVerifier(apiKeySecret: string): CredentialVerifier {
-  return (request) => {
-    const apiKey = readHeader(request.headers['x-api-key'])
-    return apiKey !== undefined && areSecretsEqual(apiKey, apiKeySecret)
-      ? { outcome: 'authenticated', auth: { tier: 'public' } }
-      : { outcome: 'unauthenticated' }
-  }
+/** The authenticated player's id; only valid on `public` routes, where the hook guarantees it. */
+export function requirePlayerId(request: FastifyRequest): string {
+  if (request.auth?.tier !== 'public')
+    throw new Error('Player identity is only set on public routes')
+  return request.auth.userId
 }
 
 /**

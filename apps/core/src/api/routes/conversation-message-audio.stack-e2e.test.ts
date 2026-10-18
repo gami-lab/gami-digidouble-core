@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 import { prepareAndActivateAvatar } from './stack-e2e-current-fixtures.js'
+import { stackCredentialHeaders } from './stack-e2e-auth.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret-0123456789abcdef0123'
@@ -24,7 +25,7 @@ async function postJson(path: string, body: unknown, apiKey?: string): Promise<R
   return fetch(buildUrl(path), {
     method: 'POST',
     headers: {
-      ...(apiKey === undefined ? {} : { 'x-api-key': apiKey, 'x-admin-service-key': apiKey }),
+      ...(apiKey === undefined ? {} : { ...stackCredentialHeaders(apiKey) }),
       'content-type': 'application/json',
     },
     body: JSON.stringify(body),
@@ -34,7 +35,7 @@ async function postJson(path: string, body: unknown, apiKey?: string): Promise<R
 async function deleteJson(path: string): Promise<void> {
   await fetch(buildUrl(path), {
     method: 'DELETE',
-    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
+    headers: { ...stackCredentialHeaders(API_KEY) },
   })
 }
 
@@ -115,7 +116,7 @@ async function cleanupConversation(fixture: {
   avatarId: string
   sessionId: string
 }): Promise<void> {
-  await deleteJson(`/v1/sessions/${fixture.sessionId}`)
+  await deleteJson(`/v1/admin/sessions/${fixture.sessionId}`)
   await deleteJson(`/v1/admin/avatars/${fixture.avatarId}`)
   await deleteJson(`/v1/admin/scenarios/${fixture.scenarioId}`)
 }
@@ -137,28 +138,21 @@ describe('Stack E2E — conversation message audio authentication', () => {
 })
 
 describe('Stack E2E — conversation message audio validation', () => {
-  it('returns 400 VALIDATION_ERROR for an unknown format', async () => {
-    const response = await postJson(
-      audioPath('conversation_missing', 'message_missing'),
-      {
-        format: 'audio/flac',
-      },
-      API_KEY,
-    )
-    await expectApiError(response, 400, 'VALIDATION_ERROR')
-  })
-
-  it('returns 400 VALIDATION_ERROR for malformed JSON', async () => {
-    const response = await fetch(buildUrl(audioPath('conversation_missing', 'message_missing')), {
-      method: 'POST',
-      headers: {
-        'x-api-key': API_KEY,
-        'x-admin-service-key': API_KEY,
-        'content-type': 'application/json',
-      },
-      body: '{"format":',
-    })
-    await expectApiError(response, 400, 'VALIDATION_ERROR')
+  it.each([
+    ['an unknown format', JSON.stringify({ format: 'audio/flac' })],
+    ['malformed JSON', '{"format":'],
+  ])('returns 400 VALIDATION_ERROR for %s', async (_label, body) => {
+    const fixture = await seedConversation()
+    try {
+      const response = await fetch(buildUrl(audioPath(fixture.conversationId, 'message_missing')), {
+        method: 'POST',
+        headers: { ...stackCredentialHeaders(API_KEY), 'content-type': 'application/json' },
+        body,
+      })
+      await expectApiError(response, 400, 'VALIDATION_ERROR')
+    } finally {
+      await cleanupConversation(fixture)
+    }
   })
 })
 

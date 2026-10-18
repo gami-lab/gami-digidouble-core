@@ -40,7 +40,11 @@ import { InMemoryConversationWorkingMemoryRepository } from '../infrastructure/d
 import { InMemorySessionEventPublisher } from '../infrastructure/events/in-memory-session-event-publisher.js'
 import { buildLlmConfig, createLlmAdapter } from '../infrastructure/llm/index.js'
 import type { LlmAdapterRegistry } from '../infrastructure/llm/llm-adapter-registry.js'
-import { apiKeyVerifier, registerAuthentication } from './hooks/authenticate.js'
+import { registerAuthentication } from './hooks/authenticate.js'
+import { playerVerifier, registerPlayerOwnership } from './hooks/player-credentials.js'
+import { adminPlayerTokenRoute, playerAuthRoute } from './routes/player-auth.js'
+import { PlayerTokenService } from '../application/auth/player-token.service.js'
+import { PlayerAccessService } from '../application/auth/player-access.service.js'
 import { adminVerifier } from './hooks/admin-credentials.js'
 import { adminAuthRoute } from './routes/admin-auth.js'
 import { AdminAuthService } from '../application/auth/admin-auth.service.js'
@@ -160,6 +164,7 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
   // Voice uploads carry their identity and hints in headers (see voice-messages routes).
   const corsAllowedHeaders = [
     'Content-Type',
+    'Authorization',
     'x-api-key',
     'x-utterance-id',
     'x-language',
@@ -211,21 +216,36 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
 
   enforceRouteTiers(app)
   const adminAuthService = createAdminAuthService(config, adapters.adminSessionStore)
+  const playerTokens = new PlayerTokenService({
+    secret: config.playerTokenSecret,
+    ttlSeconds: config.playerTokenTtlSeconds,
+    refreshWindowSeconds: config.playerTokenRefreshWindowSeconds,
+  })
   registerAuthentication(app, {
-    public: apiKeyVerifier(config.apiKeySecret),
+    public: playerVerifier(playerTokens),
     admin: adminVerifier({
       authService: adminAuthService,
       serviceKey: config.adminServiceKey,
       allowedOrigins: config.adminOrigins,
+      playerTokens,
     }),
   })
 
   app.register(healthRoute)
   registerTierScope(app, 'public', '/v1', (scope) => {
+    registerPlayerOwnership(
+      scope,
+      new PlayerAccessService(
+        resolvedAdapters.sessionRepository,
+        resolvedAdapters.conversationRepository,
+      ),
+    )
+    scope.register(playerAuthRoute, { playerTokens })
     registerPublicRoutes(scope, config, resolvedAdapters)
   })
   registerTierScope(app, 'admin', '/v1/admin', (scope) => {
     scope.register(adminAuthRoute, { authService: adminAuthService })
+    scope.register(adminPlayerTokenRoute, { playerTokens })
     registerAdminRoutes(scope, config, resolvedAdapters, adapters.probes ?? [])
   })
 
@@ -254,7 +274,7 @@ function registerPublicRoutes(
   scope.register(sessionsRoute, { prefix: '/sessions', config, ...adapters })
   scope.register(conversationsRoute, { prefix: '/conversations', config, ...adapters })
   scope.register(usersRoute, {
-    prefix: '/users',
+    prefix: '/me',
     config,
     userRepository: adapters.userRepository,
   })
@@ -274,11 +294,7 @@ function registerAdminRoutes(
 ): void {
   scope.register(exchangeRoute, { config, ...adapters })
   scope.register(adminSessionsRoute, { config, ...adapters })
-  scope.register(adminSessionManagementRoute, {
-    ...(adapters.sessionRepository !== undefined
-      ? { sessionRepository: adapters.sessionRepository }
-      : {}),
-  })
+  scope.register(adminSessionManagementRoute, { sessionRepository: adapters.sessionRepository })
   scope.register(adminHealthRoute, { config, probes })
   scope.register(adminMemoryRoute, buildAdminMemoryRouteOptions(config, adapters))
   scope.register(adminSessionContextRoute, buildAdminSessionContextRouteOptions(config, adapters))
@@ -359,7 +375,12 @@ function resolveServerAdapters(
 ): Required<
   Pick<
     ServerAdapters,
-    'eventLogRepository' | 'gmStateRepository' | 'userRepository' | 'sessionEventPublisher'
+    | 'eventLogRepository'
+    | 'gmStateRepository'
+    | 'userRepository'
+    | 'sessionEventPublisher'
+    | 'sessionRepository'
+    | 'conversationRepository'
   >
 > &
   ServerAdapters {
@@ -371,6 +392,8 @@ function resolveServerAdapters(
     eventLogRepository: adapters.eventLogRepository ?? new InMemoryEventLogRepository(),
     gmStateRepository: adapters.gmStateRepository ?? new InMemoryGmStateRepository(),
     userRepository: adapters.userRepository ?? new InMemoryUserRepository(),
+    sessionRepository: adapters.sessionRepository ?? new InMemorySessionRepository(),
+    conversationRepository: adapters.conversationRepository ?? new InMemoryConversationRepository(),
     ...(adapters.speechToTextAdapter !== undefined &&
     adapters.utteranceIdempotencyStore === undefined
       ? { utteranceIdempotencyStore: new InMemoryUtteranceIdempotencyStore() }

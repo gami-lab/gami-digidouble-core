@@ -20,7 +20,8 @@ import {
   processSseFrames,
 } from '@gami/shared'
 import { ApiError, webBinaryRequest, webRequest } from './client'
-import { apiKey, apiUrl } from '../env'
+import { apiUrl } from '../env'
+import { playerFetch } from './player-session'
 import { isTerminalMessageStreamEvent } from '../chat/message-stream-events'
 
 export type MessageStreamHandlers = {
@@ -243,9 +244,9 @@ async function openMessageStream(
   signal?: AbortSignal,
 ): Promise<Response | null> {
   try {
-    return await fetch(`${normalizeApiUrl(apiUrl)}${path}`, {
+    return await playerFetch(`${normalizeApiUrl(apiUrl)}${path}`, {
       method: 'POST',
-      headers: { ...headers, 'x-api-key': apiKey },
+      headers,
       body,
       ...(signal !== undefined ? { signal } : {}),
     })

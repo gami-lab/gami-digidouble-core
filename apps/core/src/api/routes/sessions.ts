@@ -3,7 +3,7 @@ import { fail, ok } from '@gami/shared'
 import type {
   EndConversationResponse,
   GetAvailableAvatarsResponse,
-  LifecycleStatus,
+  ListSessionsQuery,
   StartSessionRequest,
 } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
@@ -56,6 +56,7 @@ import { createSessionRouteUseCases } from './sessions.use-cases.js'
 import { buildLlmConfig, createLlmAdapter } from '../../infrastructure/llm/index.js'
 import { createObservabilityAdapter } from '../../infrastructure/observability/index.js'
 import type { LlmAdapterRegistry } from '../../infrastructure/llm/llm-adapter-registry.js'
+import { requirePlayerId } from '../hooks/authenticate.js'
 
 export type SessionsRouteOptions = {
   config: Config
@@ -77,12 +78,7 @@ export type SessionsRouteOptions = {
   runGameMasterUseCase?: RunGameMasterUseCase
 }
 
-type StartSessionRequestBody = {
-  userId: string
-  scenarioId: string
-  model?: StartSessionRequest['model']
-  avatarOptions?: StartSessionRequest['avatarOptions']
-}
+type StartSessionRequestBody = StartSessionRequest
 
 type StartConversationRequestBody = {
   avatarId: string
@@ -109,11 +105,7 @@ type EndConversationRequestBody = {
   reason?: ExplicitEndReason
 }
 
-type ListSessionsQuerystring = {
-  scenarioId?: string
-  userId?: string
-  status?: LifecycleStatus
-}
+type ListSessionsQuerystring = ListSessionsQuery
 
 const startConversationBodySchema = {
   type: 'object',
@@ -168,7 +160,6 @@ const listSessionsQuerySchema = {
   type: 'object',
   properties: {
     scenarioId: { type: 'string', minLength: 1 },
-    userId: { type: 'string', minLength: 1 },
     status: { type: 'string', enum: ['active', 'closed', 'archived'] },
   },
   additionalProperties: false,
@@ -287,7 +278,7 @@ function registerStartSessionRoute(app: FastifyInstance, useCase: StartSessionUs
     async (request, reply) => {
       try {
         const output = await useCase.execute({
-          userId: request.body.userId,
+          userId: requirePlayerId(request),
           scenarioId: request.body.scenarioId,
           ...(request.body.model !== undefined ? { modelOverride: request.body.model } : {}),
           ...(request.body.avatarOptions !== undefined
@@ -327,7 +318,7 @@ function registerListSessionsRoute(app: FastifyInstance, useCase: ListSessionsUs
           ...(request.query.scenarioId !== undefined
             ? { scenarioId: request.query.scenarioId }
             : {}),
-          ...(request.query.userId !== undefined ? { userId: request.query.userId } : {}),
+          userId: requirePlayerId(request),
           ...(request.query.status !== undefined ? { status: request.query.status } : {}),
         })
         return await reply.send(ok<ListSessionsOutput>(output))

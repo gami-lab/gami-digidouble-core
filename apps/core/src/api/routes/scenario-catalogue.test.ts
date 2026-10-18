@@ -4,6 +4,7 @@ import type { Scenario } from '../../domain/scenario/scenario.types.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 function makeScenario(overrides: Partial<Scenario>): Scenario {
   return {
@@ -42,7 +43,7 @@ describe('GET /v1/scenarios — public catalogue', () => {
     const response = await createCatalogueServer().inject({
       method: 'GET',
       url: '/v1/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
     })
 
     expect(response.statusCode).toBe(200)
@@ -58,7 +59,7 @@ describe('GET /v1/scenarios — public catalogue', () => {
     const response = await createCatalogueServer().inject({
       method: 'POST',
       url: '/v1/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { name: 'Demo' },
     })
 

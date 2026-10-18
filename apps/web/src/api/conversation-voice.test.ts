@@ -2,6 +2,14 @@ import type { MessageStreamEvent } from '@gami/shared'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { sendVoiceMessageStream } from './conversations'
 
+vi.mock('./player-session', () => ({
+  playerFetch: (url: string, init: RequestInit = {}) =>
+    fetch(url, {
+      ...init,
+      headers: { ...(init.headers as Record<string, string>), authorization: 'Bearer test-token' },
+    }),
+}))
+
 const terminalEvent: MessageStreamEvent = {
   type: 'conversation.message.error',
   requestId: 'request_1',
@@ -38,7 +46,7 @@ describe('voice message stream API client', () => {
     expect(headers.get('Content-Type')).toBe('audio/webm;codecs=opus')
     expect(headers.get('x-utterance-id')).toBe('utterance_1')
     expect(headers.get('x-audio-duration-ms')).toBe('1235')
-    expect(headers.get('x-api-key')).toEqual(expect.any(String))
+    expect(headers.get('authorization')).toBe('Bearer test-token')
     expect(received).toEqual([terminalEvent])
   })
 

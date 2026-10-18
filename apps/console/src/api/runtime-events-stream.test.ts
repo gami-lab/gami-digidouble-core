@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import { subscribeToRuntimeEvents } from './runtime-events-stream'
 
+vi.mock('./player', () => ({
+  playerTokenForSession: vi.fn().mockResolvedValue('owner-token'),
+}))
+
 describe('subscribeToRuntimeEvents', () => {
   it('parses runtime_event SSE frames from the session stream', async () => {
     const onEvent = vi.fn()
@@ -16,18 +20,18 @@ describe('subscribeToRuntimeEvents', () => {
       },
     })
 
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        body: stream as unknown as Response['body'],
-      } satisfies Partial<Response>),
-    )
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      body: stream as unknown as Response['body'],
+    } satisfies Partial<Response>)
+    vi.stubGlobal('fetch', fetchMock)
 
     const sub = subscribeToRuntimeEvents('s1', { onEvent })
     await new Promise((resolve) => setTimeout(resolve, 0))
     sub.close()
 
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(init.headers).toEqual({ authorization: 'Bearer owner-token' })
     expect(onEvent).toHaveBeenCalledTimes(1)
     expect(onEvent).toHaveBeenCalledWith(
       expect.objectContaining({ eventId: 'e1', sessionId: 's1', type: 'turn.completed' }),

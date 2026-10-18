@@ -14,9 +14,8 @@ const modelOverrideSchema = {
 
 export const startSessionBodySchema = {
   type: 'object',
-  required: ['userId', 'scenarioId'],
+  required: ['scenarioId'],
   properties: {
-    userId: { type: 'string', minLength: 1 },
     scenarioId: { type: 'string', minLength: 1 },
     model: modelOverrideSchema,
     avatarOptions: avatarOptionsSchema,

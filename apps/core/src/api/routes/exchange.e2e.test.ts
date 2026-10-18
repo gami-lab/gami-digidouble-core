@@ -5,6 +5,7 @@ import type { Config } from '../../config.js'
 import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 function makeConfig(overrides: Partial<Config> = {}): Config {
   return {
@@ -31,7 +32,7 @@ describe.skipIf(!openaiKey)('E2E — POST /v1/admin/exchange with real OpenAI', 
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'e2e-secret', 'x-admin-service-key': 'e2e-secret' },
+      headers: { ...credentialHeaders('e2e-secret') },
       payload: {
         message: 'Reply with exactly two words: "test passed".',
         systemPrompt: 'You are a terse assistant. Follow instructions precisely.',
@@ -63,7 +64,7 @@ describe.skipIf(!anthropicKey)('E2E — POST /v1/admin/exchange with real Anthro
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'e2e-secret', 'x-admin-service-key': 'e2e-secret' },
+      headers: { ...credentialHeaders('e2e-secret') },
       payload: {
         message: 'Reply with exactly two words: "test passed".',
         systemPrompt: 'You are a terse assistant. Follow instructions precisely.',
@@ -91,7 +92,7 @@ describe.skipIf(!mistralKey)('E2E — POST /v1/admin/exchange with real Mistral'
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'e2e-secret', 'x-admin-service-key': 'e2e-secret' },
+      headers: { ...credentialHeaders('e2e-secret') },
       payload: {
         message: 'Reply with exactly two words: "test passed".',
         systemPrompt: 'You are a terse assistant. Follow instructions precisely.',

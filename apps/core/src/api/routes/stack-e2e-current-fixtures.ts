@@ -1,4 +1,5 @@
 import type { ApiResponse, PrepareAvatarTraitsResponse } from '@gami/shared'
+import { stackCredentialHeaders } from './stack-e2e-auth.js'
 
 function assertPreparedAvatar(
   body: ApiResponse<PrepareAvatarTraitsResponse>,
@@ -22,7 +23,7 @@ export async function prepareAndActivateAvatar(args: {
     `${args.appUrl}/v1/admin/scenarios/${args.scenarioId}/prepare-avatar-traits`,
     {
       method: 'POST',
-      headers: { 'x-api-key': args.apiKey, 'x-admin-service-key': args.apiKey },
+      headers: { ...stackCredentialHeaders(args.apiKey) },
     },
   )
   const prepareBody = (await prepareResponse.json()) as ApiResponse<PrepareAvatarTraitsResponse>
@@ -38,8 +39,7 @@ export async function prepareAndActivateAvatar(args: {
     method: 'PATCH',
     headers: {
       'content-type': 'application/json',
-      'x-api-key': args.apiKey,
-      'x-admin-service-key': args.apiKey,
+      ...stackCredentialHeaders(args.apiKey),
     },
     body: JSON.stringify({ status: 'active' }),
   })

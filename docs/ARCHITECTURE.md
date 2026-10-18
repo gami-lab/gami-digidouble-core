@@ -89,7 +89,7 @@ shared wire DTOs but never Core domain, repositories, or provider SDKs.
 
 Every route declares exactly one tier, and the tier decides which credential it accepts:
 
-- **Public API** (`/v1/sessions`, `/v1/conversations`, `/v1/users`, read-only `GET /v1/scenarios`)
+- **Public API** (`/v1/sessions`, `/v1/conversations`, `/v1/me`, read-only `GET /v1/scenarios`)
   — tier `public`, used by the player app; user-facing, stable, versioned.
 - **Admin API** (`/v1/admin/*`) — tier `admin`, used by authoring, operators, and tools; includes
   all scenario/Avatar/knowledge authoring, the raw exchange, and cross-user session management.
@@ -111,6 +111,18 @@ an HMAC of the random session id, so a store dump holds no usable cookie. The co
 `HttpOnly; Secure; SameSite=Strict; Path=/v1/admin`; cookie-authenticated state changes must also
 carry an `Origin` from `ADMIN_ORIGINS` (CSRF check). The admin SPA and console sign in with the
 cookie; the evaluation tool and seed script use the service key.
+
+### Player identity
+
+Players never choose their `userId`. `POST /v1/auth/player` issues an HMAC-SHA256 token
+(`PlayerTokenService`, `node:crypto`, `PLAYER_TOKEN_SECRET`, short `PLAYER_TOKEN_TTL_SECONDS` plus a
+refresh window) carrying a Core-generated id; the public-tier verifier accepts only that bearer
+token and puts its `userId` on the request. A second `onRequest` hook in the public scope asks
+`PlayerAccessService` whether every `sessionId`/`conversationId` in the path belongs to that
+player (conversation → session → user) and answers `404` otherwise, so ownership is enforced
+before any body is read and no route can forget it. Admin routes act on any session by design;
+operator tools that need a player route (console chat, evaluation runs) get a token for the
+session's owner from `POST /v1/admin/player-tokens`.
 
 `apps/console` is a consumer-only debug layer over canonical Core routes: it builds each session's
 turn timeline from the admin events feed and shows structured LLM inputs, linking to Langfuse for

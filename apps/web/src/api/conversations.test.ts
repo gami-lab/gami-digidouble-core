@@ -2,6 +2,14 @@ import type { MessageStreamEvent } from '@gami/shared'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { sendMessageStream } from './conversations'
 
+vi.mock('./player-session', () => ({
+  playerFetch: (url: string, init: RequestInit = {}) =>
+    fetch(url, {
+      ...init,
+      headers: { ...(init.headers as Record<string, string>), authorization: 'Bearer test-token' },
+    }),
+}))
+
 // eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('message stream API client', () => {
   afterEach(() => {
@@ -57,7 +65,7 @@ describe('message stream API client', () => {
     expect(requestInit?.body).toBe(JSON.stringify({ message: { content: 'Hello' } }))
     const requestHeaders = new Headers(requestInit?.headers)
     expect(requestHeaders.get('Content-Type')).toBe('application/json')
-    expect(requestHeaders.get('x-api-key')).toEqual(expect.any(String))
+    expect(requestHeaders.get('authorization')).toBe('Bearer test-token')
     expect(received).toEqual(events)
   })
 

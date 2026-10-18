@@ -3,6 +3,7 @@ import type { ComponentProps, JSX } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { LocalWebIdentity } from '@gami/shared'
 import { ApiError } from './api/client'
+import { clearStoredPlayer, getPlayer, readStoredPlayer } from './api/player-session'
 import { upsertUserPersona } from './api/users'
 import { ActiveChatSection } from './chat/ActiveChatSection'
 import { useActiveChatRuntime } from './chat/use-active-chat-runtime'
@@ -40,7 +41,7 @@ type FormSubmitHandler = NonNullable<ComponentProps<'form'>['onSubmit']>
 
 function initializeState(): AppState {
   const identity = readLocalWebIdentity()
-  if (identity !== null) {
+  if (identity !== null && readStoredPlayer()?.userId === identity.userId) {
     return { mode: 'active', identity }
   }
 
@@ -68,13 +69,14 @@ function App(): JSX.Element {
     }
 
     try {
-      const identity = createLocalWebIdentity(state.form, new Date().toISOString())
       setState((current) => {
         if (current.mode !== 'onboarding') return current
         return { ...current, error: null, isSubmitting: true }
       })
 
-      await upsertUserPersona(identity.userId, identity.persona)
+      const player = await getPlayer()
+      const identity = createLocalWebIdentity(state.form, new Date().toISOString(), player.userId)
+      await upsertUserPersona(identity.persona)
       persistLocalWebIdentity(identity)
       setState({ mode: 'active', identity })
     } catch (error) {
@@ -94,6 +96,7 @@ function App(): JSX.Element {
 
   function handleReset(): void {
     clearLocalWebIdentity()
+    clearStoredPlayer()
     clearLocalWebRuntimeState()
     setState({
       mode: 'onboarding',

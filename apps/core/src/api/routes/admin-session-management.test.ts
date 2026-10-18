@@ -4,8 +4,9 @@ import type { Session } from '../../domain/conversation/session.types.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
-const AUTH = { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' }
+const AUTH = { ...credentialHeaders('test-secret') }
 
 function makeSession(overrides: Partial<Session>): Session {
   return {

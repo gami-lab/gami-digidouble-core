@@ -50,7 +50,6 @@ export async function runCli(
 
     const avatarClient = new CoreApiClient({
       baseUrl: config.avatarApiBaseUrl,
-      apiKey: config.apiKey,
       serviceKey: config.serviceKey,
       timeoutMs: config.timeoutMs,
     })
@@ -177,7 +176,6 @@ function printHelp(io: CliIo): void {
       'Options:',
       '  --definition <path>              or EVALUATION_DEFINITION_PATH',
       '  --avatar-api-base-url <url>      or AVATAR_API_BASE_URL',
-      '  --api-key <key>                  or EVALUATION_API_KEY / API_KEY',
       '  --service-key <key>              or EVALUATION_SERVICE_KEY / ADMIN_SERVICE_KEY',
       '  --judge-base-url <url>           or JUDGE_API_BASE_URL',
       '  --output <path>                  or EVALUATION_OUTPUT_PATH',

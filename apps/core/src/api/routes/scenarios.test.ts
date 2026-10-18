@@ -5,6 +5,7 @@ import { TextToSpeechProviders } from '../../application/voice/text-to-speech-pr
 import { FakeTextToSpeechAdapter } from '../../application/voice/test-support/fake-text-to-speech.adapter.js'
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
+import { credentialHeaders } from './test-auth.js'
 
 /** Server where Gradium has an API key, so voice selections can be saved. */
 function createVoiceServer(): ReturnType<typeof createServer> {
@@ -43,7 +44,7 @@ describe('POST /v1/admin/scenarios — auth', () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'wrong-secret', 'x-admin-service-key': 'wrong-secret' },
+      headers: { ...credentialHeaders('wrong-secret') },
       payload: { name: 'Demo' },
     })
 
@@ -59,7 +60,7 @@ describe('POST /v1/admin/scenarios — validation', () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {},
     })
 
@@ -73,7 +74,7 @@ describe('POST /v1/admin/scenarios — validation', () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {},
     })
 
@@ -87,7 +88,7 @@ describe('POST /v1/admin/scenarios — validation', () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { name: 'Demo', status: 'paused' },
     })
 
@@ -103,7 +104,7 @@ describe('POST /v1/admin/scenarios — success', () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {
         name: 'Demo Scenario',
         config: { worldContext: 'A test world' },
@@ -121,7 +122,7 @@ describe('POST /v1/admin/scenarios — success', () => {
     const response = await createVoiceServer().inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {
         name: 'Voice Scenario',
         language: 'fr-FR',
@@ -144,7 +145,7 @@ describe('POST /v1/admin/scenarios — success', () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { name: 'Keyless Voice Scenario', voiceConfig: { provider: 'gradium' } },
     })
 
@@ -156,7 +157,7 @@ describe('POST /v1/admin/scenarios — success', () => {
     const response = await createVoiceServer().inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {
         name: 'Invalid Voice Scenario',
         voiceConfig: { provider: 'gradium', voiceId: 'guide', providerVoiceId: 'x' },
@@ -191,7 +192,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/avatars — validation', () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/admin/scenarios/scenario_unknown/avatars',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { name: 'Avatar' },
     })
 
@@ -207,7 +208,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/avatars — resource lookup', () 
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/admin/scenarios/scenario_unknown/avatars',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {
         name: 'Avatar',
         personaPrompt: 'You are a helper.',
@@ -227,7 +228,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/avatars — success', () => {
     const createScenarioResponse = await app.inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {
         name: 'Avatar Scenario',
       },
@@ -244,7 +245,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/avatars — success', () => {
     const createAvatarResponse = await app.inject({
       method: 'POST',
       url: `/v1/admin/scenarios/${scenarioId}/avatars`,
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {
         name: 'Ava',
         personaPrompt: 'You are Ava.',
@@ -265,7 +266,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/avatars — success', () => {
     const scenarioResponse = await app.inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {
         name: 'Avatar Voice Scenario',
         voiceConfig: { provider: 'gradium', voiceId: 'scenario-default' },
@@ -278,7 +279,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/avatars — success', () => {
     const response = await app.inject({
       method: 'POST',
       url: `/v1/admin/scenarios/${scenarioId}/avatars`,
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {
         name: 'Ava',
         personaPrompt: 'You are Ava.',
@@ -301,7 +302,7 @@ describe('POST /v1/admin/scenarios — optional field coverage', () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { name: 'Active Scenario', status: 'active' },
     })
 
@@ -314,7 +315,7 @@ describe('POST /v1/admin/scenarios — optional field coverage', () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {
         name: 'Configured Scenario',
         config: { worldContext: 'A fantasy world' },
@@ -330,7 +331,7 @@ describe('POST /v1/admin/scenarios — optional field coverage', () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {
         name: 'Configured Runtime Scenario',
         modelSelection: {
@@ -368,7 +369,7 @@ describe('POST /v1/admin/scenarios — optional field coverage', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { name: 'Test' },
     })
 
@@ -384,7 +385,7 @@ describe('PATCH /v1/admin/scenarios/:scenarioId modelSelection', () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'PATCH',
       url: '/v1/admin/scenarios/scenario_1',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {
         modelSelection: {
           defaultProfile: { provider: 'openai', model: 'not-in-catalog' },
@@ -405,7 +406,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/avatars — optional field covera
     const createScenarioResponse = await app.inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: { name: 'Optional Fields Scenario' },
     })
     const scenarioId =
@@ -415,7 +416,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/avatars — optional field covera
     const createAvatarResponse = await app.inject({
       method: 'POST',
       url: `/v1/admin/scenarios/${scenarioId}/avatars`,
-      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      headers: { ...credentialHeaders('test-secret') },
       payload: {
         name: 'Lex',
         personaPrompt: 'You are Lex.',

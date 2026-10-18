@@ -40,21 +40,20 @@ const sessionResponse = {
 
 // eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('CoreApiClient', () => {
-  it('normalizes the base URL, sends the API key, and decodes the standard envelope', async () => {
+  it('normalizes the base URL, sends no player credential before one is chosen, and decodes the standard envelope', async () => {
     const fetchMock = vi
       .fn<FetchLike>()
       .mockResolvedValue(jsonResponse(okEnvelope(sessionResponse), 201))
     const client = new CoreApiClient({
       baseUrl: 'https://core.example///',
-      apiKey: 'test-key',
       serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
     })
 
-    await expect(
-      client.createSession({ userId: 'evaluation-user', scenarioId: 'scenario_1' }),
-    ).resolves.toEqual(sessionResponse)
+    await expect(client.createSession({ scenarioId: 'scenario_1' })).resolves.toEqual(
+      sessionResponse,
+    )
 
     const [url, init] = fetchMock.mock.calls[0] ?? []
     expect(url).toBe('https://core.example/v1/sessions')
@@ -62,9 +61,37 @@ describe('CoreApiClient', () => {
     expect(init?.headers).toEqual({
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      'x-api-key': 'test-key',
     })
-    expect(init?.body).toBe(JSON.stringify({ userId: 'evaluation-user', scenarioId: 'scenario_1' }))
+    expect(init?.body).toBe(JSON.stringify({ scenarioId: 'scenario_1' }))
+  })
+
+  it('acts as an operator-issued player on player routes', async () => {
+    const fetchMock = vi
+      .fn<FetchLike>()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          okEnvelope({ userId: 'evaluation-user', token: 'player-token', expiresAt: 'x' }),
+          201,
+        ),
+      )
+      .mockResolvedValueOnce(jsonResponse(okEnvelope(sessionResponse), 201))
+    const client = new CoreApiClient({
+      baseUrl: 'https://core.example',
+      serviceKey: 'service-key',
+      timeoutMs: 1000,
+      fetchImpl: fetchMock,
+    })
+
+    await client.usePlayer('evaluation-user')
+    await client.createSession({ scenarioId: 'scenario_1' })
+
+    const [tokenUrl, tokenInit] = fetchMock.mock.calls[0] ?? []
+    expect(tokenUrl).toBe('https://core.example/v1/admin/player-tokens')
+    expect(tokenInit?.headers).toMatchObject({ 'x-admin-service-key': 'service-key' })
+    expect(tokenInit?.body).toBe(JSON.stringify({ userId: 'evaluation-user' }))
+    const [, sessionInit] = fetchMock.mock.calls[1] ?? []
+    expect(sessionInit?.headers).toMatchObject({ authorization: 'Bearer player-token' })
+    expect(sessionInit?.headers).not.toHaveProperty('x-admin-service-key')
   })
 
   it('lists session events through the runtime usage contract', async () => {
@@ -81,7 +108,6 @@ describe('CoreApiClient', () => {
       .mockResolvedValue(jsonResponse(okEnvelope({ events }), 200))
     const client = new CoreApiClient({
       baseUrl: 'https://core.example',
-      apiKey: 'test-key',
       serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
@@ -109,14 +135,13 @@ describe('CoreApiClient', () => {
     )
     const client = new CoreApiClient({
       baseUrl: 'https://core.example',
-      apiKey: 'test-key',
       serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
     })
 
     const error = await client
-      .createSession({ userId: 'user', scenarioId: 'missing' })
+      .createSession({ scenarioId: 'missing' })
       .catch((caught: unknown) => caught)
     expect(error).toBeInstanceOf(CoreApiError)
     expect(error).toMatchObject({ status: 404, code: 'NOT_FOUND', kind: 'api_error' })
@@ -130,7 +155,6 @@ describe('CoreApiClient', () => {
       .mockResolvedValue(jsonResponse(okEnvelope(sessionResponse)))
     const client = new CoreApiClient({
       baseUrl: 'https://core.example',
-      apiKey: 'test-key',
       serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
@@ -138,14 +162,12 @@ describe('CoreApiClient', () => {
 
     await expect(
       client.createSession({
-        userId: 'evaluation-user',
         scenarioId: 'scenario_1',
         avatarOptions: { retrieval: { maxChunks: 7 } },
       }),
     ).resolves.toEqual(sessionResponse)
     expect(fetchMock.mock.calls[0]?.[1]?.body).toBe(
       JSON.stringify({
-        userId: 'evaluation-user',
         scenarioId: 'scenario_1',
         avatarOptions: { retrieval: { maxChunks: 7 } },
       }),
@@ -159,15 +181,12 @@ describe('CoreApiClient', () => {
       .mockResolvedValueOnce(jsonResponse(okEnvelope({})))
     const client = new CoreApiClient({
       baseUrl: 'https://core.example',
-      apiKey: 'test-key',
       serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
     })
 
-    await expect(
-      client.createSession({ userId: 'user', scenarioId: 'scenario_1' }),
-    ).rejects.toMatchObject({
+    await expect(client.createSession({ scenarioId: 'scenario_1' })).rejects.toMatchObject({
       kind: 'contract_error',
       code: 'INVALID_RESPONSE',
       phase: 'session_bootstrap',
@@ -185,15 +204,12 @@ describe('CoreApiClient', () => {
       .mockResolvedValue(jsonResponse(errorEnvelope('UNAUTHORIZED', 'Invalid API key.'), 401))
     const client = new CoreApiClient({
       baseUrl: 'https://core.example',
-      apiKey: 'test-key',
       serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
     })
 
-    await expect(
-      client.createSession({ userId: 'user', scenarioId: 'scenario_1' }),
-    ).rejects.toMatchObject({
+    await expect(client.createSession({ scenarioId: 'scenario_1' })).rejects.toMatchObject({
       kind: 'api_error',
       code: 'UNAUTHORIZED',
       status: 401,
@@ -206,13 +222,12 @@ describe('CoreApiClient', () => {
       const fetchMock = vi.fn<FetchLike>().mockImplementation(pendingFetch)
       const client = new CoreApiClient({
         baseUrl: 'https://core.example',
-        apiKey: 'test-key',
         serviceKey: 'service-key',
         timeoutMs: 25,
         fetchImpl: fetchMock,
       })
 
-      const request = client.createSession({ userId: 'user', scenarioId: 'scenario_1' })
+      const request = client.createSession({ scenarioId: 'scenario_1' })
       const timeoutExpectation = expect(request).rejects.toMatchObject({
         code: 'TIMEOUT',
         status: null,
@@ -229,14 +244,13 @@ describe('CoreApiClient', () => {
     const fetchMock = vi.fn<FetchLike>().mockImplementation(pendingFetch)
     const client = new CoreApiClient({
       baseUrl: 'https://core.example',
-      apiKey: 'test-key',
       serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
     })
     const controller = new AbortController()
     const request = client.createSession(
-      { userId: 'user', scenarioId: 'scenario_1' },
+      { scenarioId: 'scenario_1' },
       { signal: controller.signal },
     )
     controller.abort()

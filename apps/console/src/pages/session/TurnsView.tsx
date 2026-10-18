@@ -270,7 +270,7 @@ function Composer({ data, onSent }: { data: SessionData; onSent: () => void }): 
       className="stack"
       onSubmit={(event) => {
         event.preventDefault()
-        act(() => sendMessage(active.conversationId, text.trim()))
+        act(() => sendMessage(session.sessionId, active.conversationId, text.trim()))
       }}
     >
       <div className="composer">

@@ -6,24 +6,12 @@ import { GetUserPersonaUseCase } from '../../application/use-cases/get-user-pers
 import { UpsertUserPersonaUseCase } from '../../application/use-cases/upsert-user-persona/upsert-user-persona.use-case.js'
 import type { Config } from '../../config.js'
 import type { UserPersona } from '../../domain/user/index.js'
+import { requirePlayerId } from '../hooks/authenticate.js'
 
 type UsersRouteOptions = {
   config: Config
   userRepository?: IUserRepository
 }
-
-type UserParams = {
-  userId: string
-}
-
-const userParamsSchema = {
-  type: 'object',
-  required: ['userId'],
-  properties: {
-    userId: { type: 'string', minLength: 1, pattern: '.*\\S.*' },
-  },
-  additionalProperties: false,
-} as const
 
 // UserPersona validation is intentionally manual rather than via Fastify JSON schema
 // additionalProperties:false. The persona shape is designed to grow incrementally — adding a
@@ -38,42 +26,34 @@ export const usersRoute: FastifyPluginCallback<UsersRouteOptions> = (app, option
   }
   const upsertUserPersonaUseCase = new UpsertUserPersonaUseCase(userRepository)
   const getUserPersonaUseCase = new GetUserPersonaUseCase(userRepository)
-  app.put<{ Params: UserParams; Body: unknown }>(
-    '/:userId/persona',
-    { schema: { params: userParamsSchema } },
-    async (request, reply) => {
-      try {
-        const validationError = validatePersonaBody(request.body)
-        if (validationError !== null) {
-          return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
-        }
-        const output = await upsertUserPersonaUseCase.execute({
-          userId: request.params.userId,
-          persona: request.body as UserPersona,
-        })
-        return await reply.status(200).send(ok<UpsertUserPersonaResponse>(output))
-      } catch (error) {
-        app.log.error({ err: error }, 'Failed to upsert user persona')
-        return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
+  app.put<{ Body: unknown }>('/persona', async (request, reply) => {
+    try {
+      const validationError = validatePersonaBody(request.body)
+      if (validationError !== null) {
+        return await reply.status(400).send(fail('VALIDATION_ERROR', validationError))
       }
-    },
-  )
+      const output = await upsertUserPersonaUseCase.execute({
+        userId: requirePlayerId(request),
+        persona: request.body as UserPersona,
+      })
+      return await reply.status(200).send(ok<UpsertUserPersonaResponse>(output))
+    } catch (error) {
+      app.log.error({ err: error }, 'Failed to upsert user persona')
+      return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
+    }
+  })
 
-  app.get<{ Params: UserParams }>(
-    '/:userId/persona',
-    { schema: { params: userParamsSchema } },
-    async (request, reply) => {
-      try {
-        const output = await getUserPersonaUseCase.execute({
-          userId: request.params.userId,
-        })
-        return await reply.status(200).send(ok<UserPersonaResponse>(output))
-      } catch (error) {
-        app.log.error({ err: error }, 'Failed to get user persona')
-        return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
-      }
-    },
-  )
+  app.get('/persona', async (request, reply) => {
+    try {
+      const output = await getUserPersonaUseCase.execute({
+        userId: requirePlayerId(request),
+      })
+      return await reply.status(200).send(ok<UserPersonaResponse>(output))
+    } catch (error) {
+      app.log.error({ err: error }, 'Failed to get user persona')
+      return await reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
+    }
+  })
 }
 
 function validatePersonaBody(body: unknown): string | null {
