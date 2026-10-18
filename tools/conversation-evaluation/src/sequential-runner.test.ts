@@ -102,6 +102,7 @@ function createClient(fetchMock: FetchLike): CoreApiClient {
   return new CoreApiClient({
     baseUrl: 'https://core.example/',
     apiKey: 'test-key',
+    serviceKey: 'service-key',
     timeoutMs: 1000,
     fetchImpl: fetchMock,
   })

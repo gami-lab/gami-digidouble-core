@@ -85,7 +85,7 @@ Instead, it reads local Markdown files and sends their content as `metadata.inli
 Required:
 
 - `MURDER_PARTY_API_BASE_URL` or `--base-url`
-- `MURDER_PARTY_API_KEY` or `--api-key`
+- `ADMIN_SERVICE_KEY` or `--service-key` (the admin service key configured on Core)
 
 Optional:
 
@@ -98,16 +98,16 @@ Optional:
 
 ```bash
 # Local default target (http://localhost:3000)
-MURDER_PARTY_API_KEY=your-local-key pnpm seed:murder-party:api:local
+ADMIN_SERVICE_KEY=your-local-service-key pnpm seed:murder-party:api:local
 
 # Explicit target (local or production)
 MURDER_PARTY_API_BASE_URL=https://your-core.example.com \
-MURDER_PARTY_API_KEY=your-api-key \
+ADMIN_SERVICE_KEY=your-service-key \
 pnpm seed:murder-party:api
 
 # Production convenience alias (requires env vars)
 MURDER_PARTY_API_BASE_URL=https://your-core.example.com \
-MURDER_PARTY_API_KEY=your-api-key \
+ADMIN_SERVICE_KEY=your-service-key \
 pnpm seed:murder-party:api:prod
 ```
 

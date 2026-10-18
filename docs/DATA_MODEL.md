@@ -27,6 +27,15 @@ and JSON shapes are defined by `infra/postgres/init.sql` and the repository type
 | Embedding profile/corpus | immutable vector profile, generations, reindex progress, active pointer  | Promotion is complete and atomic.                                                                                                                                                                                                                                                                     |
 | Model configuration      | global/role/scenario/avatar model choices                                | `model_config` is a single-row table (one active row); values must come from the shared catalog. Scenario selections are symmetric across `defaultProfile`, `avatarOverride`, `gameMasterOverride`, and `memoryOverride`.                                                                             |
 
+## Redis keys
+
+Redis holds only expiring coordination state:
+
+- `admin_session:{hmac}` — one signed-in admin session; the key is an HMAC of the random cookie
+  value under `ADMIN_SESSION_SECRET`, the value carries nothing, and the Redis expiry
+  (`ADMIN_SESSION_TTL_SECONDS`, default 8 hours) bounds every session.
+- Voice utterance idempotency records, retained at most one day.
+
 ## Relationships
 
 `User -> Sessions -> Scenario`; `Scenario -> Avatars and Knowledge Sources`; `Session ->

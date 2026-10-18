@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, adminRequest } from './client'
+import { ApiError, adminRequest, onSignedOut } from './client'
 
 function jsonResponse(status: number, body: unknown): Response {
   return {
@@ -14,7 +14,7 @@ afterEach(() => {
 })
 
 describe('adminRequest', () => {
-  it('injects the api key header and returns unwrapped data on success', async () => {
+  it('sends the admin session cookie, no API key, and returns unwrapped data', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(jsonResponse(200, { data: { ok: true }, error: null }))
@@ -25,19 +25,29 @@ describe('adminRequest', () => {
     expect(result).toEqual({ ok: true })
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     expect(url).toBe('http://localhost:3000/v1/admin/scenarios')
-    expect((init.headers as Record<string, string>)['x-api-key']).toBeDefined()
+    expect(init.credentials).toBe('include')
+    expect(init.headers as Record<string, string>).not.toHaveProperty('x-api-key')
   })
 
-  it('omits the api key header for /health', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(jsonResponse(200, { data: { ok: true }, error: null }))
-    vi.stubGlobal('fetch', fetchMock)
+  it('reports a signed-out session when Core answers 401', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse(401, {
+          data: null,
+          error: { code: 'UNAUTHORIZED', message: 'Missing or invalid credentials' },
+        }),
+      ),
+    )
+    const listener = vi.fn()
+    const unsubscribe = onSignedOut(listener)
 
-    await adminRequest('GET', '/health')
+    await expect(adminRequest('GET', '/v1/admin/scenarios')).rejects.toMatchObject({
+      code: 'UNAUTHORIZED',
+    })
+    unsubscribe()
 
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect((init.headers as Record<string, string>)['x-api-key']).toBeUndefined()
+    expect(listener).toHaveBeenCalledTimes(1)
   })
 
   it('serializes the request body when provided', async () => {

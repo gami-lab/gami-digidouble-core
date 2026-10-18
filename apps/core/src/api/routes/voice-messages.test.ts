@@ -102,6 +102,7 @@ function makeApp(
 function headers(overrides: Record<string, string> = {}): Record<string, string> {
   return {
     'x-api-key': 'test-secret',
+    'x-admin-service-key': 'test-secret',
     'content-type': 'audio/webm',
     'x-utterance-id': 'utterance_1',
     ...overrides,
@@ -144,7 +145,11 @@ describe('voice message HTTP routes', () => {
     const text = await app.inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload: { message: { content: 'Text still works' } },
     })
 
@@ -425,23 +430,21 @@ describe('voice message HTTP routes', () => {
     const llm = new InterruptibleLlmAdapter()
     const messageRepository = new InMemoryMessageRepository()
     const { app } = makeApp(makeSpeechAdapter(), llm, messageRepository)
-    app.addHook('preHandler', (request, _reply, done) => {
+    app.addHook('preHandler', (request, reply, done) => {
       if (request.url.endsWith('/voice-messages/stream'))
-        setImmediate(() => request.raw.emit('close'))
+        setImmediate(() => reply.raw.emit('close'))
       done()
     })
 
-    const response = await app.inject({
-      method: 'POST',
-      url: '/v1/conversations/conversation_1/voice-messages/stream',
-      headers: headers(),
-      payload: Buffer.from([1]),
-    })
+    await expect(
+      app.inject({
+        method: 'POST',
+        url: '/v1/conversations/conversation_1/voice-messages/stream',
+        headers: headers(),
+        payload: Buffer.from([1]),
+      }),
+    ).rejects.toThrow('response destroyed')
 
-    expect(response.statusCode).toBe(200)
-    const events = parseEvents(response.body)
-    expect(events.at(-1)?.type).toBe('conversation.message.interrupted')
-    expect(events.some((event) => event.type === 'conversation.message.completed')).toBe(false)
     await llm.abortObserved
     await llm.iteratorClosed
     const messages = await messageRepository.findByConversationId('conversation_1')
@@ -456,19 +459,20 @@ describe('voice message HTTP routes', () => {
       new NullLlmAdapter('Avatar reply', 'null-model'),
       messageRepository,
     )
-    app.addHook('preHandler', (request, _reply, done) => {
-      if (request.url.endsWith('/voice-messages')) setImmediate(() => request.raw.emit('close'))
+    app.addHook('preHandler', (request, reply, done) => {
+      if (request.url.endsWith('/voice-messages')) setImmediate(() => reply.raw.emit('close'))
       done()
     })
 
-    const response = await app.inject({
-      method: 'POST',
-      url: '/v1/conversations/conversation_1/voice-messages',
-      headers: headers(),
-      payload: Buffer.from([1]),
-    })
+    await expect(
+      app.inject({
+        method: 'POST',
+        url: '/v1/conversations/conversation_1/voice-messages',
+        headers: headers(),
+        payload: Buffer.from([1]),
+      }),
+    ).rejects.toThrow('response destroyed')
 
-    expect([409, 500]).toContain(response.statusCode)
     await speech.abortObserved
     const messages = await messageRepository.findByConversationId('conversation_1')
     expect(messages).toHaveLength(0)

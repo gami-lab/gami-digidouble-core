@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
-const API_KEY = 'e2e-stack-secret'
+const API_KEY = 'e2e-stack-secret-0123456789abcdef0123'
 
 function authHeaders(apiKey = API_KEY): Record<string, string> {
   return {
     'content-type': 'application/json',
     'x-api-key': apiKey,
+    'x-admin-service-key': apiKey,
   }
 }
 
@@ -58,7 +59,7 @@ describe('Stack E2E — knowledge routes — validation', () => {
       `${APP_URL}/v1/admin/scenarios/scenario_test/knowledge-sources?knowledgeType=invalid`,
       {
         method: 'GET',
-        headers: { 'x-api-key': API_KEY },
+        headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
       },
     )
 
@@ -111,7 +112,7 @@ describe('Stack E2E — knowledge routes — not found baseline', () => {
   it('returns 404 for unknown ingestion job', async () => {
     const res = await fetch(`${APP_URL}/v1/admin/ingestion-jobs/job_missing`, {
       method: 'GET',
-      headers: { 'x-api-key': API_KEY },
+      headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
     })
 
     expect(res.status).toBe(404)
@@ -124,7 +125,7 @@ async function waitForJob(ingestionJobId: string): Promise<{ status: string }> {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const res = await fetch(`${APP_URL}/v1/admin/ingestion-jobs/${ingestionJobId}`, {
       method: 'GET',
-      headers: { 'x-api-key': API_KEY },
+      headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
     })
     if (res.status !== 200) throw new Error(`Failed to get ingestion job ${ingestionJobId}`)
     const body = (await res.json()) as { data: { ingestionJob: { status: string } } }
@@ -154,7 +155,7 @@ async function ensureActiveKnowledgeCorpus(): Promise<void> {
   for (let attempt = 0; attempt < 60; attempt += 1) {
     const statusRes = await fetch(`${APP_URL}/v1/admin/knowledge/reindex/${operationId}`, {
       method: 'GET',
-      headers: { 'x-api-key': API_KEY },
+      headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
     })
     expect(statusRes.status).toBe(200)
     const statusBody = (await statusRes.json()) as {
@@ -236,7 +237,7 @@ async function seedReadyWorldKnowledgeSource(args: {
 async function deleteScenario(scenarioId: string): Promise<void> {
   await fetch(`${APP_URL}/v1/admin/scenarios/${scenarioId}`, {
     method: 'DELETE',
-    headers: { 'x-api-key': API_KEY },
+    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
   })
 }
 

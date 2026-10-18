@@ -96,3 +96,66 @@ describe('loadConfig Deepgram settings', () => {
     expect(() => loadConfig()).toThrow(`Invalid ${key}`)
   })
 })
+
+describe('loadConfig admin authentication settings', () => {
+  const validHash = `scrypt:${Buffer.alloc(16, 1).toString('base64url')}:${Buffer.alloc(64, 2).toString('base64url')}`
+  const longSecret = 'x'.repeat(32)
+
+  beforeEach(() => {
+    vi.stubEnv('DATABASE_URL', 'postgresql://test')
+    vi.stubEnv('REDIS_URL', 'redis://test')
+    vi.stubEnv('API_KEY_SECRET', 'test-secret')
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('ADMIN_PASSWORD_HASH', validHash)
+    vi.stubEnv('ADMIN_SESSION_SECRET', longSecret)
+    vi.stubEnv('ADMIN_SERVICE_KEY', longSecret)
+    vi.stubEnv('ADMIN_ORIGINS', 'https://app.example.com, https://console.example.com')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('loads every admin credential and origin in production', () => {
+    const config = loadConfig()
+
+    expect(config.adminPasswordHash).toBe(validHash)
+    expect(config.adminServiceKey).toBe(longSecret)
+    expect(config.adminSessionTtlSeconds).toBe(8 * 60 * 60)
+    expect(config.adminOrigins).toEqual(['https://app.example.com', 'https://console.example.com'])
+  })
+
+  it.each(['ADMIN_PASSWORD_HASH', 'ADMIN_SESSION_SECRET', 'ADMIN_SERVICE_KEY'])(
+    'refuses to start in production without %s',
+    (key) => {
+      vi.stubEnv(key, '')
+
+      expect(() => loadConfig()).toThrow(`Missing required environment variable: ${key}`)
+    },
+  )
+
+  it.each(['ADMIN_SESSION_SECRET', 'ADMIN_SERVICE_KEY'])('rejects a short %s', (key) => {
+    vi.stubEnv(key, 'too-short')
+
+    expect(() => loadConfig()).toThrow(`Invalid ${key}`)
+  })
+
+  it('rejects a password hash that is not a scrypt hash', () => {
+    vi.stubEnv('ADMIN_PASSWORD_HASH', 'plain-password')
+
+    expect(() => loadConfig()).toThrow('Invalid ADMIN_PASSWORD_HASH')
+  })
+
+  it('lets development run without admin credentials', () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    vi.stubEnv('ADMIN_PASSWORD_HASH', '')
+    vi.stubEnv('ADMIN_SESSION_SECRET', '')
+    vi.stubEnv('ADMIN_SERVICE_KEY', '')
+
+    const config = loadConfig()
+
+    expect(config.adminPasswordHash).toBeUndefined()
+    expect(config.adminServiceKey).toBeUndefined()
+    expect(config.adminSessionSecret.length).toBeGreaterThanOrEqual(32)
+  })
+})

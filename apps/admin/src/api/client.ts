@@ -4,12 +4,25 @@ import {
   isApiResponseEnvelope,
   normalizeApiPath,
   normalizeApiUrl,
-  shouldInjectApiKey,
 } from '@gami/shared'
-import { apiKey, apiUrl } from '../env'
+import { apiUrl } from '../env'
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 export { ApiError }
+
+const signedOutListeners = new Set<() => void>()
+
+/** Runs `listener` whenever Core reports the admin session as missing or expired. */
+export function onSignedOut(listener: () => void): () => void {
+  signedOutListeners.add(listener)
+  return () => {
+    signedOutListeners.delete(listener)
+  }
+}
+
+export function notifySignedOut(): void {
+  for (const listener of signedOutListeners) listener()
+}
 
 export async function adminRequest<T>(
   method: HttpMethod,
@@ -21,7 +34,6 @@ export async function adminRequest<T>(
 
   const headers: HeadersInit = {
     ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-    ...(shouldInjectApiKey(normalizedPath) ? { 'x-api-key': apiKey } : {}),
   }
 
   let response: Response
@@ -29,6 +41,7 @@ export async function adminRequest<T>(
     response = await fetch(url, {
       method,
       headers,
+      credentials: 'include',
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     })
   } catch {
@@ -47,6 +60,7 @@ export async function adminRequest<T>(
   }
 
   if (payload.error !== null) {
+    if (response.status === 401) notifySignedOut()
     throw createApiError(payload.error)
   }
 

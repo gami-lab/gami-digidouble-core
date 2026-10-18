@@ -8,6 +8,8 @@ import {
   TEXT_TO_SPEECH_PROVIDER_NAMES,
   type TextToSpeechProviderName,
 } from '@gami/shared'
+import { randomBytes } from 'node:crypto'
+import { isPasswordHash } from './application/auth/password-hash.js'
 import {
   normalizeSpeechToTextLanguage,
   SPEECH_TO_TEXT_LIMITS,
@@ -27,6 +29,15 @@ export interface Config {
   redisUrl: string
   apiKeySecret: string
   corsOrigin: string
+  /** `scrypt:` hash of the single operator password; admin sign-in is disabled when absent. */
+  adminPasswordHash: string | undefined
+  /** Keys admin sessions in Redis so a store dump holds no usable cookie value. */
+  adminSessionSecret: string
+  adminSessionTtlSeconds: number
+  /** Server-side credential for tools; never part of a browser bundle. */
+  adminServiceKey: string | undefined
+  /** Browser origins allowed to make credentialed admin requests (CORS and CSRF origin check). */
+  adminOrigins: string[]
   llmProvider: string
   embeddingProvider: string
   embeddingModel: string
@@ -65,6 +76,8 @@ export const DEFAULT_DEEPGRAM_LANGUAGE = 'en'
 export const DEFAULT_TTS_PROVIDER = 'gradium'
 export const DEFAULT_GRADIUM_BASE_URL = 'https://api.gradium.ai/api'
 export const DEFAULT_GRADIUM_TIMEOUT_MS = 30_000
+export const DEFAULT_ADMIN_SESSION_TTL_SECONDS = 8 * 60 * 60
+export const MIN_ADMIN_SECRET_LENGTH = 32
 
 function requireEnv(key: string): string {
   const value = process.env[key]
@@ -84,6 +97,7 @@ export function loadConfig(): Config {
     redisUrl: requireEnv('REDIS_URL'),
     apiKeySecret: requireEnv('API_KEY_SECRET'),
     corsOrigin: process.env['CORS_ORIGIN'] ?? '*',
+    ...loadAdminAuthConfig(process.env['NODE_ENV'] === 'production'),
     llmProvider: process.env['LLM_PROVIDER'] ?? 'null',
     embeddingProvider: process.env['EMBEDDING_PROVIDER'] ?? DEFAULT_EMBEDDING_PROVIDER,
     embeddingModel: process.env['EMBEDDING_MODEL'] ?? DEFAULT_EMBEDDING_MODEL,
@@ -149,7 +163,65 @@ export function loadConfig(): Config {
     langfusePublicKey: process.env['LANGFUSE_PUBLIC_KEY'],
     langfuseSecretKey: process.env['LANGFUSE_SECRET_KEY'],
     langfuseHost: process.env['LANGFUSE_BASE_URL'],
-    knowledgeSourceAllowedRoots: parseAllowedRoots(process.env['KNOWLEDGE_SOURCE_ALLOWED_ROOTS']),
+    knowledgeSourceAllowedRoots: parseList(process.env['KNOWLEDGE_SOURCE_ALLOWED_ROOTS']),
+  }
+}
+
+type AdminAuthConfig = Pick<
+  Config,
+  | 'adminPasswordHash'
+  | 'adminSessionSecret'
+  | 'adminSessionTtlSeconds'
+  | 'adminServiceKey'
+  | 'adminOrigins'
+>
+
+/** Production refuses to start without every admin credential; development may omit them. */
+function loadAdminAuthConfig(isProduction: boolean): AdminAuthConfig {
+  const passwordHash = optionalEnv('ADMIN_PASSWORD_HASH')
+  const sessionSecret = optionalEnv('ADMIN_SESSION_SECRET')
+  const serviceKey = optionalEnv('ADMIN_SERVICE_KEY')
+
+  if (isProduction) {
+    for (const [key, value] of [
+      ['ADMIN_PASSWORD_HASH', passwordHash],
+      ['ADMIN_SESSION_SECRET', sessionSecret],
+      ['ADMIN_SERVICE_KEY', serviceKey],
+    ] as const) {
+      if (value === undefined) throw new Error(`Missing required environment variable: ${key}`)
+    }
+  }
+  if (passwordHash !== undefined && !isPasswordHash(passwordHash)) {
+    throw new Error('Invalid ADMIN_PASSWORD_HASH: expected the output of hash-admin-password.')
+  }
+  requireSecretLength('ADMIN_SESSION_SECRET', sessionSecret)
+  requireSecretLength('ADMIN_SERVICE_KEY', serviceKey)
+
+  return {
+    adminPasswordHash: passwordHash,
+    adminSessionSecret: sessionSecret ?? randomBytes(MIN_ADMIN_SECRET_LENGTH).toString('base64url'),
+    adminSessionTtlSeconds: parseBoundedPositiveInteger(
+      'ADMIN_SESSION_TTL_SECONDS',
+      process.env['ADMIN_SESSION_TTL_SECONDS'],
+      DEFAULT_ADMIN_SESSION_TTL_SECONDS,
+      60,
+      7 * 24 * 60 * 60,
+    ),
+    adminServiceKey: serviceKey,
+    adminOrigins: parseList(process.env['ADMIN_ORIGINS']),
+  }
+}
+
+function optionalEnv(key: string): string | undefined {
+  const value = process.env[key]?.trim()
+  return value === undefined || value.length === 0 ? undefined : value
+}
+
+function requireSecretLength(key: string, value: string | undefined): void {
+  if (value !== undefined && value.length < MIN_ADMIN_SECRET_LENGTH) {
+    throw new Error(
+      `Invalid ${key}: expected at least ${String(MIN_ADMIN_SECRET_LENGTH)} characters.`,
+    )
   }
 }
 
@@ -228,10 +300,10 @@ function parseUrl(key: string, value: string | undefined, fallback: string): str
   return normalized
 }
 
-function parseAllowedRoots(value: string | undefined): string[] {
+function parseList(value: string | undefined): string[] {
   if (value === undefined || value.trim().length === 0) return []
   return value
     .split(',')
-    .map((root) => root.trim())
-    .filter((root) => root.length > 0)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
 }

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, coreRequest } from './client'
+import { ApiError, coreRequest, onSignedOut } from './client'
 
 function jsonResponse(status: number, body: unknown): Response {
   return {
@@ -26,7 +26,40 @@ describe('coreRequest', () => {
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     expect(url).toBe('http://localhost:3000/v1/admin/scenarios')
+    expect(init.credentials).toBe('include')
+    expect(new Headers(init.headers).get('x-api-key')).toBeNull()
+  })
+
+  it('sends the player API key on public routes only', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { data: { ok: true }, error: null }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await coreRequest('GET', '/v1/sessions/session_1/conversations')
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     expect(new Headers(init.headers).get('x-api-key')).toEqual(expect.any(String))
+  })
+
+  it('reports a signed-out admin session when an admin route answers 401', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse(401, { data: null, error: { code: 'UNAUTHORIZED', message: 'No' } }),
+        ),
+    )
+    const listener = vi.fn()
+    const unsubscribe = onSignedOut(listener)
+
+    await expect(coreRequest('GET', '/v1/admin/scenarios')).rejects.toMatchObject({
+      code: 'UNAUTHORIZED',
+    })
+    unsubscribe()
+
+    expect(listener).toHaveBeenCalledTimes(1)
   })
 
   it('omits the API key only for the health path', async () => {
@@ -40,7 +73,9 @@ describe('coreRequest', () => {
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     expect(new Headers(init.headers).get('x-api-key')).toBeNull()
   })
+})
 
+describe('coreRequest request and response contract', () => {
   it('serializes request bodies and preserves the JSON request contract', async () => {
     const fetchMock = vi
       .fn()
@@ -55,7 +90,7 @@ describe('coreRequest', () => {
     expect(new Headers(init.headers).get('Content-Type')).toBe('application/json')
   })
 
-  it('keeps JSON content type for bodyless actions', async () => {
+  it('omits the JSON content type for bodyless actions', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(jsonResponse(200, { data: { ok: true }, error: null }))
@@ -65,7 +100,7 @@ describe('coreRequest', () => {
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     expect(init.body).toBeUndefined()
-    expect(new Headers(init.headers).get('Content-Type')).toBe('application/json')
+    expect(new Headers(init.headers).get('Content-Type')).toBeNull()
   })
 
   it('maps API errors, malformed responses, and unsuccessful envelopes to client errors', async () => {

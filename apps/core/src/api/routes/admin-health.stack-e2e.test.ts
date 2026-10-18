@@ -3,7 +3,7 @@ import type { ApiResponse } from '@gami/shared'
 import type { HealthReport, HealthStatus } from '../../domain/health/index.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
-const API_KEY = 'e2e-stack-secret'
+const API_KEY = 'e2e-stack-secret-0123456789abcdef0123'
 
 function isHealthStatus(value: string): value is HealthStatus {
   return value === 'healthy' || value === 'degraded' || value === 'unknown'
@@ -17,7 +17,7 @@ describe('Stack E2E — GET /v1/admin/health — auth', () => {
 
   it('rejects requests with wrong API key (401)', async () => {
     const response = await fetch(`${APP_URL}/v1/admin/health`, {
-      headers: { 'x-api-key': 'wrong-key' },
+      headers: { 'x-api-key': 'wrong-key', 'x-admin-service-key': 'wrong-key' },
     })
     expect(response.status).toBe(401)
   })
@@ -26,7 +26,7 @@ describe('Stack E2E — GET /v1/admin/health — auth', () => {
 describe('Stack E2E — GET /v1/admin/health — shape', () => {
   it('returns 200 with correct HealthReport shape', async () => {
     const response = await fetch(`${APP_URL}/v1/admin/health`, {
-      headers: { 'x-api-key': API_KEY },
+      headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
     })
 
     expect(response.status).toBe(200)

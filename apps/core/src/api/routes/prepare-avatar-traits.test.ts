@@ -41,7 +41,7 @@ async function createScenarioAndAvatar(
   const createScenarioResponse = await app.inject({
     method: 'POST',
     url: '/v1/admin/scenarios',
-    headers: { 'x-api-key': 'test-secret' },
+    headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     payload: { name: 'Trait Prep Scenario' },
   })
   const scenarioId =
@@ -51,7 +51,7 @@ async function createScenarioAndAvatar(
   const createAvatarResponse = await app.inject({
     method: 'POST',
     url: `/v1/admin/scenarios/${scenarioId}/avatars`,
-    headers: { 'x-api-key': 'test-secret' },
+    headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     payload: { name: 'Ava', personaPrompt: 'You are Ava, a warm local guide.' },
   })
   const avatarId =
@@ -77,7 +77,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — auth', 
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/admin/scenarios/scenario_unknown/prepare-avatar-traits',
-      headers: { 'x-api-key': 'wrong-secret' },
+      headers: { 'x-api-key': 'wrong-secret', 'x-admin-service-key': 'wrong-secret' },
     })
 
     expect(response.statusCode).toBe(401)
@@ -102,7 +102,11 @@ describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — validat
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/admin/scenarios/scenario_unknown/prepare-avatar-traits',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload,
     })
 
@@ -116,7 +120,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — validat
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/admin/scenarios/scenario_unknown/prepare-avatar-traits',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).not.toBe(400)
@@ -128,7 +132,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — resourc
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
       url: '/v1/admin/scenarios/scenario_unknown/prepare-avatar-traits',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(404)
@@ -146,7 +150,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — success
     const listBeforeResponse = await app.inject({
       method: 'GET',
       url: `/v1/admin/scenarios/${scenarioId}/avatars`,
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
     const listBeforeBody = listBeforeResponse.json<ApiResponse<ListScenarioAvatarsResponse>>()
     expect(listBeforeBody.data?.avatars.find((a) => a.avatarId === avatarId)?.computedTraits).toBe(
@@ -156,7 +160,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — success
     const prepareResponse = await app.inject({
       method: 'POST',
       url: `/v1/admin/scenarios/${scenarioId}/prepare-avatar-traits`,
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(prepareResponse.statusCode).toBe(200)
@@ -170,7 +174,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — success
     const listAfterResponse = await app.inject({
       method: 'GET',
       url: `/v1/admin/scenarios/${scenarioId}/avatars`,
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
     const listAfterBody = listAfterResponse.json<ApiResponse<ListScenarioAvatarsResponse>>()
     expect(
@@ -183,7 +187,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — success
     const createScenarioResponse = await app.inject({
       method: 'POST',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { name: 'Empty Scenario' },
     })
     const scenarioId =
@@ -193,7 +197,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — success
     const response = await app.inject({
       method: 'POST',
       url: `/v1/admin/scenarios/${scenarioId}/prepare-avatar-traits`,
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(200)
@@ -211,7 +215,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — avatar 
     const response = await app.inject({
       method: 'POST',
       url: `/v1/admin/scenarios/${scenarioId}/prepare-avatar-traits`,
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload,
     })
     return {
@@ -226,7 +230,7 @@ describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — avatar 
     await app.inject({
       method: 'POST',
       url: `/v1/admin/scenarios/${scenarioId}/avatars`,
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { name: 'Theo', personaPrompt: 'You are Theo.' },
     })
 

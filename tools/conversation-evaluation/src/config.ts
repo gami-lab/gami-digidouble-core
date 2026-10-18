@@ -6,6 +6,7 @@ export type EvaluationConfig = {
   definitionPath: string
   avatarApiBaseUrl: string
   apiKey: string
+  serviceKey: string
   judgeBaseUrl?: string
   outputPath: string
   timeoutMs: number
@@ -17,6 +18,7 @@ export type EvaluationCliOptions = {
   definition?: string
   'avatar-api-base-url'?: string
   'api-key'?: string
+  'service-key'?: string
   'judge-base-url'?: string
   output?: string
   'timeout-ms'?: string
@@ -43,6 +45,7 @@ const OPTION_NAMES = new Set([
   'definition',
   'avatar-api-base-url',
   'api-key',
+  'service-key',
   'judge-base-url',
   'output',
   'timeout-ms',
@@ -162,6 +165,16 @@ export function loadEvaluationConfig(
     resolveValue(options, 'api-key', environment, 'EVALUATION_API_KEY', 'API_KEY'),
     'Missing API key. Use --api-key, EVALUATION_API_KEY, or API_KEY.',
   )
+  const serviceKey = requireNonEmpty(
+    resolveValue(
+      options,
+      'service-key',
+      environment,
+      'EVALUATION_SERVICE_KEY',
+      'ADMIN_SERVICE_KEY',
+    ),
+    'Missing admin service key. Use --service-key, EVALUATION_SERVICE_KEY, or ADMIN_SERVICE_KEY.',
+  )
   const judgeBaseUrl = readUrl(
     resolveValue(options, 'judge-base-url', environment, 'JUDGE_API_BASE_URL'),
     'Judge base URL',
@@ -185,6 +198,7 @@ export function loadEvaluationConfig(
     definitionPath,
     avatarApiBaseUrl,
     apiKey,
+    serviceKey,
     ...(judgeBaseUrl !== undefined ? { judgeBaseUrl } : {}),
     outputPath,
     timeoutMs,

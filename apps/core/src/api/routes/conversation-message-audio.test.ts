@@ -137,6 +137,7 @@ function createApp(tts: ITextToSpeechAdapter, extraMessages: Message[] = []) {
 function headers(overrides: Record<string, string> = {}): Record<string, string> {
   return {
     'x-api-key': 'test-secret',
+    'x-admin-service-key': 'test-secret',
     'content-type': 'application/json',
     ...overrides,
   }
@@ -161,7 +162,7 @@ function expectError(
 describe('conversation message audio route', () => {
   it.each([
     [{}, 401],
-    [{ 'x-api-key': 'wrong-secret' }, 401],
+    [{ 'x-api-key': 'wrong-secret', 'x-admin-service-key': 'wrong-secret' }, 401],
   ] as const)('rejects unauthorized requests', async (authHeaders, status) => {
     const app = createApp(createTtsAdapter())
     const response = await app.inject({

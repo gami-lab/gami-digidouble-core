@@ -1,4 +1,5 @@
 import type { JSX } from 'react'
+import { signOut } from './api/auth'
 import { apiUrl } from './env'
 import { ScenarioListPage } from './pages/ScenarioListPage'
 import { ScenarioPage } from './pages/ScenarioPage'
@@ -16,6 +17,14 @@ function App(): JSX.Element {
           Gami debug console
         </Link>
         <span className="muted small mono">{apiUrl}</span>
+        <button
+          type="button"
+          onClick={() => {
+            void signOut()
+          }}
+        >
+          Sign out
+        </button>
       </header>
       {route.name === 'scenarios' ? <ScenarioListPage /> : null}
       {route.name === 'scenario' ? <ScenarioPage route={route} /> : null}

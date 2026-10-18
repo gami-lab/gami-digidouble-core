@@ -1,5 +1,6 @@
 // Canonical read shape — imported (not re-declared) so this seed script picks up
 // AvatarSummary changes (e.g. computedTraits) automatically.
+import { ADMIN_SERVICE_KEY_HEADER } from '@gami/shared'
 import type {
   ApiResponse,
   AvatarSummary,
@@ -51,7 +52,7 @@ export type ScenarioSummary = {
 
 export type CliOptions = {
   baseUrl: string
-  apiKey: string
+  serviceKey: string
   scenarioName: string
   pollIntervalMs: number
   pollTimeoutMs: number
@@ -117,7 +118,7 @@ export class ApiClient {
     const response = await fetch(`${this.options.baseUrl}${path}`, {
       method,
       headers: {
-        'x-api-key': this.options.apiKey,
+        [ADMIN_SERVICE_KEY_HEADER]: this.options.serviceKey,
         ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),

@@ -39,6 +39,8 @@ Every route declares one tier: `public` (player), `admin` (authoring, operators,
 ## Open routes
 
 - `GET /health`
+- `POST /v1/admin/auth/login` — `AdminLoginRequest` (`password`); sets the admin session cookie.
+  A wrong password returns `401 UNAUTHORIZED` with no hint about what was wrong.
 
 ## Public routes
 
@@ -83,7 +85,15 @@ the scenario afterwards stay locked for existing sessions.
 
 ## Admin routes
 
-All admin routes use `/v1/admin/*`.
+All admin routes use `/v1/admin/*` and accept only an admin session cookie or the
+`x-admin-service-key` header; the player credential is never accepted. A cookie-authenticated
+`POST`/`PUT`/`PATCH`/`DELETE` from an origin outside `ADMIN_ORIGINS` (or with no `Origin`) returns
+`403 FORBIDDEN`.
+
+### Admin authentication
+
+- `POST /v1/admin/auth/logout` — ends the cookie session and clears the cookie.
+- `GET /v1/admin/auth/me` — `AdminMeResponse` (`authenticatedBy: 'session' | 'service_key'`).
 
 ### Raw exchange
 

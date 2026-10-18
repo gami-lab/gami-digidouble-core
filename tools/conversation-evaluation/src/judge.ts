@@ -1,4 +1,5 @@
 import {
+  ADMIN_SERVICE_KEY_HEADER,
   isApiResponseEnvelope,
   type ModelSelectionOverride,
   type RawExchangeResponse,
@@ -99,7 +100,7 @@ export type JudgeInput = {
 
 export type JudgeClientOptions = {
   baseUrl: string
-  apiKey: string
+  serviceKey: string
   timeoutMs: number
   model?: string
   fetchImpl?: FetchLike
@@ -336,14 +337,14 @@ export function parseJudgeResult(reply: string): JudgeResult {
 
 export class SemanticJudgeClient {
   private readonly baseUrl: string
-  private readonly apiKey: string
+  private readonly serviceKey: string
   private readonly timeoutMs: number
   private readonly modelOverride: ModelSelectionOverride | undefined
   private readonly fetchImpl: FetchLike
 
   constructor(options: JudgeClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/+$/, '')
-    this.apiKey = options.apiKey
+    this.serviceKey = options.serviceKey
     this.timeoutMs = options.timeoutMs
     this.modelOverride = options.model === undefined ? undefined : parseJudgeModel(options.model)
     this.fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis)
@@ -382,7 +383,7 @@ export class SemanticJudgeClient {
           headers: {
             Accept: 'application/json',
             'Content-Type': 'application/json',
-            'x-api-key': this.apiKey,
+            [ADMIN_SERVICE_KEY_HEADER]: this.serviceKey,
           },
           signal: controller.signal,
           body: JSON.stringify({

@@ -55,7 +55,7 @@ export const voiceMessagesRoute: FastifyPluginCallback<VoiceMessagesRouteOptions
       const onClose = (): void => {
         abortController.abort()
       }
-      request.raw.once('close', onClose)
+      reply.raw.once('close', onClose)
       try {
         if (options.voiceTurnUseCase === undefined) {
           return await reply
@@ -70,7 +70,7 @@ export const voiceMessagesRoute: FastifyPluginCallback<VoiceMessagesRouteOptions
         const mappedError = handleRouteError(error)
         return await reply.status(mappedError.statusCode).send(mappedError.body)
       } finally {
-        request.raw.off('close', onClose)
+        reply.raw.off('close', onClose)
         abortController.abort()
       }
     },
@@ -93,7 +93,7 @@ export const voiceMessagesRoute: FastifyPluginCallback<VoiceMessagesRouteOptions
       const onClose = (): void => {
         abortController.abort()
       }
-      request.raw.once('close', onClose)
+      reply.raw.once('close', onClose)
       let iterator: AsyncIterator<StreamingSendMessageEvent> | undefined
       let responseStarted = false
       let streamRequestId: string | undefined
@@ -139,7 +139,7 @@ export const voiceMessagesRoute: FastifyPluginCallback<VoiceMessagesRouteOptions
           reply.raw.end()
         }
       } finally {
-        request.raw.off('close', onClose)
+        reply.raw.off('close', onClose)
         abortController.abort()
         await iterator?.return?.()
       }

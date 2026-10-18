@@ -21,7 +21,7 @@ function createApp(adapters: Parameters<typeof createServer>[1] = {}): FastifyIn
   return app
 }
 
-const headers = { 'x-api-key': 'test-secret' }
+const headers = { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' }
 
 describe('GET /v1/admin/voices', () => {
   it('requires the API key', async () => {

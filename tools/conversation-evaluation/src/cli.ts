@@ -51,11 +51,12 @@ export async function runCli(
     const avatarClient = new CoreApiClient({
       baseUrl: config.avatarApiBaseUrl,
       apiKey: config.apiKey,
+      serviceKey: config.serviceKey,
       timeoutMs: config.timeoutMs,
     })
     const judgeClient = new SemanticJudgeClient({
       baseUrl: config.judgeBaseUrl ?? config.avatarApiBaseUrl,
-      apiKey: config.apiKey,
+      serviceKey: config.serviceKey,
       timeoutMs: config.timeoutMs,
       ...(definition.judgeModel === undefined ? {} : { model: definition.judgeModel }),
     })
@@ -177,6 +178,7 @@ function printHelp(io: CliIo): void {
       '  --definition <path>              or EVALUATION_DEFINITION_PATH',
       '  --avatar-api-base-url <url>      or AVATAR_API_BASE_URL',
       '  --api-key <key>                  or EVALUATION_API_KEY / API_KEY',
+      '  --service-key <key>              or EVALUATION_SERVICE_KEY / ADMIN_SERVICE_KEY',
       '  --judge-base-url <url>           or JUDGE_API_BASE_URL',
       '  --output <path>                  or EVALUATION_OUTPUT_PATH',
       '  --timeout-ms <milliseconds>      or EVALUATION_TIMEOUT_MS',

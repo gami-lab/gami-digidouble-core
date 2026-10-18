@@ -75,8 +75,11 @@ async function makeApp(adapter = new TestEmbeddingAdapter()) {
   return { app, adapter }
 }
 
-function authHeaders(apiKey = 'test-secret'): { 'x-api-key': string } {
-  return { 'x-api-key': apiKey }
+function authHeaders(apiKey = 'test-secret'): {
+  'x-api-key': string
+  'x-admin-service-key': string
+} {
+  return { 'x-api-key': apiKey, 'x-admin-service-key': apiKey }
 }
 
 async function waitForOperation(app: FastifyInstance, operationId: string, status: string) {
@@ -107,7 +110,7 @@ describe('Admin knowledge reindex routes', () => {
       app.inject({
         method: 'POST',
         url: '/v1/admin/knowledge/reindex',
-        headers: { 'x-api-key': 'wrong-secret' },
+        headers: { 'x-api-key': 'wrong-secret', 'x-admin-service-key': 'wrong-secret' },
         payload: {},
       }),
     ).resolves.toMatchObject({ statusCode: 401 })
@@ -125,7 +128,7 @@ describe('Admin knowledge reindex routes', () => {
       app.inject({
         method: 'GET',
         url: '/v1/admin/knowledge/reindex/reindex_operation_missing',
-        headers: { 'x-api-key': 'wrong-secret' },
+        headers: { 'x-api-key': 'wrong-secret', 'x-admin-service-key': 'wrong-secret' },
       }),
     ).resolves.toMatchObject({ statusCode: 401 })
   })
@@ -143,7 +146,7 @@ describe('Admin knowledge reindex routes', () => {
       app.inject({
         method: 'POST',
         url: '/v1/admin/knowledge/reindex/reindex_operation_missing/retry',
-        headers: { 'x-api-key': 'wrong-secret' },
+        headers: { 'x-api-key': 'wrong-secret', 'x-admin-service-key': 'wrong-secret' },
         payload: {},
       }),
     ).resolves.toMatchObject({ statusCode: 401 })

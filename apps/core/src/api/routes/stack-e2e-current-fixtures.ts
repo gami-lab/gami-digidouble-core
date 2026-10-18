@@ -22,7 +22,7 @@ export async function prepareAndActivateAvatar(args: {
     `${args.appUrl}/v1/admin/scenarios/${args.scenarioId}/prepare-avatar-traits`,
     {
       method: 'POST',
-      headers: { 'x-api-key': args.apiKey },
+      headers: { 'x-api-key': args.apiKey, 'x-admin-service-key': args.apiKey },
     },
   )
   const prepareBody = (await prepareResponse.json()) as ApiResponse<PrepareAvatarTraitsResponse>
@@ -39,6 +39,7 @@ export async function prepareAndActivateAvatar(args: {
     headers: {
       'content-type': 'application/json',
       'x-api-key': args.apiKey,
+      'x-admin-service-key': args.apiKey,
     },
     body: JSON.stringify({ status: 'active' }),
   })

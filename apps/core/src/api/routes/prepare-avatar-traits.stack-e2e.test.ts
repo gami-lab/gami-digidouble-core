@@ -12,19 +12,20 @@ import {
 } from '@gami/shared'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
-const API_KEY = 'e2e-stack-secret'
+const API_KEY = 'e2e-stack-secret-0123456789abcdef0123'
 const UNKNOWN_ENDPOINT = `${APP_URL}/v1/admin/scenarios/scenario_unknown/prepare-avatar-traits`
 
 function authHeaders(apiKey = API_KEY): Record<string, string> {
   return {
     'content-type': 'application/json',
     'x-api-key': apiKey,
+    'x-admin-service-key': apiKey,
   }
 }
 
 // This endpoint takes no request body, so no-body requests omit content-type.
 function noBodyAuthHeaders(apiKey = API_KEY): Record<string, string> {
-  return { 'x-api-key': apiKey }
+  return { 'x-api-key': apiKey, 'x-admin-service-key': apiKey }
 }
 
 describe('Stack E2E — POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — auth', () => {
@@ -131,14 +132,14 @@ async function createKnowledgeSource(args: {
 async function deleteAvatar(avatarId: string): Promise<void> {
   await fetch(`${APP_URL}/v1/admin/avatars/${avatarId}`, {
     method: 'DELETE',
-    headers: { 'x-api-key': API_KEY },
+    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
   })
 }
 
 async function deleteScenario(scenarioId: string): Promise<void> {
   await fetch(`${APP_URL}/v1/admin/scenarios/${scenarioId}`, {
     method: 'DELETE',
-    headers: { 'x-api-key': API_KEY },
+    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
   })
 }
 
@@ -201,7 +202,7 @@ async function listScenarioAvatar(
 ): Promise<ListScenarioAvatarsResponse['avatars'][number] | undefined> {
   const listRes = await fetch(`${APP_URL}/v1/admin/scenarios/${scenarioId}/avatars`, {
     method: 'GET',
-    headers: { 'x-api-key': API_KEY },
+    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
   })
   const listBody = (await listRes.json()) as ApiResponse<ListScenarioAvatarsResponse>
   return listBody.data?.avatars.find((avatar) => avatar.avatarId === avatarId)
@@ -239,7 +240,7 @@ describe('Stack E2E — POST /v1/admin/scenarios/:scenarioId/prepare-avatar-trai
 
       const listRes = await fetch(`${APP_URL}/v1/admin/scenarios/${scenarioId}/avatars`, {
         method: 'GET',
-        headers: { 'x-api-key': API_KEY },
+        headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
       })
       const listBody = (await listRes.json()) as ApiResponse<ListScenarioAvatarsResponse>
       const listedAvatar = listBody.data?.avatars.find((a) => a.avatarId === avatarId)

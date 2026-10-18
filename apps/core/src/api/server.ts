@@ -1,5 +1,5 @@
 import Fastify, { type FastifyInstance } from 'fastify'
-import cors from '@fastify/cors'
+import cors, { type FastifyCorsOptionsDelegateCallback } from '@fastify/cors'
 import { fail } from '@gami/shared'
 import type { ILlmAdapter } from '../application/ports/ILlmAdapter.js'
 import type { IObservabilityAdapter } from '../application/ports/IObservabilityAdapter.js'
@@ -41,6 +41,12 @@ import { InMemorySessionEventPublisher } from '../infrastructure/events/in-memor
 import { buildLlmConfig, createLlmAdapter } from '../infrastructure/llm/index.js'
 import type { LlmAdapterRegistry } from '../infrastructure/llm/llm-adapter-registry.js'
 import { apiKeyVerifier, registerAuthentication } from './hooks/authenticate.js'
+import { adminVerifier } from './hooks/admin-credentials.js'
+import { adminAuthRoute } from './routes/admin-auth.js'
+import { AdminAuthService } from '../application/auth/admin-auth.service.js'
+import { InMemoryAdminSessionStore } from '../application/auth/in-memory-admin-session.store.js'
+import { verifyPassword } from '../application/auth/password-hash.js'
+import type { IAdminSessionStore } from '../application/ports/IAdminSessionStore.js'
 import { enforceRouteTiers, registerTierScope } from './route-tiers.js'
 import { adminSessionManagementRoute } from './routes/admin-session-management.js'
 import { scenarioCatalogueRoute } from './routes/scenario-catalogue.js'
@@ -99,6 +105,7 @@ export interface ServerAdapters {
   llmAdapterRegistry?: LlmAdapterRegistry
   modelConfigFallback?: ModelConfig
   typedRetrievalService?: TypedRetrievalService
+  adminSessionStore?: IAdminSessionStore
 }
 
 type FastifyValidationError = {
@@ -149,21 +156,30 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     logger: config.nodeEnv !== 'test' ? { level: config.logLevel } : false,
   })
 
-  void app.register(cors, {
-    origin: config.corsOrigin,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    // Voice uploads carry their identity and hints in headers (see voice-messages routes).
-    allowedHeaders: [
-      'Content-Type',
-      'x-api-key',
-      'x-utterance-id',
-      'x-language',
-      'x-audio-duration-ms',
-    ],
-    // Binary audio delivery carries its metadata in headers; browsers hide non-safelisted
-    // response headers from cross-origin clients unless they are exposed.
-    exposedHeaders: ['X-Request-Id', 'X-Message-Id'],
-  })
+  const corsMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+  // Voice uploads carry their identity and hints in headers (see voice-messages routes).
+  const corsAllowedHeaders = [
+    'Content-Type',
+    'x-api-key',
+    'x-utterance-id',
+    'x-language',
+    'x-audio-duration-ms',
+  ]
+  // Binary audio delivery carries its metadata in headers; browsers hide non-safelisted
+  // response headers from cross-origin clients unless they are exposed.
+  const corsExposedHeaders = ['X-Request-Id', 'X-Message-Id']
+  const corsDelegate: FastifyCorsOptionsDelegateCallback = (request, callback) => {
+    const origin = request.headers.origin
+    const isAdminOrigin = origin !== undefined && config.adminOrigins.includes(origin)
+    callback(null, {
+      origin: isAdminOrigin ? origin : config.corsOrigin,
+      credentials: isAdminOrigin,
+      methods: corsMethods,
+      allowedHeaders: corsAllowedHeaders,
+      exposedHeaders: corsExposedHeaders,
+    })
+  }
+  void app.register(cors, () => corsDelegate)
 
   app.setErrorHandler((error, request, reply) => {
     if (isFastifyValidationError(error)) {
@@ -194,18 +210,40 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
   })
 
   enforceRouteTiers(app)
-  const apiKey = apiKeyVerifier(config.apiKeySecret)
-  registerAuthentication(app, { public: apiKey, admin: apiKey })
+  const adminAuthService = createAdminAuthService(config, adapters.adminSessionStore)
+  registerAuthentication(app, {
+    public: apiKeyVerifier(config.apiKeySecret),
+    admin: adminVerifier({
+      authService: adminAuthService,
+      serviceKey: config.adminServiceKey,
+      allowedOrigins: config.adminOrigins,
+    }),
+  })
 
   app.register(healthRoute)
   registerTierScope(app, 'public', '/v1', (scope) => {
     registerPublicRoutes(scope, config, resolvedAdapters)
   })
   registerTierScope(app, 'admin', '/v1/admin', (scope) => {
+    scope.register(adminAuthRoute, { authService: adminAuthService })
     registerAdminRoutes(scope, config, resolvedAdapters, adapters.probes ?? [])
   })
 
   return app
+}
+
+function createAdminAuthService(
+  config: Config,
+  store: IAdminSessionStore = new InMemoryAdminSessionStore(),
+): AdminAuthService {
+  const passwordHash = config.adminPasswordHash
+  return new AdminAuthService({
+    store,
+    verifyCredential: async (password) =>
+      passwordHash !== undefined && (await verifyPassword(password, passwordHash)),
+    sessionSecret: config.adminSessionSecret,
+    sessionTtlSeconds: config.adminSessionTtlSeconds,
+  })
 }
 
 function registerPublicRoutes(

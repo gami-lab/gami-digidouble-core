@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
-const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
+const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret-0123456789abcdef0123'
 
 function buildUrl(path: string): string {
   return `${APP_URL}${path}`
@@ -23,6 +23,7 @@ describe('PUT /v1/users/:userId/persona — stack auth and validation', () => {
       method: 'PUT',
       headers: {
         'x-api-key': 'wrong-key',
+        'x-admin-service-key': 'wrong-key',
         'content-type': 'application/json',
       },
       body: JSON.stringify({ name: 'Sam' }),
@@ -35,6 +36,7 @@ describe('PUT /v1/users/:userId/persona — stack auth and validation', () => {
       method: 'PUT',
       headers: {
         'x-api-key': API_KEY,
+        'x-admin-service-key': API_KEY,
         'content-type': 'application/json',
       },
       body: JSON.stringify({ avatarRelationships: 'invalid' }),
@@ -52,7 +54,7 @@ describe('GET /v1/users/:userId/persona — stack auth and null behavior', () =>
   it('returns 200 with null persona for unknown user', async () => {
     const unknownUserId = `e2e_unknown_${crypto.randomUUID()}`
     const response = await fetch(buildUrl(`/v1/users/${unknownUserId}/persona`), {
-      headers: { 'x-api-key': API_KEY },
+      headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
     })
     expect(response.status).toBe(200)
 
@@ -76,6 +78,7 @@ describe('PUT + GET /v1/users/:userId/persona — stack roundtrip', () => {
       method: 'PUT',
       headers: {
         'x-api-key': API_KEY,
+        'x-admin-service-key': API_KEY,
         'content-type': 'application/json',
       },
       body: JSON.stringify(persona),
@@ -86,7 +89,7 @@ describe('PUT + GET /v1/users/:userId/persona — stack roundtrip', () => {
     expect(putBody.data?.user.userId).toBe(userId)
 
     const getResponse = await fetch(buildUrl(`/v1/users/${userId}/persona`), {
-      headers: { 'x-api-key': API_KEY },
+      headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
     })
     expect(getResponse.status).toBe(200)
     const getBody = (await getResponse.json()) as ApiResponse<{ persona: typeof persona | null }>

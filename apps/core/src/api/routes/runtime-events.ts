@@ -73,7 +73,7 @@ function registerStreamRuntimeEventsRoute(
         reply.raw.write(frame)
       })
 
-      request.raw.on('close', () => {
+      reply.raw.on('close', () => {
         clearInterval(keepaliveTimer)
         unsubscribe()
         request.log.info({ sessionId }, 'sse.disconnected')

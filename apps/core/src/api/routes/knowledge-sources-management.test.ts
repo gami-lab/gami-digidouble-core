@@ -43,7 +43,7 @@ describe('POST /v1/admin/knowledge-sources — static knowledge contract', () =>
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/admin/knowledge-sources',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
         name: 'Clara lore',
@@ -62,7 +62,7 @@ describe('POST /v1/admin/knowledge-sources — static knowledge contract', () =>
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/admin/knowledge-sources',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
         name: 'Invalid lore',
@@ -87,7 +87,7 @@ describe('PATCH /v1/admin/knowledge-sources/:sourceId — success', () => {
     const response = await makeApp({ sources: [makeSource()] }).inject({
       method: 'PATCH',
       url: '/v1/admin/knowledge-sources/knowledge_source_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { name: 'Updated Lore' },
     })
 
@@ -104,7 +104,7 @@ describe('PATCH /v1/admin/knowledge-sources/:sourceId — success', () => {
     const response = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/knowledge-sources/knowledge_source_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { metadata: { inlineText: 'New content' } },
     })
 
@@ -121,7 +121,7 @@ describe('PATCH /v1/admin/knowledge-sources/:sourceId — visibility and replace
     const response = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/knowledge-sources/knowledge_source_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { visibilityPolicy: 'none' },
     })
 
@@ -137,7 +137,7 @@ describe('PATCH /v1/admin/knowledge-sources/:sourceId — visibility and replace
     const response = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/knowledge-sources/knowledge_source_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { visibleToAvatarIds: ['avatar_1'] },
     })
 
@@ -158,7 +158,7 @@ describe('PATCH /v1/admin/knowledge-sources/:sourceId — visibility and replace
     const response = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/knowledge-sources/knowledge_source_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { visibilityPolicy: 'all' },
     })
 
@@ -177,7 +177,7 @@ describe('PATCH /v1/admin/knowledge-sources/:sourceId — visibility and replace
     const response = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/knowledge-sources/knowledge_source_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { visibilityPolicy: 'avatars' },
     })
 
@@ -200,7 +200,7 @@ describe('PATCH /v1/admin/knowledge-sources/:sourceId — visibility and replace
     const response = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/knowledge-sources/knowledge_source_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: {
         content: Buffer.from('Updated text file').toString('base64'),
         filename: 'rulebook-v2.txt',
@@ -227,7 +227,7 @@ describe('PATCH /v1/admin/knowledge-sources/:sourceId — validation', () => {
     const response = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/knowledge-sources/knowledge_source_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: {},
     })
 
@@ -242,7 +242,7 @@ describe('PATCH /v1/admin/knowledge-sources/:sourceId — validation', () => {
     const response = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/knowledge-sources/knowledge_source_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { content: Buffer.from('Updated text').toString('base64') },
     })
 
@@ -255,7 +255,7 @@ describe('PATCH /v1/admin/knowledge-sources/:sourceId — validation', () => {
     const response = await makeApp().inject({
       method: 'PATCH',
       url: '/v1/admin/knowledge-sources/knowledge_source_missing',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { name: 'New Name' },
     })
 
@@ -270,7 +270,7 @@ describe('PATCH /v1/admin/knowledge-sources/:sourceId — validation', () => {
     const response = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/knowledge-sources/knowledge_source_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { metadata: { nested: { sessionId: 'private' } } },
     })
 
@@ -288,7 +288,7 @@ describe('DELETE /v1/admin/knowledge-sources/:sourceId', () => {
     const response = await app.inject({
       method: 'DELETE',
       url: '/v1/admin/knowledge-sources/knowledge_source_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(200)
@@ -301,7 +301,7 @@ describe('DELETE /v1/admin/knowledge-sources/:sourceId', () => {
     const response = await makeApp().inject({
       method: 'DELETE',
       url: '/v1/admin/knowledge-sources/knowledge_source_missing',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(404)
@@ -319,7 +319,7 @@ describe('POST /v1/admin/knowledge-sources/upload — success', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/knowledge-sources/upload',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
         name: 'Kingdom lore',
@@ -349,7 +349,7 @@ describe('POST /v1/admin/knowledge-sources/upload — success', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/knowledge-sources/upload',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
         name: 'GM secret',
@@ -374,7 +374,7 @@ describe('POST /v1/admin/knowledge-sources/upload — validation', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/knowledge-sources/upload',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
         name: 'Bad file',
@@ -396,7 +396,7 @@ describe('POST /v1/admin/knowledge-sources/upload — validation', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/knowledge-sources/upload',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
         name: 'Empty file',
@@ -417,7 +417,7 @@ describe('POST /v1/admin/knowledge-sources/upload — validation', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/knowledge-sources/upload',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { name: 'Missing fields' },
     })
 
@@ -450,7 +450,7 @@ describe('POST /v1/admin/knowledge-sources — visibilityPolicy', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/knowledge-sources',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
         name: 'GM lore',
@@ -473,7 +473,7 @@ describe('POST /v1/admin/knowledge-sources — visibilityPolicy', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/knowledge-sources',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
         name: 'Avatar lore',
@@ -494,7 +494,7 @@ describe('POST /v1/admin/knowledge-sources — visibilityPolicy', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/knowledge-sources',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
         name: 'Shared lore',
@@ -521,7 +521,7 @@ describe('POST /v1/admin/knowledge-sources — visibilityPolicy', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/knowledge-sources',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
         name: 'Broken lore',
@@ -545,7 +545,7 @@ describe('GET /v1/admin/knowledge-sources/:sourceId/chunks', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/v1/admin/knowledge-sources/knowledge_source_1/chunks',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(200)
@@ -558,7 +558,7 @@ describe('GET /v1/admin/knowledge-sources/:sourceId/chunks', () => {
     const response = await makeApp().inject({
       method: 'GET',
       url: '/v1/admin/knowledge-sources/knowledge_source_missing/chunks',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(404)

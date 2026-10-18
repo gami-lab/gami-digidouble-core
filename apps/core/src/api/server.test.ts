@@ -3,7 +3,10 @@ import type { ApiResponse } from '@gami/shared'
 import { createServer } from './server.js'
 import { TEST_CONFIG } from './routes/test-config.js'
 
-const AUTH_HEADERS = { 'x-api-key': TEST_CONFIG.apiKeySecret }
+const AUTH_HEADERS = {
+  'x-api-key': TEST_CONFIG.apiKeySecret,
+  'x-admin-service-key': TEST_CONFIG.apiKeySecret,
+}
 
 function expectError(
   response: { statusCode: number; json: () => unknown },
@@ -83,7 +86,11 @@ describe('authentication hook', () => {
       const response = await createServer(TEST_CONFIG).inject({
         method: 'POST',
         url,
-        headers: { 'content-type': contentType, 'x-api-key': 'wrong-secret' },
+        headers: {
+          'content-type': contentType,
+          'x-api-key': 'wrong-secret',
+          'x-admin-service-key': 'wrong-secret',
+        },
         payload: Buffer.alloc(11_000_000, 1),
       })
 

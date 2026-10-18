@@ -66,6 +66,7 @@ import { KnowledgeReindexService } from './application/services/knowledge/knowle
 import { createSpeechToTextAdapter } from './infrastructure/speech/deepgram-speech-to-text.adapter.js'
 import { createTextToSpeechProviders } from './infrastructure/speech/text-to-speech-providers.factory.js'
 import { RedisUtteranceIdempotencyStore } from './infrastructure/cache/redis-utterance-idempotency.store.js'
+import { RedisAdminSessionStore } from './infrastructure/cache/redis-admin-session.store.js'
 
 type CoreRepositories = ReturnType<typeof buildCoreRepositories>
 
@@ -125,6 +126,7 @@ async function main(): Promise<void> {
   const adapters = {
     llmAdapter,
     utteranceIdempotencyStore: new RedisUtteranceIdempotencyStore(redisClient),
+    adminSessionStore: new RedisAdminSessionStore(redisClient),
     speechToTextAdapter: createSpeechToTextAdapter(
       {
         ...(config.deepgramApiKey === undefined ? {} : { apiKey: config.deepgramApiKey }),

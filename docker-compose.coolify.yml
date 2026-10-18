@@ -2,6 +2,9 @@
 #   API_KEY_SECRET
 #   VITE_API_URL
 #   VITE_API_KEY is derived from API_KEY_SECRET for the web build
+#   ADMIN_PASSWORD_HASH (pnpm --filter @gami/core hash-admin-password)
+#   ADMIN_SESSION_SECRET, ADMIN_SERVICE_KEY (at least 32 characters each)
+#   ADMIN_ORIGINS (origin of the admin app, e.g. https://app.example.com)
 #
 # The default embedding provider requires OPENAI_API_KEY at startup.
 # Optional env vars:
@@ -74,6 +77,11 @@ services:
       REDIS_URL: redis://redis:6379
       API_KEY_SECRET: ${API_KEY_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:?}
+      ADMIN_SERVICE_KEY: ${ADMIN_SERVICE_KEY:?}
+      ADMIN_SESSION_TTL_SECONDS: ${ADMIN_SESSION_TTL_SECONDS:-28800}
+      ADMIN_ORIGINS: ${ADMIN_ORIGINS:?}
       LLM_PROVIDER: ${LLM_PROVIDER:-null}
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
@@ -130,7 +138,6 @@ services:
       dockerfile: Dockerfile.admin
       args:
         VITE_API_URL: ${VITE_API_URL:?}
-        VITE_API_KEY: ${API_KEY_SECRET:?}
     restart: unless-stopped
     expose:
       - '80'

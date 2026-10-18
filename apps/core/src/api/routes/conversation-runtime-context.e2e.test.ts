@@ -264,7 +264,7 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
     const response = await app.inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { message: { content: 'What should I do?' } },
     })
 
@@ -316,7 +316,7 @@ describe('POST /v1/conversations/:conversationId/messages runtime context wiring
     const response = await app.inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { message: { content: 'What should I do?' } },
     })
 

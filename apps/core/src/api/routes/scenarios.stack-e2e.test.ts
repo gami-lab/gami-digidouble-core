@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
-const API_KEY = 'e2e-stack-secret'
+const API_KEY = 'e2e-stack-secret-0123456789abcdef0123'
 const ENDPOINT = `${APP_URL}/v1/admin/scenarios`
 
 async function deleteScenario(scenarioId: string): Promise<void> {
   await fetch(`${ENDPOINT}/${scenarioId}`, {
     method: 'DELETE',
-    headers: { 'x-api-key': API_KEY },
+    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
   })
 }
 
@@ -28,6 +28,7 @@ describe('Stack E2E — POST /v1/admin/scenarios — auth', () => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': 'wrong-key',
+        'x-admin-service-key': 'wrong-key',
       },
       body: JSON.stringify({ name: 'E2E Scenario' }),
     })
@@ -43,6 +44,7 @@ describe('Stack E2E — POST /v1/admin/scenarios — validation', () => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
+        'x-admin-service-key': API_KEY,
       },
       body: JSON.stringify({}),
     })
@@ -56,6 +58,7 @@ describe('Stack E2E — POST /v1/admin/scenarios — validation', () => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
+        'x-admin-service-key': API_KEY,
       },
       body: JSON.stringify({}),
     })
@@ -74,6 +77,7 @@ describe('Stack E2E — POST /v1/admin/scenarios — validation', () => {
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': API_KEY,
+          'x-admin-service-key': API_KEY,
         },
         body: JSON.stringify({
           name: 'Invalid Catalog Scenario',
@@ -95,6 +99,7 @@ describe('Stack E2E — POST /v1/admin/scenarios — success', () => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
+        'x-admin-service-key': API_KEY,
       },
       body: JSON.stringify({
         name: `E2E Scenario ${String(Date.now())}`,
@@ -120,6 +125,7 @@ describe('Stack E2E — POST /v1/admin/scenarios — success', () => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
+        'x-admin-service-key': API_KEY,
       },
       body: JSON.stringify({
         name: `Scenario With Models ${String(Date.now())}`,
@@ -176,6 +182,7 @@ describe('Stack E2E — PATCH /v1/admin/scenarios/:id — auth', () => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': 'wrong-key',
+        'x-admin-service-key': 'wrong-key',
       },
       body: JSON.stringify({ name: 'Updated' }),
     })
@@ -191,6 +198,7 @@ describe('Stack E2E — PATCH /v1/admin/scenarios/:id — not found', () => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
+        'x-admin-service-key': API_KEY,
       },
       body: JSON.stringify({ name: 'Updated' }),
     })
@@ -208,6 +216,7 @@ describe('Stack E2E — PATCH /v1/admin/scenarios/:id — validation', () => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
+        'x-admin-service-key': API_KEY,
       },
       body: JSON.stringify({ name: `Scenario For Patch Validation ${String(Date.now())}` }),
     })
@@ -223,6 +232,7 @@ describe('Stack E2E — PATCH /v1/admin/scenarios/:id — validation', () => {
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': API_KEY,
+          'x-admin-service-key': API_KEY,
         },
         body: JSON.stringify({}),
       })
@@ -244,6 +254,7 @@ describe('Stack E2E — PATCH /v1/admin/scenarios/:id — success', () => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
+        'x-admin-service-key': API_KEY,
       },
       body: JSON.stringify({ name: `Original Name ${String(Date.now())}` }),
     })
@@ -259,6 +270,7 @@ describe('Stack E2E — PATCH /v1/admin/scenarios/:id — success', () => {
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': API_KEY,
+          'x-admin-service-key': API_KEY,
         },
         body: JSON.stringify({ name: 'Updated Name' }),
       })
@@ -286,6 +298,7 @@ describe('Stack E2E — PATCH /v1/admin/scenarios/:id — success', () => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
+        'x-admin-service-key': API_KEY,
       },
       body: JSON.stringify({ name: `Model Selection Scenario ${String(Date.now())}` }),
     })
@@ -301,6 +314,7 @@ describe('Stack E2E — PATCH /v1/admin/scenarios/:id — success', () => {
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': API_KEY,
+          'x-admin-service-key': API_KEY,
         },
         body: JSON.stringify({
           modelSelection: {
@@ -333,6 +347,7 @@ describe('Stack E2E — PATCH /v1/admin/scenarios/:id — success', () => {
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': API_KEY,
+          'x-admin-service-key': API_KEY,
         },
         body: JSON.stringify({ modelSelection: null }),
       })

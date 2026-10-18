@@ -4,7 +4,7 @@ import type { ApiResponse, RawExchangeResponse } from '@gami/shared'
 import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
-const API_KEY = 'e2e-stack-secret'
+const API_KEY = 'e2e-stack-secret-0123456789abcdef0123'
 
 describe('Stack E2E — POST /v1/admin/exchange — auth', () => {
   it('rejects requests with no API key (401)', async () => {
@@ -23,6 +23,7 @@ describe('Stack E2E — POST /v1/admin/exchange — auth', () => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': 'wrong-key',
+        'x-admin-service-key': 'wrong-key',
       },
       body: JSON.stringify({ message: 'hello' }),
     })
@@ -36,6 +37,7 @@ describe('Stack E2E — POST /v1/admin/exchange — auth', () => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
+        'x-admin-service-key': API_KEY,
       },
       body: JSON.stringify({}),
     })
@@ -53,6 +55,7 @@ describe.skipIf(!isNullProvider)('Stack E2E — POST /v1/admin/exchange — null
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
+        'x-admin-service-key': API_KEY,
       },
       body: JSON.stringify({
         message: 'hello',
@@ -79,6 +82,7 @@ describe('Stack E2E — POST /v1/admin/exchange — provider-backed flow', () =>
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': API_KEY,
+        'x-admin-service-key': API_KEY,
       },
       body: JSON.stringify({
         message: 'Reply with exactly two words: "stack ok".',

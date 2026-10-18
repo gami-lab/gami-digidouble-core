@@ -12,6 +12,10 @@ export function shouldInjectApiKey(path: string): boolean {
   return normalizeApiPath(path) !== '/health'
 }
 
+export function isAdminApiPath(path: string): boolean {
+  return normalizeApiPath(path).startsWith('/v1/admin/')
+}
+
 export function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
   if (typeof value !== 'object' || value === null) return false
   const candidate = value as Record<string, unknown>

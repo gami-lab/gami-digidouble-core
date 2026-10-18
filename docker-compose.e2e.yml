@@ -1,3 +1,5 @@
+# Separate project name so the e2e stack never replaces the dev containers.
+name: gami-e2e
 services:
   postgres:
     image: pgvector/pgvector:pg17
@@ -39,8 +41,13 @@ services:
       LOG_LEVEL: info
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/gami_core
       REDIS_URL: redis://redis:6379
-      # Fixed test secret — known by the stack-e2e test suite
-      API_KEY_SECRET: e2e-stack-secret
+      # Fixed test secrets — known by the stack-e2e test suite
+      API_KEY_SECRET: e2e-stack-secret-0123456789abcdef0123
+      ADMIN_SERVICE_KEY: e2e-stack-secret-0123456789abcdef0123
+      ADMIN_SESSION_SECRET: e2e-admin-session-secret-0123456789abcdef
+      # Hash of the password `e2e-admin-password`
+      ADMIN_PASSWORD_HASH: scrypt:r2WcBG9TXEC5g-2G5hcZog:I-D7PYkt9-dkFHMBP3kwxYUdHFEhOL43kdP3He2PJPsWVv6L6GW3ywLuYXGPXX6ZLGsIOg2JHY-NsuN3De_qgw
+      ADMIN_ORIGINS: http://admin.e2e.test
       # LLM provider — defaults to null (always-on tests); override to exercise real providers
       LLM_PROVIDER: ${LLM_PROVIDER:-null}
       # Production embedding provider — requires OPENAI_API_KEY to start the app

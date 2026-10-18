@@ -1,4 +1,5 @@
 import type { JSX, ReactNode } from 'react'
+import { signOut } from '../api/auth'
 import { apiUrl } from '../env'
 import { Link } from '../routing/Link'
 import { NAV_ITEMS, type NavModuleId } from './nav-items'
@@ -14,6 +15,15 @@ export function AppShell({ activeModuleId, children }: AppShellProps): JSX.Eleme
       <header className="admin-header">
         <h1>Gami DigiDouble — Admin</h1>
         <p className="admin-header-meta">API URL: {apiUrl}</p>
+        <button
+          type="button"
+          className="admin-button admin-button-secondary"
+          onClick={() => {
+            void signOut()
+          }}
+        >
+          Sign out
+        </button>
       </header>
       <div className="admin-body">
         <nav className="admin-nav" aria-label="Scenario builder modules">

@@ -8,8 +8,17 @@ export {
   isApiResponseEnvelope,
   normalizeApiPath,
   normalizeApiUrl,
+  isAdminApiPath,
   shouldInjectApiKey,
 } from './api-client-protocol.js'
+export { ADMIN_SERVICE_KEY_HEADER } from './auth-contract-types.js'
+export type {
+  AdminAuthenticationMethod,
+  AdminLoginRequest,
+  AdminLoginResponse,
+  AdminLogoutResponse,
+  AdminMeResponse,
+} from './auth-contract-types.js'
 export { mapAvatarOverride, mapModelConfigFormToRequest } from './model-config-contract-mappers.js'
 export type { ModelConfigFormInput, ModelConfigFormValue } from './model-config-contract-mappers.js'
 export {

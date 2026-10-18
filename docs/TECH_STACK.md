@@ -15,8 +15,13 @@ product code rather than in an external agent framework.
 - ESLint + `typescript-eslint` with the local comment-policy rule, Prettier, `simple-git-hooks` +
   `lint-staged`, and GitHub Actions gate format/lint/typecheck/test — chosen for a boring,
   low-maintenance toolchain over anything bespoke.
-- Fastify for HTTP; JSON, SSE, and bounded binary audio transports. REST-style JSON under `/v1` with
-  `x-api-key` auth for Phase A (no OAuth/multi-tenant auth yet — deferred, see below).
+- Fastify for HTTP; JSON, SSE, and bounded binary audio transports. REST-style JSON under `/v1`.
+  Every route declares a tier (`public`, `admin`, `open`). Admin sign-in is one operator password
+  (`ADMIN_PASSWORD_HASH`, hashed with `node:crypto` scrypt via `pnpm --filter @gami/core
+hash-admin-password`) with a Redis-backed session cookie (`ADMIN_SESSION_SECRET`,
+  `ADMIN_SESSION_TTL_SECONDS`, `ADMIN_ORIGINS`); tools use `ADMIN_SERVICE_KEY`. Cookies are parsed
+  and written without a cookie plugin. Production refuses to start without the hash, the session
+  secret, and a service key of at least 32 characters. No OIDC/multi-tenant auth yet (deferred).
 - PostgreSQL with pgvector; Redis for cache, coordination, and runtime idempotency.
 - Docker Compose for local infra and Coolify deployment.
 

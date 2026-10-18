@@ -47,6 +47,7 @@ describe('CoreApiClient', () => {
     const client = new CoreApiClient({
       baseUrl: 'https://core.example///',
       apiKey: 'test-key',
+      serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
     })
@@ -81,6 +82,7 @@ describe('CoreApiClient', () => {
     const client = new CoreApiClient({
       baseUrl: 'https://core.example',
       apiKey: 'test-key',
+      serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
     })
@@ -108,6 +110,7 @@ describe('CoreApiClient', () => {
     const client = new CoreApiClient({
       baseUrl: 'https://core.example',
       apiKey: 'test-key',
+      serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
     })
@@ -128,6 +131,7 @@ describe('CoreApiClient', () => {
     const client = new CoreApiClient({
       baseUrl: 'https://core.example',
       apiKey: 'test-key',
+      serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
     })
@@ -156,6 +160,7 @@ describe('CoreApiClient', () => {
     const client = new CoreApiClient({
       baseUrl: 'https://core.example',
       apiKey: 'test-key',
+      serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
     })
@@ -181,6 +186,7 @@ describe('CoreApiClient', () => {
     const client = new CoreApiClient({
       baseUrl: 'https://core.example',
       apiKey: 'test-key',
+      serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
     })
@@ -201,6 +207,7 @@ describe('CoreApiClient', () => {
       const client = new CoreApiClient({
         baseUrl: 'https://core.example',
         apiKey: 'test-key',
+        serviceKey: 'service-key',
         timeoutMs: 25,
         fetchImpl: fetchMock,
       })
@@ -223,6 +230,7 @@ describe('CoreApiClient', () => {
     const client = new CoreApiClient({
       baseUrl: 'https://core.example',
       apiKey: 'test-key',
+      serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
     })

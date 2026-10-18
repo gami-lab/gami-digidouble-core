@@ -4,14 +4,14 @@ import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider
 import { prepareAndActivateAvatar } from './stack-e2e-current-fixtures.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
-const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
+const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret-0123456789abcdef0123'
 
 function buildUrl(path: string): string {
   return `${APP_URL}${path}`
 }
 
 function authHeaders(apiKey = API_KEY): Record<string, string> {
-  return { 'x-api-key': apiKey }
+  return { 'x-api-key': apiKey, 'x-admin-service-key': apiKey }
 }
 
 function requireId<T extends Record<string, unknown>>(value: T | undefined, key: keyof T): string {

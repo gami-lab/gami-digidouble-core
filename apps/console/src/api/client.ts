@@ -3,6 +3,7 @@ import {
   createApiError,
   isApiResponseEnvelope,
   normalizeApiPath,
+  isAdminApiPath,
   normalizeApiUrl,
   shouldInjectApiKey,
 } from '@gami/shared'
@@ -11,20 +12,39 @@ import { apiKey, apiUrl } from '../env'
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 export { ApiError }
 
+const signedOutListeners = new Set<() => void>()
+
+/** Runs `listener` whenever Core reports the admin session as missing or expired. */
+export function onSignedOut(listener: () => void): () => void {
+  signedOutListeners.add(listener)
+  return () => {
+    signedOutListeners.delete(listener)
+  }
+}
+
+export function notifySignedOut(): void {
+  for (const listener of signedOutListeners) listener()
+}
+
+function buildHeaders(path: string, hasBody: boolean): HeadersInit {
+  return {
+    ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+    ...(!isAdminApiPath(path) && shouldInjectApiKey(path) ? { 'x-api-key': apiKey } : {}),
+  }
+}
+
 export async function coreRequest<T>(method: HttpMethod, path: string, body?: unknown): Promise<T> {
   const normalizedPath = normalizeApiPath(path)
   const url = `${normalizeApiUrl(apiUrl)}${normalizedPath}`
 
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(shouldInjectApiKey(normalizedPath) ? { 'x-api-key': apiKey } : {}),
-  }
+  const headers = buildHeaders(normalizedPath, body !== undefined)
 
   let response: Response
   try {
     response = await fetch(url, {
       method,
       headers,
+      credentials: 'include',
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     })
   } catch {
@@ -46,6 +66,7 @@ export async function coreRequest<T>(method: HttpMethod, path: string, body?: un
   // so the envelope error field is the authoritative signal. The response.ok guard below
   // is a final safety net for any unexpected status/envelope combination.
   if (payload.error !== null) {
+    if (response.status === 401 && isAdminApiPath(normalizedPath)) notifySignedOut()
     throw createApiError(payload.error)
   }
 

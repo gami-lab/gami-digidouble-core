@@ -5,7 +5,7 @@ import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-ses
 import { createServer } from '../server.js'
 import { TEST_CONFIG } from './test-config.js'
 
-const AUTH = { 'x-api-key': 'test-secret' }
+const AUTH = { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' }
 
 function makeSession(overrides: Partial<Session>): Session {
   return {

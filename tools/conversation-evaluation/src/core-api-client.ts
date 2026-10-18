@@ -12,7 +12,7 @@ import type {
   StartSessionRequest,
   StartSessionResponse,
 } from '@gami/shared'
-import { isApiResponseEnvelope } from '@gami/shared'
+import { ADMIN_SERVICE_KEY_HEADER, isAdminApiPath, isApiResponseEnvelope } from '@gami/shared'
 import type { ModelSelectionOverride } from '@gami/shared'
 
 import type { EvaluationPhase } from './contracts.js'
@@ -25,6 +25,7 @@ export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
 export type CoreApiClientOptions = {
   baseUrl: string
   apiKey: string
+  serviceKey: string
   timeoutMs: number
   fetchImpl?: FetchLike
 }
@@ -391,12 +392,14 @@ async function decodeResponse<T>(
 export class CoreApiClient {
   private readonly baseUrl: string
   private readonly apiKey: string
+  private readonly serviceKey: string
   private readonly timeoutMs: number
   private readonly fetchImpl: FetchLike
 
   constructor(options: CoreApiClientOptions) {
     this.baseUrl = normalizeBaseUrl(options.baseUrl)
     this.apiKey = options.apiKey
+    this.serviceKey = options.serviceKey
     this.timeoutMs = options.timeoutMs
     this.fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis)
   }
@@ -516,7 +519,9 @@ export class CoreApiClient {
           headers: {
             Accept: 'application/json',
             'Content-Type': 'application/json',
-            'x-api-key': this.apiKey,
+            ...(isAdminApiPath(normalizedPath)
+              ? { [ADMIN_SERVICE_KEY_HEADER]: this.serviceKey }
+              : { 'x-api-key': this.apiKey }),
           },
           signal: controller.signal,
           ...(body !== undefined ? { body: JSON.stringify(body) } : {}),

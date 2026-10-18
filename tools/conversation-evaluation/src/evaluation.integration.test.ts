@@ -202,12 +202,13 @@ describe('composed scripted evaluation', () => {
     const avatarClient = new CoreApiClient({
       baseUrl: 'https://core.example',
       apiKey: 'evaluation-key',
+      serviceKey: 'evaluation-service-key',
       timeoutMs: 1000,
       fetchImpl: scripted.fetch,
     })
     const judgeClient = new SemanticJudgeClient({
       baseUrl: 'https://core.example',
-      apiKey: 'evaluation-key',
+      serviceKey: 'evaluation-service-key',
       timeoutMs: 1000,
       fetchImpl: scripted.fetch,
     })
@@ -269,9 +270,17 @@ describe('composed scripted evaluation', () => {
     expect(output.report.modelMismatches).toHaveLength(6)
     expect(snapshots).toHaveLength(5)
 
-    expect(scripted.calls.every((call) => call.headers['x-api-key'] === 'evaluation-key')).toBe(
-      true,
-    )
+    for (const call of scripted.calls) {
+      const isAdminCall = new URL(call.url).pathname.startsWith('/v1/admin/')
+      expect(call.headers).toEqual(
+        expect.objectContaining(
+          isAdminCall
+            ? { 'x-admin-service-key': 'evaluation-service-key' }
+            : { 'x-api-key': 'evaluation-key' },
+        ),
+      )
+      expect(call.headers).not.toHaveProperty(isAdminCall ? 'x-api-key' : 'x-admin-service-key')
+    }
     expect(scripted.calls.filter((call) => call.method === 'POST')).toHaveLength(8)
     expect(scripted.calls.filter((call) => call.url.endsWith('/messages'))).toHaveLength(3)
     expect(

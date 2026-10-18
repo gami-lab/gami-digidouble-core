@@ -42,8 +42,11 @@ function makeApp(params?: {
   )
 }
 
-function authHeaders(apiKey = 'test-secret'): { 'x-api-key': string } {
-  return { 'x-api-key': apiKey }
+function authHeaders(apiKey = 'test-secret'): {
+  'x-api-key': string
+  'x-admin-service-key': string
+} {
+  return { 'x-api-key': apiKey, 'x-admin-service-key': apiKey }
 }
 
 function requireId<T extends Record<string, unknown>>(value: T | undefined, key: keyof T): string {

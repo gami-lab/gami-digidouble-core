@@ -24,7 +24,7 @@ describe('POST /v1/admin/exchange — auth and validation', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { message: 'Hello, who are you?', systemPrompt: 'You are a pirate.' },
     })
 
@@ -48,28 +48,28 @@ describe('POST /v1/admin/exchange — auth and validation', () => {
     const body = response.json<ApiResponse<null>>()
     expect(body.data).toBeNull()
     expect(body.error?.code).toBe('UNAUTHORIZED')
-    expect(body.error?.message).toBe('Invalid API key')
+    expect(body.error?.message).toBe('Missing or invalid credentials')
   })
 
   it('returns 401 when API key is wrong', async () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'wrong-secret' },
+      headers: { 'x-api-key': 'wrong-secret', 'x-admin-service-key': 'wrong-secret' },
       payload: { message: 'Hello' },
     })
 
     expect(response.statusCode).toBe(401)
     const body = response.json<ApiResponse<null>>()
     expect(body.error?.code).toBe('UNAUTHORIZED')
-    expect(body.error?.message).toBe('Invalid API key')
+    expect(body.error?.message).toBe('Missing or invalid credentials')
   })
 
   it('returns 400 when message field is missing', async () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: {},
     })
 
@@ -83,7 +83,7 @@ describe('POST /v1/admin/exchange — auth and validation', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { message: '' },
     })
 
@@ -107,7 +107,7 @@ describe('POST /v1/admin/exchange — error handling and response shaping', () =
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { message: 'Hello' },
     })
 
@@ -129,7 +129,7 @@ describe('POST /v1/admin/exchange — error handling and response shaping', () =
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { message: 'Hello' },
     })
 
@@ -144,7 +144,7 @@ describe('POST /v1/admin/exchange — error handling and response shaping', () =
     const response = await makeApp('Arr pir8!').inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { message: 'Hello', systemPrompt },
     })
 
@@ -169,7 +169,7 @@ describe('POST /v1/admin/exchange — error handling and response shaping', () =
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { message: 'Hello', model: { model: 'gpt-5.4-mini' } },
     })
 
@@ -193,7 +193,7 @@ describe('POST /v1/admin/exchange — error handling and response shaping', () =
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: {
         message: 'Hello',
         model: { model: 'gpt-5.6-luna', serviceTier: 'fast' },
@@ -219,7 +219,7 @@ describe('POST /v1/admin/exchange — error handling and response shaping', () =
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { message: 'hello' },
     })
 

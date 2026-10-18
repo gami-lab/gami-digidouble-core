@@ -6,6 +6,7 @@ import {
   isApiResponseEnvelope,
   normalizeApiPath,
   normalizeApiUrl,
+  isAdminApiPath,
   shouldInjectApiKey,
 } from './api-client-protocol.js'
 
@@ -20,6 +21,13 @@ describe('api client protocol helpers', () => {
     expect(shouldInjectApiKey('/health')).toBe(false)
     expect(shouldInjectApiKey('health/')).toBe(true)
     expect(shouldInjectApiKey('/v1/health')).toBe(true)
+  })
+
+  it('recognizes admin API paths', () => {
+    expect(isAdminApiPath('/v1/admin/scenarios')).toBe(true)
+    expect(isAdminApiPath('v1/admin/auth/me')).toBe(true)
+    expect(isAdminApiPath('/v1/sessions')).toBe(false)
+    expect(isAdminApiPath('/v1/administrator')).toBe(false)
   })
 
   it('guards success and error envelopes', () => {

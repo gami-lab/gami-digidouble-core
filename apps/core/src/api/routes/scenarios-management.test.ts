@@ -89,7 +89,7 @@ describe('GET /v1/admin/scenarios', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(200)
@@ -109,7 +109,7 @@ describe('GET /v1/admin/scenarios', () => {
     const response = await makeApp().inject({
       method: 'GET',
       url: '/v1/admin/scenarios',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(200)
@@ -126,7 +126,7 @@ describe('GET /v1/admin/scenarios/:scenarioId', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/v1/admin/scenarios/scenario_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(200)
@@ -139,7 +139,7 @@ describe('GET /v1/admin/scenarios/:scenarioId', () => {
     const response = await makeApp().inject({
       method: 'GET',
       url: '/v1/admin/scenarios/scenario_missing',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(404)
@@ -169,7 +169,7 @@ describe('GET /v1/admin/scenarios/:scenarioId/avatars', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/v1/admin/scenarios/scenario_1/avatars',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(200)
@@ -186,7 +186,7 @@ describe('GET /v1/admin/scenarios/:scenarioId/avatars', () => {
     const response = await makeApp().inject({
       method: 'GET',
       url: '/v1/admin/scenarios/scenario_missing/avatars',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(404)
@@ -201,7 +201,7 @@ describe('GET /v1/admin/scenarios/:scenarioId/avatars', () => {
     }).inject({
       method: 'GET',
       url: '/v1/admin/scenarios/scenario_1/avatars',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(200)
@@ -222,7 +222,7 @@ describe('DELETE /v1/admin/scenarios/:scenarioId', () => {
     const response = await app.inject({
       method: 'DELETE',
       url: '/v1/admin/scenarios/scenario_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(200)
@@ -235,7 +235,7 @@ describe('DELETE /v1/admin/scenarios/:scenarioId', () => {
     const response = await makeApp().inject({
       method: 'DELETE',
       url: '/v1/admin/scenarios/scenario_missing',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(404)
@@ -251,7 +251,7 @@ describe('DELETE /v1/admin/scenarios/:scenarioId', () => {
     }).inject({
       method: 'DELETE',
       url: '/v1/admin/scenarios/scenario_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(409)
@@ -267,7 +267,7 @@ describe('DELETE /v1/admin/scenarios/:scenarioId', () => {
     }).inject({
       method: 'DELETE',
       url: '/v1/admin/scenarios/scenario_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(409)

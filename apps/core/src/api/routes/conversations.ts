@@ -184,7 +184,7 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
       const onClose = (): void => {
         abortController.abort()
       }
-      request.raw.once('close', onClose)
+      reply.raw.once('close', onClose)
 
       const stream = deps.streamingSendMessageUseCase.execute(
         {
@@ -238,7 +238,7 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
           reply.raw.end()
         }
       } finally {
-        request.raw.off('close', onClose)
+        reply.raw.off('close', onClose)
         abortController.abort()
         await iterator.return?.()
       }

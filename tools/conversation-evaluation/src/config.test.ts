@@ -12,6 +12,7 @@ const environment = {
   EVALUATION_DEFINITION_PATH: './definition.json',
   AVATAR_API_BASE_URL: 'http://localhost:3000/',
   EVALUATION_API_KEY: 'secret-api-key',
+  EVALUATION_SERVICE_KEY: 'secret-service-key',
 }
 
 describe('evaluation configuration', () => {
@@ -36,6 +37,7 @@ describe('evaluation configuration', () => {
       definitionPath: './from-cli.json',
       avatarApiBaseUrl: 'http://localhost:4000',
       apiKey: 'cli-secret',
+      serviceKey: 'secret-service-key',
       judgeBaseUrl: 'https://judge.example',
       outputPath: './reports/run.json',
       timeoutMs: 1200,
@@ -63,6 +65,9 @@ describe('evaluation configuration', () => {
     expect(() =>
       loadEvaluationConfig([], { ...environment, EVALUATION_API_KEY: undefined }),
     ).toThrow('Missing API key.')
+    expect(() =>
+      loadEvaluationConfig([], { ...environment, EVALUATION_SERVICE_KEY: undefined }),
+    ).toThrow('Missing admin service key.')
     expect(() =>
       loadEvaluationConfig(['--api-key=secret-value'], {
         ...environment,

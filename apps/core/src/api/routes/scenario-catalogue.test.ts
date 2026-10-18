@@ -42,7 +42,7 @@ describe('GET /v1/scenarios — public catalogue', () => {
     const response = await createCatalogueServer().inject({
       method: 'GET',
       url: '/v1/scenarios',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(200)
@@ -58,7 +58,7 @@ describe('GET /v1/scenarios — public catalogue', () => {
     const response = await createCatalogueServer().inject({
       method: 'POST',
       url: '/v1/scenarios',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { name: 'Demo' },
     })
 

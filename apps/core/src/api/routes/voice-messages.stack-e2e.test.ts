@@ -5,7 +5,7 @@ import type { ApiResponse, MessageStreamEvent, SendMessageResponse } from '@gami
 import { prepareAndActivateAvatar } from './stack-e2e-current-fixtures.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
-const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
+const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret-0123456789abcdef0123'
 const VOICE_STACK_E2E = process.env['VOICE_STACK_E2E'] === '1'
 const VOICE_STACK_E2E_AUDIO_PATH = process.env['VOICE_STACK_E2E_AUDIO_PATH']
 const VOICE_STACK_E2E_MEDIA_TYPE = process.env['VOICE_STACK_E2E_MEDIA_TYPE'] ?? 'audio/wav'
@@ -17,7 +17,7 @@ function voiceHeaders(
   return {
     'content-type': 'audio/webm',
     'x-utterance-id': `stack-utterance-${crypto.randomUUID()}`,
-    ...(apiKey === undefined ? {} : { 'x-api-key': apiKey }),
+    ...(apiKey === undefined ? {} : { 'x-api-key': apiKey, 'x-admin-service-key': apiKey }),
     ...overrides,
   }
 }
@@ -45,6 +45,7 @@ async function postJson(path: string, body: unknown): Promise<Response> {
     method: 'POST',
     headers: {
       'x-api-key': API_KEY,
+      'x-admin-service-key': API_KEY,
       'content-type': 'application/json',
     },
     body: JSON.stringify(body),
@@ -54,7 +55,7 @@ async function postJson(path: string, body: unknown): Promise<Response> {
 async function deleteJson(path: string): Promise<void> {
   await fetch(`${APP_URL}${path}`, {
     method: 'DELETE',
-    headers: { 'x-api-key': API_KEY },
+    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
   })
 }
 

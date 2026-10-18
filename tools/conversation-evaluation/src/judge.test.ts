@@ -150,7 +150,7 @@ describe('semantic judge', () => {
     )
     const client = new SemanticJudgeClient({
       baseUrl: 'https://judge.example///',
-      apiKey: 'judge-key',
+      serviceKey: 'judge-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
       model: 'openai/gpt-5.4-mini',
@@ -174,7 +174,7 @@ describe('semantic judge', () => {
     })
     const [url, init] = fetchMock.mock.calls[0] ?? []
     expect(url).toBe('https://judge.example/v1/admin/exchange')
-    expect(init?.headers).toMatchObject({ 'x-api-key': 'judge-key' })
+    expect(init?.headers).toMatchObject({ 'x-admin-service-key': 'judge-key' })
     const rawBody = typeof init?.body === 'string' ? init.body : '{}'
     const body = JSON.parse(rawBody) as {
       message: string
@@ -213,7 +213,7 @@ describe('semantic judge', () => {
       )
     const client = new SemanticJudgeClient({
       baseUrl: 'https://judge.example',
-      apiKey: 'judge-key',
+      serviceKey: 'judge-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
     })
@@ -227,7 +227,7 @@ describe('semantic judge', () => {
     const fetchMock = vi.fn<FetchLike>()
     const client = new SemanticJudgeClient({
       baseUrl: 'https://judge.example',
-      apiKey: 'judge-key',
+      serviceKey: 'judge-key',
       timeoutMs: 1000,
       fetchImpl: fetchMock,
     })

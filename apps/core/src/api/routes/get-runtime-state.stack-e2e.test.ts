@@ -2,14 +2,17 @@ import { describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
-const API_KEY = 'e2e-stack-secret'
+const API_KEY = 'e2e-stack-secret-0123456789abcdef0123'
 
 function authHeaders(apiKey = API_KEY): Record<string, string> {
-  return { 'x-api-key': apiKey, 'content-type': 'application/json' }
+  return { 'x-api-key': apiKey, 'x-admin-service-key': apiKey, 'content-type': 'application/json' }
 }
 
 async function deleteJson(path: string): Promise<void> {
-  await fetch(`${APP_URL}${path}`, { method: 'DELETE', headers: { 'x-api-key': API_KEY } })
+  await fetch(`${APP_URL}${path}`, {
+    method: 'DELETE',
+    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
+  })
 }
 
 async function cleanupScenario(ids: { sessionId: string; scenarioId: string }): Promise<void> {

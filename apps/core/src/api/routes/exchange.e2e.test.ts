@@ -10,6 +10,7 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
   return {
     ...TEST_CONFIG,
     apiKeySecret: 'e2e-secret',
+    adminServiceKey: 'e2e-secret',
     openaiApiKey: process.env['OPENAI_API_KEY'],
     anthropicApiKey: process.env['ANTHROPIC_API_KEY'],
     mistralApiKey: process.env['MISTRAL_API_KEY'],
@@ -30,7 +31,7 @@ describe.skipIf(!openaiKey)('E2E — POST /v1/admin/exchange with real OpenAI', 
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'e2e-secret' },
+      headers: { 'x-api-key': 'e2e-secret', 'x-admin-service-key': 'e2e-secret' },
       payload: {
         message: 'Reply with exactly two words: "test passed".',
         systemPrompt: 'You are a terse assistant. Follow instructions precisely.',
@@ -62,7 +63,7 @@ describe.skipIf(!anthropicKey)('E2E — POST /v1/admin/exchange with real Anthro
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'e2e-secret' },
+      headers: { 'x-api-key': 'e2e-secret', 'x-admin-service-key': 'e2e-secret' },
       payload: {
         message: 'Reply with exactly two words: "test passed".',
         systemPrompt: 'You are a terse assistant. Follow instructions precisely.',
@@ -90,7 +91,7 @@ describe.skipIf(!mistralKey)('E2E — POST /v1/admin/exchange with real Mistral'
     const response = await app.inject({
       method: 'POST',
       url: '/v1/admin/exchange',
-      headers: { 'x-api-key': 'e2e-secret' },
+      headers: { 'x-api-key': 'e2e-secret', 'x-admin-service-key': 'e2e-secret' },
       payload: {
         message: 'Reply with exactly two words: "test passed".',
         systemPrompt: 'You are a terse assistant. Follow instructions precisely.',

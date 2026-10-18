@@ -79,16 +79,16 @@ function loadOptions(args: Record<string, string>): CliOptions {
     'MURDER_PARTY_API_BASE_URL',
     'Missing API base URL. Use --base-url or MURDER_PARTY_API_BASE_URL environment variable.',
   )
-  const apiKey = resolveRequired(
+  const serviceKey = resolveRequired(
     args,
-    'api-key',
-    'MURDER_PARTY_API_KEY',
-    'Missing API key. Use --api-key or MURDER_PARTY_API_KEY environment variable.',
+    'service-key',
+    'ADMIN_SERVICE_KEY',
+    'Missing admin service key. Use --service-key or ADMIN_SERVICE_KEY environment variable.',
   )
 
   return {
     baseUrl: baseUrlRaw.replace(/\/$/, ''),
-    apiKey,
+    serviceKey,
     scenarioName: args['scenario-name'] ?? 'The Last Glass at Villa Miralac',
     pollIntervalMs: parseNumber(
       args['poll-interval-ms'] ?? process.env['MURDER_PARTY_POLL_MS'],
@@ -110,7 +110,7 @@ function printHelp(): void {
   console.log('')
   console.log('Required options (flag or env):')
   console.log('  --base-url <url>    or MURDER_PARTY_API_BASE_URL')
-  console.log('  --api-key <key>     or MURDER_PARTY_API_KEY')
+  console.log('  --service-key <key> or ADMIN_SERVICE_KEY')
   console.log('')
   console.log('Optional flags:')
   console.log('  --scenario-name <name>')

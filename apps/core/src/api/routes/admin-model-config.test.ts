@@ -23,8 +23,11 @@ function makeAppWithFallback(modelConfigFallback: ModelConfig): FastifyInstance 
   return app
 }
 
-function authHeaders(apiKey = 'test-secret'): { 'x-api-key': string } {
-  return { 'x-api-key': apiKey }
+function authHeaders(apiKey = 'test-secret'): {
+  'x-api-key': string
+  'x-admin-service-key': string
+} {
+  return { 'x-api-key': apiKey, 'x-admin-service-key': apiKey }
 }
 
 describe('GET /v1/admin/model-config', () => {

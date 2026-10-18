@@ -524,3 +524,26 @@ ul.plain {
   margin-right: 6px;
   vertical-align: -1px;
 }
+
+.app-header button {
+  margin-left: auto;
+}
+
+.login-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 360px;
+  margin: 48px auto;
+}
+
+.login-card h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.login-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

@@ -62,7 +62,7 @@ describe('DELETE /v1/admin/avatars/:avatarId', () => {
     const response = await app.inject({
       method: 'DELETE',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(200)
@@ -75,7 +75,7 @@ describe('DELETE /v1/admin/avatars/:avatarId', () => {
     const response = await makeApp().inject({
       method: 'DELETE',
       url: '/v1/admin/avatars/avatar_missing',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(404)
@@ -90,7 +90,7 @@ describe('DELETE /v1/admin/avatars/:avatarId', () => {
     }).inject({
       method: 'DELETE',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
 
     expect(response.statusCode).toBe(409)
@@ -114,7 +114,11 @@ describe('PATCH /v1/admin/avatars/:avatarId', () => {
     const response = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload: { personaPrompt: 'Updated prompt', tone: 'formal' },
     })
 
@@ -134,7 +138,11 @@ describe('PATCH /v1/admin/avatars/:avatarId', () => {
     const response = await makeApp().inject({
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_missing',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload: { name: 'New name' },
     })
 
@@ -149,7 +157,11 @@ describe('PATCH /v1/admin/avatars/:avatarId', () => {
     }).inject({
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload: {},
     })
 
@@ -179,7 +191,11 @@ describe('PATCH /v1/admin/avatars/:avatarId', () => {
     const updated = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload: { voiceConfig: { provider: 'gradium', voiceId: 'new' } },
     })
     expect(updated.statusCode).toBe(200)
@@ -190,7 +206,11 @@ describe('PATCH /v1/admin/avatars/:avatarId', () => {
     const cleared = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload: { voiceConfig: null },
     })
     expect(cleared.statusCode).toBe(200)
@@ -203,7 +223,11 @@ describe('PATCH /v1/admin/avatars/:avatarId', () => {
     const response = await makeApp({ avatars: [makeAvatar({ avatarId: 'avatar_1' })] }).inject({
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload: { voiceConfig: { provider: 'gradium', voiceId: 'guide', apiKey: 'secret' } },
     })
 
@@ -220,7 +244,11 @@ describe('PATCH /v1/admin/avatars/:avatarId voice provider', () => {
     }).inject({
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload: { voiceConfig: { provider: 'gradium', voiceId: 'guide' } },
     })
 
@@ -237,7 +265,11 @@ describe('PATCH /v1/admin/avatars/:avatarId contract coverage', () => {
     const response = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload: { name: 'Ava Updated' },
     })
     expect(response.statusCode).toBe(200)
@@ -265,7 +297,11 @@ describe('PATCH /v1/admin/avatars/:avatarId contract coverage', () => {
     const response = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload: { name: 'Ava Updated' },
     })
 
@@ -283,7 +319,11 @@ describe('PATCH /v1/admin/avatars/:avatarId llmOverride', () => {
     }).inject({
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload: { llmOverride: { provider: 'invalid-provider' } },
     })
 
@@ -298,7 +338,11 @@ describe('PATCH /v1/admin/avatars/:avatarId llmOverride', () => {
     }).inject({
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload: { llmOverride: { model: '   ' } },
     })
 
@@ -313,7 +357,11 @@ describe('PATCH /v1/admin/avatars/:avatarId llmOverride', () => {
     }).inject({
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload: { llmOverride: { provider: 'openai' } },
     })
 
@@ -330,7 +378,11 @@ describe('PATCH /v1/admin/avatars/:avatarId llmOverride', () => {
     const setResponse = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload: { llmOverride: { provider: 'openai', model: 'gpt-5.6-luna' } },
     })
     expect(setResponse.statusCode).toBe(200)
@@ -340,7 +392,11 @@ describe('PATCH /v1/admin/avatars/:avatarId llmOverride', () => {
     const clearResponse = await app.inject({
       method: 'PATCH',
       url: '/v1/admin/avatars/avatar_1',
-      headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': 'test-secret',
+        'x-admin-service-key': 'test-secret',
+        'content-type': 'application/json',
+      },
       payload: { llmOverride: null },
     })
     expect(clearResponse.statusCode).toBe(200)

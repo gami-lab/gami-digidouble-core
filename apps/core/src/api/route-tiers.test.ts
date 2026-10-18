@@ -4,7 +4,7 @@ import { createServer } from './server.js'
 import { TEST_CONFIG } from './routes/test-config.js'
 import { enforceRouteTiers, registerTierScope } from './route-tiers.js'
 
-const OPEN_ROUTES = ['GET /health']
+const OPEN_ROUTES = ['GET /health', 'POST /v1/admin/auth/login']
 const PLAYER_ROUTE_PATTERN = /^\/v1\/(sessions|conversations|users|scenarios\/?$)/
 
 async function listRegisteredRoutes(): Promise<{ route: string; tier: unknown }[]> {
@@ -31,10 +31,12 @@ describe('route tier matrix', () => {
     expect(routes.filter(({ tier }) => tier === undefined)).toEqual([])
   })
 
-  it('serves every /v1/admin route on the admin tier', async () => {
+  it('serves every /v1/admin route on the admin tier except the explicit open routes', async () => {
     const routes = await listRegisteredRoutes()
 
-    const adminPrefixed = routes.filter(({ route }) => route.split(' ')[1]?.startsWith('/v1/admin'))
+    const adminPrefixed = routes.filter(
+      ({ route }) => route.split(' ')[1]?.startsWith('/v1/admin') && !OPEN_ROUTES.includes(route),
+    )
     expect(adminPrefixed.length).toBeGreaterThan(0)
     expect(adminPrefixed.filter(({ tier }) => tier !== 'admin')).toEqual([])
   })

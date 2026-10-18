@@ -4,12 +4,16 @@ import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider
 import { prepareAndActivateAvatar } from './stack-e2e-current-fixtures.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
-const API_KEY = 'e2e-stack-secret'
+const API_KEY = 'e2e-stack-secret-0123456789abcdef0123'
 
 async function postJson(path: string, body: unknown): Promise<Response> {
   return fetch(`${APP_URL}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': API_KEY,
+      'x-admin-service-key': API_KEY,
+    },
     body: JSON.stringify(body),
   })
 }
@@ -17,7 +21,7 @@ async function postJson(path: string, body: unknown): Promise<Response> {
 async function getJson(path: string): Promise<Response> {
   return fetch(`${APP_URL}${path}`, {
     method: 'GET',
-    headers: { 'x-api-key': API_KEY },
+    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
   })
 }
 
@@ -31,7 +35,7 @@ function requireValue(value: string | undefined, label: string): string {
 async function deleteJson(path: string): Promise<void> {
   await fetch(`${APP_URL}${path}`, {
     method: 'DELETE',
-    headers: { 'x-api-key': API_KEY },
+    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
   })
 }
 

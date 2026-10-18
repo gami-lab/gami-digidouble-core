@@ -265,7 +265,7 @@ async function sendMessageAndCapturePrompt(persona: {
   const response = await app.inject({
     method: 'POST',
     url: '/v1/conversations/conversation_1/messages',
-    headers: { 'x-api-key': 'test-secret' },
+    headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     payload: { message: { content: 'How should I proceed?' } },
   })
 
@@ -279,7 +279,7 @@ describe('session API', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/sessions',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { userId: 'user_x', scenarioId: 'scenario_1' },
     })
     expect(response.statusCode).toBe(201)
@@ -292,7 +292,7 @@ describe('session API', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/sessions/session_1/conversations',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { avatarId: 'avatar_1' },
     })
     expect(response.statusCode).toBe(201)
@@ -305,7 +305,7 @@ describe('session API', () => {
     const response = await makeApp({ sessions: [] }).inject({
       method: 'POST',
       url: '/v1/sessions/session_missing/conversations',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { avatarId: 'avatar_1' },
     })
     expect(response.statusCode).toBe(404)
@@ -328,7 +328,7 @@ describe('session API', () => {
     }).inject({
       method: 'POST',
       url: '/v1/sessions/session_1/conversations',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { avatarId: 'avatar_theo' },
     })
 
@@ -360,7 +360,7 @@ describe('conversation message/history API', () => {
     const sendResponse = await app.inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { message: { content: 'Hello from conversation 1' } },
     })
     expect(sendResponse.statusCode).toBe(200)
@@ -368,12 +368,12 @@ describe('conversation message/history API', () => {
     const history1 = await app.inject({
       method: 'GET',
       url: '/v1/conversations/conversation_1/history',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
     const history2 = await app.inject({
       method: 'GET',
       url: '/v1/conversations/conversation_2/history',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
     expect(history1.statusCode).toBe(200)
     expect(history2.statusCode).toBe(200)
@@ -393,7 +393,7 @@ describe('conversation message/history API', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { message: { content: 'Previous JSON message' } },
     })
 
@@ -439,7 +439,7 @@ describe('conversation message/history API', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/v1/conversations/conversation_1/messages',
-        headers: { 'x-api-key': 'test-secret' },
+        headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
         payload: { message: { content: 'Tell me more.' } },
       })
 
@@ -461,13 +461,13 @@ describe('conversation message/history API', () => {
     const sendResponse = await app.inject({
       method: 'POST',
       url: '/v1/conversations/conversation_missing/messages',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { message: { content: 'Hello' } },
     })
     const historyResponse = await app.inject({
       method: 'GET',
       url: '/v1/conversations/conversation_missing/history',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
     expect(sendResponse.statusCode).toBe(404)
     expect(historyResponse.statusCode).toBe(404)
@@ -507,7 +507,7 @@ describe('conversation message stream API', () => {
     const response = await makeApp().inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages/stream',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { message: {} },
     })
 
@@ -519,7 +519,7 @@ describe('conversation message stream API', () => {
     const response = await makeApp({ conversations: [] }).inject({
       method: 'POST',
       url: '/v1/conversations/conversation_missing/messages/stream',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { message: { content: 'Hello' } },
     })
 
@@ -532,7 +532,7 @@ describe('conversation message stream API', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/conversations/conversation_1/messages/stream',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
       payload: { message: { content: 'Hello stream' } },
     })
 
@@ -557,7 +557,7 @@ describe('conversation message stream API', () => {
     const history = await app.inject({
       method: 'GET',
       url: '/v1/conversations/conversation_1/history',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
     const historyBody = history.json<ApiResponse<{ messages: Message[] }>>()
     expect(historyBody.data?.messages.map((message) => message.role)).toEqual(['user', 'avatar'])
@@ -566,29 +566,46 @@ describe('conversation message stream API', () => {
       'First second',
     ])
   })
+})
+
+describe('conversation message stream API — client disconnects', () => {
+  it('keeps streaming after Node closes the fully read request body', async () => {
+    const app = makeApp({})
+    app.addHook('preHandler', (request, _reply, done) => {
+      if (request.url.endsWith('/messages/stream')) setImmediate(() => request.raw.emit('close'))
+      done()
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/conversations/conversation_1/messages/stream',
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+      payload: { message: { content: 'Hello' } },
+    })
+
+    const events = parseMessageStream(response.body)
+    expect(events.at(-1)?.type).toBe('conversation.message.completed')
+  })
 
   it('aborts the provider and preserves the persistence boundary when the client disconnects', async () => {
     const llm = new InterruptibleLlmAdapter()
     const messageRepository = new InMemoryMessageRepository()
     const app = makeApp({ llmAdapter: llm, messageRepository })
-    app.addHook('preHandler', (request, _reply, done) => {
+    app.addHook('preHandler', (request, reply, done) => {
       if (request.url.endsWith('/messages/stream')) {
-        setImmediate(() => request.raw.emit('close'))
+        setImmediate(() => reply.raw.emit('close'))
       }
       done()
     })
-    const response = await app.inject({
-      method: 'POST',
-      url: '/v1/conversations/conversation_1/messages/stream',
-      headers: { 'x-api-key': 'test-secret' },
-      payload: { message: { content: 'Hello disconnect' } },
-    })
+    await expect(
+      app.inject({
+        method: 'POST',
+        url: '/v1/conversations/conversation_1/messages/stream',
+        headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
+        payload: { message: { content: 'Hello disconnect' } },
+      }),
+    ).rejects.toThrow('response destroyed')
 
-    expect(response.statusCode).toBe(200)
-    const events = parseMessageStream(response.body)
-    expect(events[0]?.type).toBe('conversation.message.started')
-    expect(events.at(-1)?.type).toBe('conversation.message.interrupted')
-    expect(events.some((event) => event.type === 'conversation.message.completed')).toBe(false)
     await llm.abortObserved
     await llm.iteratorClosed
 
@@ -609,7 +626,7 @@ describe('session conversation listing API', () => {
     }).inject({
       method: 'GET',
       url: '/v1/sessions/session_1/conversations',
-      headers: { 'x-api-key': 'test-secret' },
+      headers: { 'x-api-key': 'test-secret', 'x-admin-service-key': 'test-secret' },
     })
     expect(response.statusCode).toBe(200)
     const body = response.json<ApiResponse<{ conversations: Array<{ conversationId: string }> }>>()

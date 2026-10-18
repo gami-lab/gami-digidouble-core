@@ -100,6 +100,18 @@ route inherits its group's tier unless it declares its own `config.tier`. Startu
 route has no tier, and `route-tiers.test.ts` enumerates the real server's routes to keep the
 matrix honest.
 
+### Admin authentication
+
+The admin tier accepts exactly two credentials: an admin session cookie or the server-side
+`ADMIN_SERVICE_KEY` header (`x-admin-service-key`, tools only). `POST /v1/admin/auth/login` checks
+the single operator password against `ADMIN_PASSWORD_HASH` (scrypt) through `AdminAuthService`,
+whose credential check is a replaceable function so OIDC can take over without route changes.
+Sessions live behind the `IAdminSessionStore` port (Redis in production, in-memory in tests) under
+an HMAC of the random session id, so a store dump holds no usable cookie. The cookie is
+`HttpOnly; Secure; SameSite=Strict; Path=/v1/admin`; cookie-authenticated state changes must also
+carry an `Origin` from `ADMIN_ORIGINS` (CSRF check). The admin SPA and console sign in with the
+cookie; the evaluation tool and seed script use the service key.
+
 `apps/console` is a consumer-only debug layer over canonical Core routes: it builds each session's
 turn timeline from the admin events feed and shows structured LLM inputs, linking to Langfuse for
 the rendered prompts instead of reading them from Core. `apps/admin` is the first-class

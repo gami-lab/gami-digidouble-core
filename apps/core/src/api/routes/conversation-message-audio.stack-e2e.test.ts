@@ -3,7 +3,7 @@ import type { ApiResponse } from '@gami/shared'
 import { prepareAndActivateAvatar } from './stack-e2e-current-fixtures.js'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
-const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret'
+const API_KEY = process.env['API_KEY'] ?? 'e2e-stack-secret-0123456789abcdef0123'
 
 function buildUrl(path: string): string {
   return `${APP_URL}${path}`
@@ -24,7 +24,7 @@ async function postJson(path: string, body: unknown, apiKey?: string): Promise<R
   return fetch(buildUrl(path), {
     method: 'POST',
     headers: {
-      ...(apiKey === undefined ? {} : { 'x-api-key': apiKey }),
+      ...(apiKey === undefined ? {} : { 'x-api-key': apiKey, 'x-admin-service-key': apiKey }),
       'content-type': 'application/json',
     },
     body: JSON.stringify(body),
@@ -32,7 +32,10 @@ async function postJson(path: string, body: unknown, apiKey?: string): Promise<R
 }
 
 async function deleteJson(path: string): Promise<void> {
-  await fetch(buildUrl(path), { method: 'DELETE', headers: { 'x-api-key': API_KEY } })
+  await fetch(buildUrl(path), {
+    method: 'DELETE',
+    headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY },
+  })
 }
 
 function requireId(value: string | undefined, name: string): string {
@@ -148,7 +151,11 @@ describe('Stack E2E — conversation message audio validation', () => {
   it('returns 400 VALIDATION_ERROR for malformed JSON', async () => {
     const response = await fetch(buildUrl(audioPath('conversation_missing', 'message_missing')), {
       method: 'POST',
-      headers: { 'x-api-key': API_KEY, 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': API_KEY,
+        'x-admin-service-key': API_KEY,
+        'content-type': 'application/json',
+      },
       body: '{"format":',
     })
     await expectApiError(response, 400, 'VALIDATION_ERROR')

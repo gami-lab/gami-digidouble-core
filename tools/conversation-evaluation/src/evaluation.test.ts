@@ -157,12 +157,13 @@ function createClients(
     avatarClient: new CoreApiClient({
       baseUrl: 'https://avatar.example',
       apiKey: 'key',
+      serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: avatarFetch,
     }),
     judgeClient: new SemanticJudgeClient({
       baseUrl: 'https://judge.example',
-      apiKey: 'key',
+      serviceKey: 'service-key',
       timeoutMs: 1000,
       fetchImpl: judgeFetch,
     }),

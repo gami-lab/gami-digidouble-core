@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest'
 import type { ApiResponse } from '@gami/shared'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
-const API_KEY = 'e2e-stack-secret'
+const API_KEY = 'e2e-stack-secret-0123456789abcdef0123'
 const RUN_REINDEX_STACK_E2E = process.env['RUN_REINDEX_STACK_E2E'] === '1'
 
 function authHeaders(apiKey = API_KEY): Record<string, string> {
-  return { 'content-type': 'application/json', 'x-api-key': apiKey }
+  return { 'content-type': 'application/json', 'x-api-key': apiKey, 'x-admin-service-key': apiKey }
 }
 
 describe.skipIf(!RUN_REINDEX_STACK_E2E)('Stack E2E — admin knowledge reindex', () => {
@@ -36,7 +36,7 @@ describe.skipIf(!RUN_REINDEX_STACK_E2E)('Stack E2E — admin knowledge reindex',
   it('returns a not-found ApiResponse for an unknown operation', async () => {
     const response = await fetch(
       `${APP_URL}/v1/admin/knowledge/reindex/reindex_operation_00000000-0000-0000-0000-000000000000`,
-      { headers: { 'x-api-key': API_KEY } },
+      { headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY } },
     )
     expect(response.status).toBe(404)
     const body = (await response.json()) as ApiResponse<null>
@@ -48,7 +48,11 @@ describe.skipIf(!RUN_REINDEX_STACK_E2E)('Stack E2E — admin knowledge reindex',
     expect(status.status).toBe(401)
     const retry = await fetch(
       `${APP_URL}/v1/admin/knowledge/reindex/reindex_operation_missing/retry`,
-      { method: 'POST', headers: { 'x-api-key': 'wrong-key' }, body: JSON.stringify({}) },
+      {
+        method: 'POST',
+        headers: { 'x-api-key': 'wrong-key', 'x-admin-service-key': 'wrong-key' },
+        body: JSON.stringify({}),
+      },
     )
     expect(retry.status).toBe(401)
   })
@@ -68,7 +72,7 @@ describe.skipIf(!RUN_REINDEX_STACK_E2E)('Stack E2E — admin knowledge reindex',
 
     const inspected = await fetch(
       `${APP_URL}/v1/admin/knowledge/reindex/${body.data?.operation.reindexOperationId ?? ''}`,
-      { headers: { 'x-api-key': API_KEY } },
+      { headers: { 'x-api-key': API_KEY, 'x-admin-service-key': API_KEY } },
     )
     expect(inspected.status).toBe(200)
     const inspectedBody = (await inspected.json()) as ApiResponse<{
