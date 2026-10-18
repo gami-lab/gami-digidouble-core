@@ -235,13 +235,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   registerSwitchAvatarRoute(app, switchAvatarUseCase)
   registerGetAvailableAvatarsRoute(app, getAvailableAvatarsUseCase)
   registerGetAvatarTransitionsRoute(app, getAvatarTransitionsUseCase)
-  registerRuntimeEventsRoutes(
-    app,
-    sessionRepository,
-    sessionEventPublisher,
-    getRuntimeStateUseCase,
-    options.config.corsOrigin,
-  )
+  registerRuntimeEventsRoutes(app, sessionRepository, sessionEventPublisher, getRuntimeStateUseCase)
 }
 
 function resolveRouteDependencies(options: SessionsRouteOptions) {
@@ -274,7 +268,7 @@ function resolveRouteDependencies(options: SessionsRouteOptions) {
 function registerStartSessionRoute(app: FastifyInstance, useCase: StartSessionUseCase): void {
   app.post<{ Body: StartSessionRequestBody }>(
     '/',
-    { schema: { body: startSessionBodySchema } },
+    { config: { rateLimit: 'sessionStart' }, schema: { body: startSessionBodySchema } },
     async (request, reply) => {
       try {
         const output = await useCase.execute({

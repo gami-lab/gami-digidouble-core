@@ -50,6 +50,20 @@ Every route declares one tier: `public` (player), `admin` (authoring, operators,
   routes never start work for another player).
 - A player token on an admin route returns `403 FORBIDDEN`.
 
+## Abuse controls
+
+- Rate limits return `429 RATE_LIMITED` with `Retry-After` (seconds). Player routes are limited per
+  player, `open` routes per client IP. Policies: `playerToken` (`POST /v1/auth/player`),
+  `adminLogin`, `sessionStart` (`POST /v1/sessions`), `message` (JSON and SSE turns), `voice`
+  (both voice routes), `audio` (message audio). If the limiter is unavailable the request proceeds
+  (fail-open) and a warning is logged.
+- Every JSON route has a body limit: 4 KB on `open` routes, 32 KB on player routes, 1 MB on admin
+  routes, and ~15 MB on knowledge create/upload/update. Voice audio is bounded at 10 MB. An
+  oversized body returns `400 VALIDATION_ERROR`.
+- CORS follows the tier: player routes allow `PLAYER_ORIGINS` without credentials and only the
+  `Content-Type`, `Authorization`, and voice headers; `/v1/admin/*` allows only `ADMIN_ORIGINS`,
+  with credentials. A player origin gets no CORS grant on admin routes.
+
 ## Open routes
 
 - `GET /health`

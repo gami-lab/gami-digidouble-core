@@ -11,6 +11,12 @@ import {
 import { randomBytes } from 'node:crypto'
 import { isPasswordHash } from './application/auth/password-hash.js'
 import {
+  DEFAULT_RATE_LIMIT_POLICIES,
+  RATE_LIMIT_POLICY_NAMES,
+  type RateLimitPolicies,
+  type RateLimitPolicy,
+} from './application/rate-limit/rate-limit-policies.js'
+import {
   normalizeSpeechToTextLanguage,
   SPEECH_TO_TEXT_LIMITS,
   type SpeechToTextLimits,
@@ -28,7 +34,11 @@ export interface Config {
   databaseUrl: string
   redisUrl: string
   apiKeySecret: string
-  corsOrigin: string
+  /** Browser origins allowed to call player routes (no credentials); `*` allows any origin. */
+  playerOrigins: string[]
+  /** Proxy hops in front of Core, so rate limits key on the client IP rather than the proxy. */
+  trustProxyHops: number
+  rateLimits: RateLimitPolicies
   /** `scrypt:` hash of the single operator password; admin sign-in is disabled when absent. */
   adminPasswordHash: string | undefined
   /** Keys admin sessions in Redis so a store dump holds no usable cookie value. */
@@ -102,7 +112,9 @@ export function loadConfig(): Config {
     databaseUrl: requireEnv('DATABASE_URL'),
     redisUrl: requireEnv('REDIS_URL'),
     apiKeySecret: requireEnv('API_KEY_SECRET'),
-    corsOrigin: process.env['CORS_ORIGIN'] ?? '*',
+    playerOrigins: parseList(process.env['PLAYER_ORIGINS'] ?? '*'),
+    trustProxyHops: parseTrustProxyHops(process.env['TRUST_PROXY_HOPS']),
+    rateLimits: loadRateLimitPolicies(),
     ...loadAdminAuthConfig(process.env['NODE_ENV'] === 'production'),
     ...loadPlayerTokenConfig(process.env['NODE_ENV'] === 'production'),
     llmProvider: process.env['LLM_PROVIDER'] ?? 'null',
@@ -245,6 +257,40 @@ function loadPlayerTokenConfig(
       30 * 24 * 60 * 60,
     ),
   }
+}
+
+function loadRateLimitPolicies(): RateLimitPolicies {
+  const policies = { ...DEFAULT_RATE_LIMIT_POLICIES }
+  for (const name of RATE_LIMIT_POLICY_NAMES) {
+    const key = `RATE_LIMIT_${name.replace(/[A-Z]/g, (letter) => `_${letter}`).toUpperCase()}`
+    const value = optionalEnv(key)
+    if (value !== undefined) policies[name] = parseRateLimitPolicy(key, value)
+  }
+  return policies
+}
+
+function parseRateLimitPolicy(key: string, value: string): RateLimitPolicy {
+  const [max, windowSeconds, ...rest] = value.split('/').map(Number)
+  if (
+    rest.length > 0 ||
+    max === undefined ||
+    windowSeconds === undefined ||
+    !Number.isInteger(max) ||
+    !Number.isInteger(windowSeconds) ||
+    max < 1 ||
+    windowSeconds < 1
+  ) {
+    throw new Error(`Invalid ${key}: expected <max>/<windowSeconds>, e.g. 30/60.`)
+  }
+  return { max, windowSeconds }
+}
+
+function parseTrustProxyHops(value: string | undefined): number {
+  const hops = Number(value === undefined || value.trim() === '' ? 0 : value)
+  if (!Number.isInteger(hops) || hops < 0 || hops > 10) {
+    throw new Error('Invalid TRUST_PROXY_HOPS: expected an integer from 0 to 10.')
+  }
+  return hops
 }
 
 function optionalEnv(key: string): string | undefined {

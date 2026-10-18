@@ -13,9 +13,20 @@ declare module 'fastify' {
 }
 
 /**
- * Registers a group of route plugins under `prefix` whose routes all default to `tier`. A route
- * may still declare its own tier in `config.tier` (for example an `open` login route under the
- * admin prefix); that declaration wins.
+ * Default JSON body limits by tier: player and credential routes carry small payloads; authoring
+ * routes carry scenario and Avatar text. Routes with larger bodies (voice audio, knowledge
+ * uploads) declare their own `bodyLimit`.
+ */
+export const DEFAULT_BODY_LIMITS: Record<RouteTier, number> = {
+  open: 4 * 1024,
+  public: 32 * 1024,
+  admin: 1024 * 1024,
+}
+
+/**
+ * Registers a group of route plugins under `prefix` whose routes all default to `tier` and to that
+ * tier's body limit. A route may still declare its own tier in `config.tier` (for example an
+ * `open` login route under the admin prefix) or its own `bodyLimit`; those declarations win.
  */
 export function registerTierScope(
   app: FastifyInstance,
@@ -26,7 +37,9 @@ export function registerTierScope(
   void app.register(
     (scope, _options, done) => {
       scope.addHook('onRoute', (route) => {
-        route.config = { ...route.config, tier: route.config?.tier ?? tier }
+        const routeTier = route.config?.tier ?? tier
+        route.config = { ...route.config, tier: routeTier }
+        route.bodyLimit ??= DEFAULT_BODY_LIMITS[routeTier]
       })
       register(scope)
       done()

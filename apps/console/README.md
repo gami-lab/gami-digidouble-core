@@ -30,10 +30,9 @@ pnpm --filter @gami/console dev
 | Variable                    | Required | Description                                                         |
 | --------------------------- | -------- | ------------------------------------------------------------------- |
 | `VITE_API_URL`              | No       | Core API base URL (default `http://localhost:3000`)                 |
-| `VITE_API_KEY`              | Yes      | API key sent as `x-api-key`                                         |
 | `VITE_LANGFUSE_PROJECT_URL` | No       | e.g. `https://cloud.langfuse.com/project/<id>`; enables trace links |
 
-Core must allow the console origin (`CORS_ORIGIN`).
+Core must list the console origin in `ADMIN_ORIGINS`; sign in with the admin password.
 
 ## URLs
 

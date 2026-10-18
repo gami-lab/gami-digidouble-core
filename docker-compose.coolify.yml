@@ -6,6 +6,8 @@
 #   ADMIN_SESSION_SECRET, ADMIN_SERVICE_KEY (at least 32 characters each)
 #   ADMIN_ORIGINS (origin of the admin app, e.g. https://app.example.com)
 #   PLAYER_TOKEN_SECRET (at least 32 characters)
+#   PLAYER_ORIGINS (origin of the player web app, e.g. https://app.example.com)
+# Optional: TRUST_PROXY_HOPS (default 1, the Coolify/Traefik hop), RATE_LIMIT_<POLICY>=<max>/<seconds>
 #
 # The default embedding provider requires OPENAI_API_KEY at startup.
 # Optional env vars:
@@ -77,7 +79,8 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/gami_core
       REDIS_URL: redis://redis:6379
       API_KEY_SECRET: ${API_KEY_SECRET}
-      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      PLAYER_ORIGINS: ${PLAYER_ORIGINS:?}
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
       ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?}
       ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:?}
       ADMIN_SERVICE_KEY: ${ADMIN_SERVICE_KEY:?}

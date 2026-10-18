@@ -13,27 +13,31 @@ export type PlayerAuthRouteOptions = {
  * token that is unexpired or within the refresh window, issues a fresh token for the same player.
  */
 export const playerAuthRoute: FastifyPluginCallback<PlayerAuthRouteOptions> = (app, options) => {
-  app.post('/auth/player', { config: { tier: 'open' } }, async (request, reply) => {
-    const presented = readBearerToken(request)
-    const grant =
-      presented === undefined
-        ? options.playerTokens.createPlayer()
-        : options.playerTokens.refresh(presented)
-    if (grant === null) {
-      return await reply
-        .status(401)
-        .send(fail('UNAUTHORIZED', 'Player token is invalid or expired'))
-    }
+  app.post(
+    '/auth/player',
+    { config: { tier: 'open', rateLimit: 'playerToken' } },
+    async (request, reply) => {
+      const presented = readBearerToken(request)
+      const grant =
+        presented === undefined
+          ? options.playerTokens.createPlayer()
+          : options.playerTokens.refresh(presented)
+      if (grant === null) {
+        return await reply
+          .status(401)
+          .send(fail('UNAUTHORIZED', 'Player token is invalid or expired'))
+      }
 
-    request.log.info(
-      {
-        event: presented === undefined ? 'player_auth.created' : 'player_auth.refreshed',
-        userId: grant.userId,
-      },
-      'Player token issued',
-    )
-    return await reply.send(ok<PlayerTokenResponse>(grant))
-  })
+      request.log.info(
+        {
+          event: presented === undefined ? 'player_auth.created' : 'player_auth.refreshed',
+          userId: grant.userId,
+        },
+        'Player token issued',
+      )
+      return await reply.send(ok<PlayerTokenResponse>(grant))
+    },
+  )
 }
 
 const issuePlayerTokenBodySchema = {

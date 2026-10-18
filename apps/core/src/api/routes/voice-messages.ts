@@ -15,6 +15,7 @@ import {
   writeMessageStreamFrame,
 } from './conversation-message-mappers.js'
 import { handleRouteError } from './route-error.js'
+import { copyReplyHeadersToRaw } from './reply-headers.js'
 
 type VoiceMessagesRouteOptions = {
   config: Config
@@ -39,17 +40,17 @@ export const voiceMessagesRoute: FastifyPluginCallback<VoiceMessagesRouteOptions
   app,
   options,
 ) => {
-  app.addContentTypeParser(
-    '*',
-    { parseAs: 'buffer', bodyLimit: SPEECH_TO_TEXT_LIMITS.maxAudioBytes },
-    (_request, payload, done) => {
-      done(null, payload)
-    },
-  )
+  app.addContentTypeParser('*', { parseAs: 'buffer' }, (_request, payload, done) => {
+    done(null, payload)
+  })
 
   app.post<VoiceRouteGeneric>(
     '/:conversationId/voice-messages',
-    { schema: { params: voiceConversationParamsSchema } },
+    {
+      bodyLimit: SPEECH_TO_TEXT_LIMITS.maxAudioBytes,
+      config: { rateLimit: 'voice' },
+      schema: { params: voiceConversationParamsSchema },
+    },
     async (request, reply) => {
       const abortController = new AbortController()
       const onClose = (): void => {
@@ -79,6 +80,8 @@ export const voiceMessagesRoute: FastifyPluginCallback<VoiceMessagesRouteOptions
   app.post<VoiceRouteGeneric>(
     '/:conversationId/voice-messages/stream',
     {
+      bodyLimit: SPEECH_TO_TEXT_LIMITS.maxAudioBytes,
+      config: { rateLimit: 'voice' },
       schema: { params: voiceConversationParamsSchema, response: {} },
     },
     // eslint-disable-next-line complexity -- SSE handler maps abort, stream-start, and per-phase typed failures to frames
@@ -108,11 +111,11 @@ export const voiceMessagesRoute: FastifyPluginCallback<VoiceMessagesRouteOptions
         streamRequestId = first.value.requestId
         if (!isStreamWritable(reply)) return
 
+        copyReplyHeadersToRaw(reply)
         reply.raw.setHeader('Content-Type', 'text/event-stream')
         reply.raw.setHeader('Cache-Control', 'no-cache')
         reply.raw.setHeader('Connection', 'keep-alive')
         reply.raw.setHeader('X-Accel-Buffering', 'no')
-        reply.raw.setHeader('Access-Control-Allow-Origin', options.config.corsOrigin)
         await reply.hijack()
         responseStarted = true
         writeMessageStreamFrame(reply.raw, mapStreamingEvent(first.value))

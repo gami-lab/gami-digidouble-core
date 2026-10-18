@@ -3,6 +3,8 @@ import { parseUploadedKnowledgeSourceContent } from '../../infrastructure/knowle
 
 // Max base64-encoded content size: ~14MB encodes to ~10MB of raw bytes.
 const UPLOAD_MAX_BASE64_BYTES = 14 * 1024 * 1024
+/** Request body limit for routes carrying uploaded or inline source content, with JSON headroom. */
+export const KNOWLEDGE_CONTENT_BODY_LIMIT = UPLOAD_MAX_BASE64_BYTES + 1024 * 1024
 const ALLOWED_EXTENSIONS = new Set(['.txt', '.text', '.pdf'])
 
 export type UploadedKnowledgeSource = {

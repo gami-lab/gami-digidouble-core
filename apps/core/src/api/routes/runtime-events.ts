@@ -9,6 +9,7 @@ import {
   sessionParamsSchema,
   type SessionParams,
 } from './inspector-route-utils.js'
+import { copyReplyHeadersToRaw } from './reply-headers.js'
 
 const KEEPALIVE_INTERVAL_MS = 30_000
 
@@ -17,10 +18,9 @@ export function registerRuntimeEventsRoutes(
   sessionRepository: ISessionRepository,
   publisher: ISessionEventPublisher,
   getRuntimeStateUseCase: GetRuntimeStateUseCase,
-  corsOrigin: string,
 ): void {
   registerGetRuntimeStateRoute(app, getRuntimeStateUseCase)
-  registerStreamRuntimeEventsRoute(app, sessionRepository, publisher, corsOrigin)
+  registerStreamRuntimeEventsRoute(app, sessionRepository, publisher)
 }
 
 function registerGetRuntimeStateRoute(app: FastifyInstance, useCase: GetRuntimeStateUseCase): void {
@@ -42,7 +42,6 @@ function registerStreamRuntimeEventsRoute(
   app: FastifyInstance,
   sessionRepository: ISessionRepository,
   publisher: ISessionEventPublisher,
-  corsOrigin: string,
 ): void {
   app.get<{ Params: SessionParams }>(
     '/:sessionId/events/stream',
@@ -54,11 +53,11 @@ function registerStreamRuntimeEventsRoute(
         return await reply.status(404).send(fail('NOT_FOUND', `Session '${sessionId}' not found`))
       }
 
+      copyReplyHeadersToRaw(reply)
       reply.raw.setHeader('Content-Type', 'text/event-stream')
       reply.raw.setHeader('Cache-Control', 'no-cache')
       reply.raw.setHeader('Connection', 'keep-alive')
       reply.raw.setHeader('X-Accel-Buffering', 'no')
-      reply.raw.setHeader('Access-Control-Allow-Origin', corsOrigin)
       reply.raw.write(': keepalive\n\n')
 
       request.log.info({ sessionId }, 'sse.connected')

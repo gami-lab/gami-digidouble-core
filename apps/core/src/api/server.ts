@@ -1,5 +1,4 @@
 import Fastify, { type FastifyInstance } from 'fastify'
-import cors, { type FastifyCorsOptionsDelegateCallback } from '@fastify/cors'
 import { fail } from '@gami/shared'
 import type { ILlmAdapter } from '../application/ports/ILlmAdapter.js'
 import type { IObservabilityAdapter } from '../application/ports/IObservabilityAdapter.js'
@@ -51,7 +50,11 @@ import { AdminAuthService } from '../application/auth/admin-auth.service.js'
 import { InMemoryAdminSessionStore } from '../application/auth/in-memory-admin-session.store.js'
 import { verifyPassword } from '../application/auth/password-hash.js'
 import type { IAdminSessionStore } from '../application/ports/IAdminSessionStore.js'
-import { enforceRouteTiers, registerTierScope } from './route-tiers.js'
+import { DEFAULT_BODY_LIMITS, enforceRouteTiers, registerTierScope } from './route-tiers.js'
+import { registerTierCors } from './cors.js'
+import { registerRateLimits } from './rate-limit.js'
+import { InMemoryRateLimiter } from '../application/rate-limit/in-memory-rate-limiter.js'
+import type { IRateLimiter } from '../application/ports/IRateLimiter.js'
 import { adminSessionManagementRoute } from './routes/admin-session-management.js'
 import { scenarioCatalogueRoute } from './routes/scenario-catalogue.js'
 import { adminMemoryRoute } from './routes/admin-memory.js'
@@ -110,6 +113,7 @@ export interface ServerAdapters {
   modelConfigFallback?: ModelConfig
   typedRetrievalService?: TypedRetrievalService
   adminSessionStore?: IAdminSessionStore
+  rateLimiter?: IRateLimiter
 }
 
 type FastifyValidationError = {
@@ -158,33 +162,14 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
 
   const app = Fastify({
     logger: config.nodeEnv !== 'test' ? { level: config.logLevel } : false,
+    trustProxy: (_address: string, hop: number) => hop < config.trustProxyHops,
+    bodyLimit: DEFAULT_BODY_LIMITS.open,
   })
 
-  const corsMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
-  // Voice uploads carry their identity and hints in headers (see voice-messages routes).
-  const corsAllowedHeaders = [
-    'Content-Type',
-    'Authorization',
-    'x-api-key',
-    'x-utterance-id',
-    'x-language',
-    'x-audio-duration-ms',
-  ]
-  // Binary audio delivery carries its metadata in headers; browsers hide non-safelisted
-  // response headers from cross-origin clients unless they are exposed.
-  const corsExposedHeaders = ['X-Request-Id', 'X-Message-Id']
-  const corsDelegate: FastifyCorsOptionsDelegateCallback = (request, callback) => {
-    const origin = request.headers.origin
-    const isAdminOrigin = origin !== undefined && config.adminOrigins.includes(origin)
-    callback(null, {
-      origin: isAdminOrigin ? origin : config.corsOrigin,
-      credentials: isAdminOrigin,
-      methods: corsMethods,
-      allowedHeaders: corsAllowedHeaders,
-      exposedHeaders: corsExposedHeaders,
-    })
-  }
-  void app.register(cors, () => corsDelegate)
+  registerTierCors(app, {
+    playerOrigins: config.playerOrigins,
+    adminOrigins: config.adminOrigins,
+  })
 
   app.setErrorHandler((error, request, reply) => {
     if (isFastifyValidationError(error)) {
@@ -194,11 +179,8 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     }
 
     if (isFastifyBodyParsingError(error)) {
-      const isVoiceBodyTooLarge =
-        error.code === 'FST_ERR_CTP_BODY_TOO_LARGE' && request.url.includes('/voice-messages')
-      const statusCode = isVoiceBodyTooLarge ? 400 : error.statusCode
       return reply
-        .status(statusCode)
+        .status(400)
         .send(fail('VALIDATION_ERROR', error.message ?? 'Malformed request body'))
     }
 
@@ -230,6 +212,7 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
       playerTokens,
     }),
   })
+  registerRateLimits(app, adapters.rateLimiter ?? new InMemoryRateLimiter(), config.rateLimits)
 
   app.register(healthRoute)
   registerTierScope(app, 'public', '/v1', (scope) => {

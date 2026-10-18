@@ -165,3 +165,48 @@ describe('loadConfig admin authentication settings', () => {
     expect(config.adminSessionSecret.length).toBeGreaterThanOrEqual(32)
   })
 })
+
+describe('loadConfig abuse controls', () => {
+  beforeEach(() => {
+    vi.stubEnv('DATABASE_URL', 'postgresql://test')
+    vi.stubEnv('REDIS_URL', 'redis://test')
+    vi.stubEnv('API_KEY_SECRET', 'test-secret')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('uses safe defaults', () => {
+    vi.stubEnv('PLAYER_ORIGINS', '')
+    vi.stubEnv('TRUST_PROXY_HOPS', '')
+
+    const config = loadConfig()
+
+    expect(config.rateLimits.adminLogin).toEqual({ max: 10, windowSeconds: 300 })
+    expect(config.trustProxyHops).toBe(0)
+  })
+
+  it('reads per-policy overrides, player origins, and proxy hops', () => {
+    vi.stubEnv('RATE_LIMIT_PLAYER_TOKEN', '5/30')
+    vi.stubEnv('PLAYER_ORIGINS', 'https://play.example.com,https://beta.example.com')
+    vi.stubEnv('TRUST_PROXY_HOPS', '1')
+
+    const config = loadConfig()
+
+    expect(config.rateLimits.playerToken).toEqual({ max: 5, windowSeconds: 30 })
+    expect(config.playerOrigins).toEqual(['https://play.example.com', 'https://beta.example.com'])
+    expect(config.trustProxyHops).toBe(1)
+  })
+
+  it.each([
+    ['RATE_LIMIT_MESSAGE', '30'],
+    ['RATE_LIMIT_MESSAGE', '0/60'],
+    ['RATE_LIMIT_MESSAGE', 'ten/60'],
+    ['TRUST_PROXY_HOPS', '-1'],
+  ])('rejects invalid %s=%s', (key, value) => {
+    vi.stubEnv(key, value)
+
+    expect(() => loadConfig()).toThrow(`Invalid ${key}`)
+  })
+})

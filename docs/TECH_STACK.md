@@ -24,6 +24,11 @@ hash-admin-password`) with a Redis-backed session cookie (`ADMIN_SESSION_SECRET`
   secret, and a service key of at least 32 characters. Players get a Core-issued HMAC-SHA256
   token (`PLAYER_TOKEN_SECRET`, `PLAYER_TOKEN_TTL_SECONDS`, `PLAYER_TOKEN_REFRESH_WINDOW_SECONDS`)
   signed with `node:crypto`; there is no JWT library. No OIDC/multi-tenant auth yet (deferred).
+- Rate limiting is a small fixed-window counter behind `IRateLimiter` (one Redis `MULTI` per
+  request), not `@fastify/rate-limit`, so policies stay declared on the route next to its tier
+  (`config.rateLimit`) and limits key on the token's player id. Overrides:
+  `RATE_LIMIT_<POLICY>=<max>/<seconds>`; `TRUST_PROXY_HOPS` makes the client IP the key behind
+  Coolify/Traefik. CORS origins: `PLAYER_ORIGINS`, `ADMIN_ORIGINS`.
 - PostgreSQL with pgvector; Redis for cache, coordination, and runtime idempotency.
 - Docker Compose for local infra and Coolify deployment.
 

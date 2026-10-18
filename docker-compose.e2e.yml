@@ -49,6 +49,13 @@ services:
       ADMIN_PASSWORD_HASH: scrypt:r2WcBG9TXEC5g-2G5hcZog:I-D7PYkt9-dkFHMBP3kwxYUdHFEhOL43kdP3He2PJPsWVv6L6GW3ywLuYXGPXX6ZLGsIOg2JHY-NsuN3De_qgw
       ADMIN_ORIGINS: http://admin.e2e.test
       PLAYER_TOKEN_SECRET: e2e-player-token-secret-0123456789abcdef
+      # The suite issues many tokens and sessions from one IP and player; 429 is covered by route tests.
+      RATE_LIMIT_PLAYER_TOKEN: 10000/60
+      RATE_LIMIT_ADMIN_LOGIN: 10000/60
+      RATE_LIMIT_SESSION_START: 10000/60
+      RATE_LIMIT_MESSAGE: 10000/60
+      RATE_LIMIT_VOICE: 10000/60
+      RATE_LIMIT_AUDIO: 10000/60
       # LLM provider — defaults to null (always-on tests); override to exercise real providers
       LLM_PROVIDER: ${LLM_PROVIDER:-null}
       # Production embedding provider — requires OPENAI_API_KEY to start the app

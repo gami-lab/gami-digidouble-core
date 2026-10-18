@@ -34,6 +34,8 @@ Redis holds only expiring coordination state:
 - `admin_session:{hmac}` — one signed-in admin session; the key is an HMAC of the random cookie
   value under `ADMIN_SESSION_SECRET`, the value carries nothing, and the Redis expiry
   (`ADMIN_SESSION_TTL_SECONDS`, default 8 hours) bounds every session.
+- `rate_limit:{policy}:{subject}` — fixed-window request counters; the subject is the player id
+  or a truncated SHA-256 of the client IP, and the key expires with its window.
 - Voice utterance idempotency records, retained at most one day.
 
 ## Relationships

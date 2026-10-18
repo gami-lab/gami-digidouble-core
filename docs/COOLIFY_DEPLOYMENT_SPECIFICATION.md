@@ -35,15 +35,15 @@ configured secret, at the cost of that key being visible in the browser bundle.
 
 Required: `API_KEY_SECRET`, `OPENAI_API_KEY` (default embedding provider), plus database/Redis
 connection values (managed internally by compose). Optional depending on enabled capabilities:
-`CORS_ORIGIN`, `LLM_PROVIDER`, the `EMBEDDING_*` variables, `DEEPGRAM_*` (voice transcription —
+`RATE_LIMIT_*`, `LLM_PROVIDER`, the `EMBEDDING_*` variables, `DEEPGRAM_*` (voice transcription —
 omit to keep voice safely unavailable), other model provider keys, and `LANGFUSE_*`. See compose
 files and `.env.example` for the exact current variable list.
 
-**CORS gotcha:** `apps/core/src/api/server.ts` registers `@fastify/cors` with a single
-`config.corsOrigin` string, not a list. If `CORS_ORIGIN` is set to one exact origin (e.g.
-`app.example.com`), browser requests from a different origin (e.g. an `admin` domain on a separate
-host) will be blocked. Until the backend supports multiple allowed origins, either set
-`CORS_ORIGIN=*` or pick the one exact origin that covers your actual usage.
+**CORS:** set `PLAYER_ORIGINS` to the player web origin and `ADMIN_ORIGINS` to the admin origin
+(comma-separated lists). Admin routes only answer the admin origins, with credentials, and the
+admin cookie is `SameSite=Strict`, so Core and the admin app must share a registrable domain
+(`api.example.com` and `app.example.com`). Keep `TRUST_PROXY_HOPS=1` behind Coolify's Traefik so
+rate limits see the client IP.
 
 Keep the embedding profile (`EMBEDDING_PROVIDER`/`EMBEDDING_MODEL`/`EMBEDDING_DIMENSIONS`) aligned
 with the deployed `VECTOR(1536)` schema. A profile change needs a matching schema revision and a

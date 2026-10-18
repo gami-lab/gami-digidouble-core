@@ -55,6 +55,7 @@ import {
 } from './conversation-message-mappers.js'
 import { handleRouteError } from './route-error.js'
 import { resolveWorkingMemoryRepositories } from '../composition.js'
+import { copyReplyHeadersToRaw } from './reply-headers.js'
 
 type ConversationsRouteOptions = {
   config: Config
@@ -148,7 +149,10 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
 
   app.post<{ Params: ConversationParams; Body: SendMessageRequest }>(
     '/:conversationId/messages',
-    { schema: { params: conversationParamsSchema, body: sendMessageBodySchema } },
+    {
+      config: { rateLimit: 'message' },
+      schema: { params: conversationParamsSchema, body: sendMessageBodySchema },
+    },
     async (request, reply) => {
       try {
         const output = await deps.sendMessageUseCase.execute({
@@ -176,6 +180,7 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
   app.post<{ Params: ConversationParams; Body: SendMessageRequest }>(
     '/:conversationId/messages/stream',
     {
+      config: { rateLimit: 'message' },
       schema: { params: conversationParamsSchema, body: sendMessageBodySchema, response: {} },
     },
     // eslint-disable-next-line complexity -- SSE handler maps abort, partial-stream, and typed failures to frames
@@ -205,11 +210,11 @@ export const conversationsRoute: FastifyPluginCallback<ConversationsRouteOptions
 
         if (!isStreamWritable(reply)) return
 
+        copyReplyHeadersToRaw(reply)
         reply.raw.setHeader('Content-Type', 'text/event-stream')
         reply.raw.setHeader('Cache-Control', 'no-cache')
         reply.raw.setHeader('Connection', 'keep-alive')
         reply.raw.setHeader('X-Accel-Buffering', 'no')
-        reply.raw.setHeader('Access-Control-Allow-Origin', options.config.corsOrigin)
         await reply.hijack()
         responseStarted = true
         writeMessageStreamFrame(reply.raw, mapStreamingEvent(first.value))

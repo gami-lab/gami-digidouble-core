@@ -27,7 +27,7 @@ export const adminAuthRoute: FastifyPluginCallback<AdminAuthRouteOptions> = (app
 
   app.post<{ Body: AdminLoginRequest }>(
     '/auth/login',
-    { config: { tier: 'open' }, schema: { body: loginBodySchema } },
+    { config: { tier: 'open', rateLimit: 'adminLogin' }, schema: { body: loginBodySchema } },
     async (request, reply) => {
       const signIn = await authService.signIn(request.body.password)
       if (signIn === null) {

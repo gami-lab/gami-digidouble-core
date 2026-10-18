@@ -43,6 +43,7 @@ export const conversationMessageAudioRoute: FastifyPluginCallback<
   }>(
     '/:conversationId/messages/:messageId/audio',
     {
+      config: { rateLimit: 'audio' },
       schema: { params: paramsSchema, body: bodySchema },
     },
     async (request, reply) => {

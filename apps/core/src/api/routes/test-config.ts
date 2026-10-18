@@ -1,4 +1,5 @@
 import { DEFAULT_EMBEDDING_DIMENSIONS, type Config } from '../../config.js'
+import { DEFAULT_RATE_LIMIT_POLICIES } from '../../application/rate-limit/rate-limit-policies.js'
 import { SPEECH_TO_TEXT_LIMITS } from '../../application/ports/ISpeechToTextAdapter.js'
 
 /**
@@ -15,7 +16,9 @@ export const TEST_CONFIG: Config = {
   databaseUrl: 'postgresql://test',
   redisUrl: 'redis://test',
   apiKeySecret: 'test-secret',
-  corsOrigin: '*',
+  playerOrigins: ['*'],
+  trustProxyHops: 0,
+  rateLimits: DEFAULT_RATE_LIMIT_POLICIES,
   adminPasswordHash: undefined,
   adminSessionSecret: 'test-admin-session-secret-0123456789abcdef',
   adminSessionTtlSeconds: 3600,

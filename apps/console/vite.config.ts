@@ -1,8 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// NOTE: The console relies on CORS headers from the Core API server.
-// Set CORS_ORIGIN=* (or the dev URL) in apps/core/.env before running pnpm dev.
+// Core must list this dev origin in ADMIN_ORIGINS (credentialed admin CORS and CSRF check).
 export default defineConfig({
   plugins: [react()],
 })

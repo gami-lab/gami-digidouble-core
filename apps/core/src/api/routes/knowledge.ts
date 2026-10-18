@@ -46,6 +46,7 @@ import { UpdateKnowledgeSourceUseCase } from '../../application/use-cases/update
 import type { Config } from '../../config.js'
 import {
   buildUploadedKnowledgeSourceUpdate,
+  KNOWLEDGE_CONTENT_BODY_LIMIT,
   toKnowledgeSourceUpdateInput,
   validateUploadedKnowledgeSource,
 } from './knowledge-upload.request.js'
@@ -265,7 +266,7 @@ function buildUseCases(options: KnowledgeRouteOptions): UseCases {
 function registerCreateSourceRoute(app: FastifyInstance, useCases: UseCases): void {
   app.post<{ Body: CreateKnowledgeSourceRequest }>(
     '/knowledge-sources',
-    { schema: { body: sourceBodySchema } },
+    { bodyLimit: KNOWLEDGE_CONTENT_BODY_LIMIT, schema: { body: sourceBodySchema } },
     async (request, reply) => {
       try {
         const output = await useCases.createSourceUseCase.execute({
@@ -282,7 +283,7 @@ function registerCreateSourceRoute(app: FastifyInstance, useCases: UseCases): vo
 function registerUploadSourceRoute(app: FastifyInstance, useCases: UseCases): void {
   app.post<{ Body: UploadKnowledgeSourceRequest }>(
     '/knowledge-sources/upload',
-    { schema: { body: uploadBodySchema } },
+    { bodyLimit: KNOWLEDGE_CONTENT_BODY_LIMIT, schema: { body: uploadBodySchema } },
     async (request, reply) => {
       try {
         const {
@@ -343,7 +344,10 @@ function registerListSourcesRoute(app: FastifyInstance, useCases: UseCases): voi
 function registerUpdateSourceRoute(app: FastifyInstance, useCases: UseCases): void {
   app.patch<{ Params: SourceParams; Body: UpdateKnowledgeSourceRequest }>(
     '/knowledge-sources/:sourceId',
-    { schema: { params: sourceParamsSchema, body: updateSourceBodySchema } },
+    {
+      bodyLimit: KNOWLEDGE_CONTENT_BODY_LIMIT,
+      schema: { params: sourceParamsSchema, body: updateSourceBodySchema },
+    },
     async (request, reply) => {
       try {
         const { metadata, uriOrPath, content, filename } = request.body
