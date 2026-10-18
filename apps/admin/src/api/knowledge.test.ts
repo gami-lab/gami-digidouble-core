@@ -42,7 +42,10 @@ describe('knowledge API wrappers', () => {
 
     const result = await listKnowledgeSources('scenario_1')
 
-    expect(adminRequest).toHaveBeenCalledWith('GET', '/v1/scenarios/scenario_1/knowledge-sources')
+    expect(adminRequest).toHaveBeenCalledWith(
+      'GET',
+      '/v1/admin/scenarios/scenario_1/knowledge-sources',
+    )
     expect(result).toHaveLength(1)
   })
 
@@ -59,7 +62,7 @@ describe('knowledge API wrappers', () => {
       visibleToAvatarIds: ['avatar_1'],
     })
 
-    expect(adminRequest).toHaveBeenCalledWith('POST', '/v1/knowledge-sources', {
+    expect(adminRequest).toHaveBeenCalledWith('POST', '/v1/admin/knowledge-sources', {
       scenarioId: 'scenario_1',
       name: 'World lore',
       knowledgeType: 'world',
@@ -83,7 +86,7 @@ describe('knowledge API wrappers', () => {
       visibleToAvatarIds: ['avatar_1'],
     })
 
-    expect(adminRequest).toHaveBeenCalledWith('POST', '/v1/knowledge-sources/upload', {
+    expect(adminRequest).toHaveBeenCalledWith('POST', '/v1/admin/knowledge-sources/upload', {
       scenarioId: 'scenario_1',
       name: 'Uploaded',
       knowledgeType: 'world',
@@ -102,7 +105,7 @@ describe('knowledge API wrappers', () => {
       visibleToAvatarIds: ['avatar_1'],
     })
 
-    expect(adminRequest).toHaveBeenCalledWith('PATCH', '/v1/knowledge-sources/source_1', {
+    expect(adminRequest).toHaveBeenCalledWith('PATCH', '/v1/admin/knowledge-sources/source_1', {
       visibilityPolicy: 'avatars',
       visibleToAvatarIds: ['avatar_1'],
     })
@@ -113,7 +116,7 @@ describe('knowledge API wrappers', () => {
 
     await deleteKnowledgeSource('source_1')
 
-    expect(adminRequest).toHaveBeenCalledWith('DELETE', '/v1/knowledge-sources/source_1')
+    expect(adminRequest).toHaveBeenCalledWith('DELETE', '/v1/admin/knowledge-sources/source_1')
   })
 
   it('triggers ingestion for a source', async () => {
@@ -130,7 +133,11 @@ describe('knowledge API wrappers', () => {
 
     const result = await triggerIngestion('source_1')
 
-    expect(adminRequest).toHaveBeenCalledWith('POST', '/v1/knowledge-sources/source_1/ingest', {})
+    expect(adminRequest).toHaveBeenCalledWith(
+      'POST',
+      '/v1/admin/knowledge-sources/source_1/ingest',
+      {},
+    )
     expect(result.ingestionJobId).toBe('job_1')
   })
 })
@@ -151,9 +158,13 @@ describe('knowledge ingestion chunk size', () => {
 
     const result = await triggerIngestion('source_1', { chunkSize: 500 })
 
-    expect(adminRequest).toHaveBeenCalledWith('POST', '/v1/knowledge-sources/source_1/ingest', {
-      chunkSize: 500,
-    })
+    expect(adminRequest).toHaveBeenCalledWith(
+      'POST',
+      '/v1/admin/knowledge-sources/source_1/ingest',
+      {
+        chunkSize: 500,
+      },
+    )
     expect(result.chunkSize).toBe(500)
   })
 })
@@ -176,7 +187,7 @@ describe('knowledge ingestion inspection and retrieval API wrappers', () => {
 
     const result = await getIngestionJob('job_1')
 
-    expect(adminRequest).toHaveBeenCalledWith('GET', '/v1/ingestion-jobs/job_1')
+    expect(adminRequest).toHaveBeenCalledWith('GET', '/v1/admin/ingestion-jobs/job_1')
     expect(result.status).toBe('completed')
   })
 
@@ -187,7 +198,7 @@ describe('knowledge ingestion inspection and retrieval API wrappers', () => {
 
     expect(adminRequest).toHaveBeenCalledWith(
       'GET',
-      '/v1/knowledge-sources/source_1/ingestion-jobs',
+      '/v1/admin/knowledge-sources/source_1/ingestion-jobs',
     )
     expect(result).toEqual([])
   })
@@ -197,7 +208,7 @@ describe('knowledge ingestion inspection and retrieval API wrappers', () => {
 
     const result = await listKnowledgeChunks('source_1')
 
-    expect(adminRequest).toHaveBeenCalledWith('GET', '/v1/knowledge-sources/source_1/chunks')
+    expect(adminRequest).toHaveBeenCalledWith('GET', '/v1/admin/knowledge-sources/source_1/chunks')
     expect(result).toEqual([])
   })
 

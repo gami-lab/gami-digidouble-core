@@ -27,14 +27,18 @@ describe('knowledge API wrappers - read operations', () => {
     expect(coreRequest).toHaveBeenNthCalledWith(
       1,
       'GET',
-      '/v1/scenarios/scenario_1/knowledge-sources',
+      '/v1/admin/scenarios/scenario_1/knowledge-sources',
     )
     expect(coreRequest).toHaveBeenNthCalledWith(
       2,
       'GET',
-      '/v1/knowledge-sources/source_1/ingestion-jobs',
+      '/v1/admin/knowledge-sources/source_1/ingestion-jobs',
     )
-    expect(coreRequest).toHaveBeenNthCalledWith(3, 'GET', '/v1/knowledge-sources/source_1/chunks')
+    expect(coreRequest).toHaveBeenNthCalledWith(
+      3,
+      'GET',
+      '/v1/admin/knowledge-sources/source_1/chunks',
+    )
   })
 })
 

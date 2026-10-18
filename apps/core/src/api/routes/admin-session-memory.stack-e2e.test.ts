@@ -86,8 +86,8 @@ async function cleanupSession(ids: {
   scenarioId: string
 }): Promise<void> {
   await deleteJson(`/v1/sessions/${ids.sessionId}`)
-  await deleteJson(`/v1/avatars/${ids.avatarId}`)
-  await deleteJson(`/v1/scenarios/${ids.scenarioId}`)
+  await deleteJson(`/v1/admin/avatars/${ids.avatarId}`)
+  await deleteJson(`/v1/admin/scenarios/${ids.scenarioId}`)
 }
 
 async function seedSession(): Promise<{
@@ -98,7 +98,7 @@ async function seedSession(): Promise<{
   scenarioId: string
 }> {
   const userId = `e2e_user_${crypto.randomUUID()}`
-  const scenarioRes = await fetch(buildUrl('/v1/scenarios'), {
+  const scenarioRes = await fetch(buildUrl('/v1/admin/scenarios'), {
     method: 'POST',
     headers: {
       ...authHeaders(),
@@ -111,7 +111,7 @@ async function seedSession(): Promise<{
   }>
   const scenarioId = requireId(scenarioBody.data?.scenario, 'scenarioId')
 
-  const avatarRes = await fetch(buildUrl(`/v1/scenarios/${scenarioId}/avatars`), {
+  const avatarRes = await fetch(buildUrl(`/v1/admin/scenarios/${scenarioId}/avatars`), {
     method: 'POST',
     headers: {
       ...authHeaders(),

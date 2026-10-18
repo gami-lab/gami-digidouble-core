@@ -87,12 +87,18 @@ shared wire DTOs but never Core domain, repositories, or provider SDKs.
 
 ## API surfaces
 
-Core exposes two HTTP surfaces that must stay separated in routing and responsibility:
+Every route declares exactly one tier, and the tier decides which credential it accepts:
 
-- **Public API** (`/v1/sessions`, `/v1/conversations`, `/v1/scenarios`, `/v1/knowledge-sources`) —
-  used by product clients and SDKs; user-facing, stable, versioned.
-- **Admin API** (`/v1/admin/*`) — used by back-office/operators; not user-facing, may expose
-  internal state, and may carry additional guards beyond the shared API-key auth.
+- **Public API** (`/v1/sessions`, `/v1/conversations`, `/v1/users`, read-only `GET /v1/scenarios`)
+  — tier `public`, used by the player app; user-facing, stable, versioned.
+- **Admin API** (`/v1/admin/*`) — tier `admin`, used by authoring, operators, and tools; includes
+  all scenario/Avatar/knowledge authoring, the raw exchange, and cross-user session management.
+- **Open routes** — tier `open`, no credential: `GET /health` and the credential-issue/login routes.
+
+`server.ts` registers the public and admin plugins inside a tier scope (`api/route-tiers.ts`), so a
+route inherits its group's tier unless it declares its own `config.tier`. Startup fails when any
+route has no tier, and `route-tiers.test.ts` enumerates the real server's routes to keep the
+matrix honest.
 
 `apps/console` is a consumer-only debug layer over canonical Core routes: it builds each session's
 turn timeline from the admin events feed and shows structured LLM inputs, linking to Langfuse for

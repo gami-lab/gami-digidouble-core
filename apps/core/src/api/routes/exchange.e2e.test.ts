@@ -23,13 +23,13 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
 
 const openaiKey = process.env['OPENAI_API_KEY']
 
-describe.skipIf(!openaiKey)('E2E — POST /v1/exchange with real OpenAI', () => {
+describe.skipIf(!openaiKey)('E2E — POST /v1/admin/exchange with real OpenAI', () => {
   it('returns a non-empty reply and full token metrics', async (context) => {
     const app = createServer(makeConfig({ llmProvider: 'openai' }))
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/exchange',
+      url: '/v1/admin/exchange',
       headers: { 'x-api-key': 'e2e-secret' },
       payload: {
         message: 'Reply with exactly two words: "test passed".',
@@ -55,13 +55,13 @@ describe.skipIf(!openaiKey)('E2E — POST /v1/exchange with real OpenAI', () => 
 
 const anthropicKey = process.env['ANTHROPIC_API_KEY']
 
-describe.skipIf(!anthropicKey)('E2E — POST /v1/exchange with real Anthropic', () => {
+describe.skipIf(!anthropicKey)('E2E — POST /v1/admin/exchange with real Anthropic', () => {
   it('returns a non-empty reply and full token metrics', async (context) => {
     const app = createServer(makeConfig({ llmProvider: 'anthropic' }))
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/exchange',
+      url: '/v1/admin/exchange',
       headers: { 'x-api-key': 'e2e-secret' },
       payload: {
         message: 'Reply with exactly two words: "test passed".',
@@ -83,13 +83,13 @@ describe.skipIf(!anthropicKey)('E2E — POST /v1/exchange with real Anthropic', 
 
 const mistralKey = process.env['MISTRAL_API_KEY']
 
-describe.skipIf(!mistralKey)('E2E — POST /v1/exchange with real Mistral', () => {
+describe.skipIf(!mistralKey)('E2E — POST /v1/admin/exchange with real Mistral', () => {
   it('returns a non-empty reply and full token metrics', async (context) => {
     const app = createServer(makeConfig({ llmProvider: 'mistral' }))
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/exchange',
+      url: '/v1/admin/exchange',
       headers: { 'x-api-key': 'e2e-secret' },
       payload: {
         message: 'Reply with exactly two words: "test passed".',

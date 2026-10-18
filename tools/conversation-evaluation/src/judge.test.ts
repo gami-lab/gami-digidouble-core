@@ -173,7 +173,7 @@ describe('semantic judge', () => {
       result: { passed: true },
     })
     const [url, init] = fetchMock.mock.calls[0] ?? []
-    expect(url).toBe('https://judge.example/v1/exchange')
+    expect(url).toBe('https://judge.example/v1/admin/exchange')
     expect(init?.headers).toMatchObject({ 'x-api-key': 'judge-key' })
     const rawBody = typeof init?.body === 'string' ? init.body : '{}'
     const body = JSON.parse(rawBody) as {

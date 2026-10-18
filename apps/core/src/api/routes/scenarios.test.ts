@@ -25,11 +25,11 @@ type CreateScenarioRouteData = {
   }
 }
 
-describe('POST /v1/scenarios — auth', () => {
+describe('POST /v1/admin/scenarios — auth', () => {
   it('returns 401 when API key is missing', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       payload: { name: 'Demo' },
     })
 
@@ -42,7 +42,7 @@ describe('POST /v1/scenarios — auth', () => {
   it('returns 401 when API key is wrong', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'wrong-secret' },
       payload: { name: 'Demo' },
     })
@@ -54,11 +54,11 @@ describe('POST /v1/scenarios — auth', () => {
   })
 })
 
-describe('POST /v1/scenarios — validation', () => {
+describe('POST /v1/admin/scenarios — validation', () => {
   it('returns 400 when name is missing', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: {},
     })
@@ -72,7 +72,7 @@ describe('POST /v1/scenarios — validation', () => {
   it('returns 400 when required fields are missing', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: {},
     })
@@ -86,7 +86,7 @@ describe('POST /v1/scenarios — validation', () => {
   it('returns 400 when status value is invalid', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: { name: 'Demo', status: 'paused' },
     })
@@ -98,11 +98,11 @@ describe('POST /v1/scenarios — validation', () => {
   })
 })
 
-describe('POST /v1/scenarios — success', () => {
+describe('POST /v1/admin/scenarios — success', () => {
   it('returns 201 with created scenario in response envelope', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Demo Scenario',
@@ -120,7 +120,7 @@ describe('POST /v1/scenarios — success', () => {
   it('accepts provider-neutral voice configuration and preserves canonical config separately', async () => {
     const response = await createVoiceServer().inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Voice Scenario',
@@ -143,7 +143,7 @@ describe('POST /v1/scenarios — success', () => {
   it('rejects a provider without an API key on Core', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: { name: 'Keyless Voice Scenario', voiceConfig: { provider: 'gradium' } },
     })
@@ -155,7 +155,7 @@ describe('POST /v1/scenarios — success', () => {
   it('rejects extra voice fields and unknown providers', async () => {
     const response = await createVoiceServer().inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Invalid Voice Scenario',
@@ -168,11 +168,11 @@ describe('POST /v1/scenarios — success', () => {
   })
 })
 
-describe('POST /v1/scenarios/:scenarioId/avatars — auth', () => {
+describe('POST /v1/admin/scenarios/:scenarioId/avatars — auth', () => {
   it('returns 401 when API key is missing', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios/scenario_unknown/avatars',
+      url: '/v1/admin/scenarios/scenario_unknown/avatars',
       payload: {
         name: 'Avatar',
         personaPrompt: 'You are a helper.',
@@ -186,11 +186,11 @@ describe('POST /v1/scenarios/:scenarioId/avatars — auth', () => {
   })
 })
 
-describe('POST /v1/scenarios/:scenarioId/avatars — validation', () => {
+describe('POST /v1/admin/scenarios/:scenarioId/avatars — validation', () => {
   it('returns 400 when personaPrompt is missing', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios/scenario_unknown/avatars',
+      url: '/v1/admin/scenarios/scenario_unknown/avatars',
       headers: { 'x-api-key': 'test-secret' },
       payload: { name: 'Avatar' },
     })
@@ -202,11 +202,11 @@ describe('POST /v1/scenarios/:scenarioId/avatars — validation', () => {
   })
 })
 
-describe('POST /v1/scenarios/:scenarioId/avatars — resource lookup', () => {
+describe('POST /v1/admin/scenarios/:scenarioId/avatars — resource lookup', () => {
   it('returns 404 when scenario does not exist', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios/scenario_unknown/avatars',
+      url: '/v1/admin/scenarios/scenario_unknown/avatars',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Avatar',
@@ -221,12 +221,12 @@ describe('POST /v1/scenarios/:scenarioId/avatars — resource lookup', () => {
   })
 })
 
-describe('POST /v1/scenarios/:scenarioId/avatars — success', () => {
+describe('POST /v1/admin/scenarios/:scenarioId/avatars — success', () => {
   it('returns 201 with created avatar in response envelope', async () => {
     const app = createServer(TEST_CONFIG)
     const createScenarioResponse = await app.inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Avatar Scenario',
@@ -243,7 +243,7 @@ describe('POST /v1/scenarios/:scenarioId/avatars — success', () => {
 
     const createAvatarResponse = await app.inject({
       method: 'POST',
-      url: `/v1/scenarios/${scenarioId}/avatars`,
+      url: `/v1/admin/scenarios/${scenarioId}/avatars`,
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Ava',
@@ -264,7 +264,7 @@ describe('POST /v1/scenarios/:scenarioId/avatars — success', () => {
     const app = createVoiceServer()
     const scenarioResponse = await app.inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Avatar Voice Scenario',
@@ -277,7 +277,7 @@ describe('POST /v1/scenarios/:scenarioId/avatars — success', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: `/v1/scenarios/${scenarioId}/avatars`,
+      url: `/v1/admin/scenarios/${scenarioId}/avatars`,
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Ava',
@@ -296,11 +296,11 @@ describe('POST /v1/scenarios/:scenarioId/avatars — success', () => {
   })
 })
 
-describe('POST /v1/scenarios — optional field coverage', () => {
+describe('POST /v1/admin/scenarios — optional field coverage', () => {
   it('returns 201 with the explicit status when status is provided', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: { name: 'Active Scenario', status: 'active' },
     })
@@ -313,7 +313,7 @@ describe('POST /v1/scenarios — optional field coverage', () => {
   it('returns 201 with config preserved in the response', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Configured Scenario',
@@ -329,7 +329,7 @@ describe('POST /v1/scenarios — optional field coverage', () => {
   it('returns 201 with modelSelection preserved in the response', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Configured Runtime Scenario',
@@ -367,7 +367,7 @@ describe('POST /v1/scenarios — optional field coverage', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: { name: 'Test' },
     })
@@ -379,11 +379,11 @@ describe('POST /v1/scenarios — optional field coverage', () => {
   })
 })
 
-describe('PATCH /v1/scenarios/:scenarioId modelSelection', () => {
+describe('PATCH /v1/admin/scenarios/:scenarioId modelSelection', () => {
   it('returns 400 when modelSelection uses a model outside the allowed catalog', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'PATCH',
-      url: '/v1/scenarios/scenario_1',
+      url: '/v1/admin/scenarios/scenario_1',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         modelSelection: {
@@ -398,13 +398,13 @@ describe('PATCH /v1/scenarios/:scenarioId modelSelection', () => {
   })
 })
 
-describe('POST /v1/scenarios/:scenarioId/avatars — optional field coverage', () => {
+describe('POST /v1/admin/scenarios/:scenarioId/avatars — optional field coverage', () => {
   it('returns 201 with optional fields (tone, description, adjustments) preserved', async () => {
     const app = createServer(TEST_CONFIG)
 
     const createScenarioResponse = await app.inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: { name: 'Optional Fields Scenario' },
     })
@@ -414,7 +414,7 @@ describe('POST /v1/scenarios/:scenarioId/avatars — optional field coverage', (
 
     const createAvatarResponse = await app.inject({
       method: 'POST',
-      url: `/v1/scenarios/${scenarioId}/avatars`,
+      url: `/v1/admin/scenarios/${scenarioId}/avatars`,
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         name: 'Lex',

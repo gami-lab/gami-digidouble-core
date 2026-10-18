@@ -63,7 +63,7 @@ async function seedSessionWithAvatar(app: TestApp): Promise<{
 }> {
   const createScenario = await app.inject({
     method: 'POST',
-    url: '/v1/scenarios',
+    url: '/v1/admin/scenarios',
     headers: authHeaders(),
     payload: { name: `Scenario ${String(Date.now())}` },
   })
@@ -75,7 +75,7 @@ async function seedSessionWithAvatar(app: TestApp): Promise<{
 
   const createAvatar = await app.inject({
     method: 'POST',
-    url: `/v1/scenarios/${scenarioId}/avatars`,
+    url: `/v1/admin/scenarios/${scenarioId}/avatars`,
     headers: authHeaders(),
     payload: { name: 'Avatar', personaPrompt: 'You are an avatar.' },
   })
@@ -113,7 +113,7 @@ async function seedPolicySessionWithGuideEthics(app: TestApp): Promise<{
 }> {
   const createScenario = await app.inject({
     method: 'POST',
-    url: '/v1/scenarios',
+    url: '/v1/admin/scenarios',
     headers: authHeaders(),
     payload: {
       name: `Policy Scenario ${String(Date.now())}`,
@@ -128,7 +128,7 @@ async function seedPolicySessionWithGuideEthics(app: TestApp): Promise<{
 
   const createGuide = await app.inject({
     method: 'POST',
-    url: `/v1/scenarios/${scenarioId}/avatars`,
+    url: `/v1/admin/scenarios/${scenarioId}/avatars`,
     headers: authHeaders(),
     payload: {
       name: 'Guide',
@@ -144,7 +144,7 @@ async function seedPolicySessionWithGuideEthics(app: TestApp): Promise<{
 
   const createEthics = await app.inject({
     method: 'POST',
-    url: `/v1/scenarios/${scenarioId}/avatars`,
+    url: `/v1/admin/scenarios/${scenarioId}/avatars`,
     headers: authHeaders(),
     payload: {
       name: 'Ethics',
@@ -161,7 +161,7 @@ async function seedPolicySessionWithGuideEthics(app: TestApp): Promise<{
   await prepareAndActivateAvatarForTest(app, ethicsAvatarId)
   const patchScenarioInitialBoth = await app.inject({
     method: 'PATCH',
-    url: `/v1/scenarios/${scenarioId}`,
+    url: `/v1/admin/scenarios/${scenarioId}`,
     headers: authHeaders(),
     payload: {
       avatarAvailability: { initialAvatarIds: [guideAvatarId, ethicsAvatarId] },
@@ -199,7 +199,7 @@ async function seedPolicySessionWithGuideEthics(app: TestApp): Promise<{
 
   const patchScenarioResetGuide = await app.inject({
     method: 'PATCH',
-    url: `/v1/scenarios/${scenarioId}`,
+    url: `/v1/admin/scenarios/${scenarioId}`,
     headers: authHeaders(),
     payload: { avatarAvailability: { initialAvatarIds: [guideAvatarId] } },
   })

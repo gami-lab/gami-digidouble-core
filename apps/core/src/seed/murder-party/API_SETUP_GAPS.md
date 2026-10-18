@@ -6,10 +6,10 @@ This note lists API and platform gaps observed while implementing full murder-pa
 
 Current API supports:
 
-- `POST /v1/knowledge-sources`
-- `PATCH /v1/knowledge-sources/{sourceId}`
-- `DELETE /v1/knowledge-sources/{sourceId}`
-- `GET /v1/scenarios/{scenarioId}/knowledge-sources`
+- `POST /v1/admin/knowledge-sources`
+- `PATCH /v1/admin/knowledge-sources/{sourceId}`
+- `DELETE /v1/admin/knowledge-sources/{sourceId}`
+- `GET /v1/admin/scenarios/{scenarioId}/knowledge-sources`
 - ingestion endpoints
 
 Implemented request shape for PATCH (`apps/core/src/api/routes/knowledge.ts`,
@@ -28,7 +28,7 @@ Behavior:
 
 - at least one field must be provided (400 `VALIDATION_ERROR` otherwise)
 - when `metadata` or `uriOrPath` changes, status is reset to `pending`; ingestion must be
-  explicitly re-triggered via `POST /v1/knowledge-sources/{sourceId}/ingest`
+  explicitly re-triggered via `POST /v1/admin/knowledge-sources/{sourceId}/ingest`
 - `DELETE` removes the source and its chunks (`IKnowledgeChunkRepository.deleteBySourceId`);
   Postgres also cascades ingestion job rows via `ON DELETE CASCADE`
 
@@ -37,7 +37,7 @@ in-place when it detects content hash drift, instead of only warning.
 
 ## 2. No scenario lookup by deterministic external key
 
-Current setup script must call `GET /v1/scenarios` and match by `name` or config metadata.
+Current setup script must call `GET /v1/admin/scenarios` and match by `name` or config metadata.
 
 ### Impact
 
@@ -47,11 +47,11 @@ Name-based matching is fragile for idempotent automation in shared environments.
 
 Add one deterministic lookup endpoint:
 
-- `GET /v1/scenarios/by-key/{seedKey}`
+- `GET /v1/admin/scenarios/by-key/{seedKey}`
 
 Or support query filtering:
 
-- `GET /v1/scenarios?externalKey=murder-party-villa-miralac`
+- `GET /v1/admin/scenarios?externalKey=murder-party-villa-miralac`
 
 With scenario create/update contract extension:
 

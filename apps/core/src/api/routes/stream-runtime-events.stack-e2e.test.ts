@@ -17,11 +17,11 @@ async function deleteJson(path: string): Promise<void> {
 
 async function cleanupScenario(ids: { sessionId: string; scenarioId: string }): Promise<void> {
   await deleteJson(`/v1/sessions/${ids.sessionId}`)
-  await deleteJson(`/v1/scenarios/${ids.scenarioId}`)
+  await deleteJson(`/v1/admin/scenarios/${ids.scenarioId}`)
 }
 
 async function createScenarioAndSession(): Promise<{ sessionId: string; scenarioId: string }> {
-  const scenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
+  const scenarioRes = await fetch(`${APP_URL}/v1/admin/scenarios`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({ name: `Runtime stream stack scenario ${Date.now().toString()}` }),

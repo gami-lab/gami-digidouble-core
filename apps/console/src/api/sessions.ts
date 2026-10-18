@@ -26,7 +26,7 @@ export const SESSION_EVENTS_LIMIT = 200
 export async function listSessions(scenarioId: string): Promise<SessionSummary[]> {
   const payload = await coreRequest<ListSessionsResponse>(
     'GET',
-    `/v1/sessions?scenarioId=${encodeURIComponent(scenarioId)}`,
+    `/v1/admin/sessions?scenarioId=${encodeURIComponent(scenarioId)}`,
   )
   return payload.sessions
 }

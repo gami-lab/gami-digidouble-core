@@ -141,7 +141,7 @@ export async function resolveInitialAvatarId(
       status: 404,
       code: 'NOT_FOUND',
       message: `No Avatar matched the configured initial Avatar name.`,
-      path: `/v1/scenarios/${definition.scenarioId}/avatars`,
+      path: `/v1/admin/scenarios/${definition.scenarioId}/avatars`,
       kind: 'api_error',
       phase: 'avatar_resolution',
     })
@@ -151,7 +151,7 @@ export async function resolveInitialAvatarId(
       status: 409,
       code: 'CONFLICT',
       message: 'The configured initial Avatar name matched multiple Avatars.',
-      path: `/v1/scenarios/${definition.scenarioId}/avatars`,
+      path: `/v1/admin/scenarios/${definition.scenarioId}/avatars`,
       kind: 'api_error',
       phase: 'avatar_resolution',
     })
@@ -163,7 +163,7 @@ export async function resolveInitialAvatarId(
       status: 404,
       code: 'NOT_FOUND',
       message: 'No Avatar matched the configured initial Avatar name.',
-      path: `/v1/scenarios/${definition.scenarioId}/avatars`,
+      path: `/v1/admin/scenarios/${definition.scenarioId}/avatars`,
       kind: 'api_error',
       phase: 'avatar_resolution',
     })

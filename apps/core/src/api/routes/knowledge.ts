@@ -264,7 +264,7 @@ function buildUseCases(options: KnowledgeRouteOptions): UseCases {
 
 function registerCreateSourceRoute(app: FastifyInstance, useCases: UseCases): void {
   app.post<{ Body: CreateKnowledgeSourceRequest }>(
-    '/v1/knowledge-sources',
+    '/knowledge-sources',
     { schema: { body: sourceBodySchema } },
     async (request, reply) => {
       try {
@@ -281,7 +281,7 @@ function registerCreateSourceRoute(app: FastifyInstance, useCases: UseCases): vo
 
 function registerUploadSourceRoute(app: FastifyInstance, useCases: UseCases): void {
   app.post<{ Body: UploadKnowledgeSourceRequest }>(
-    '/v1/knowledge-sources/upload',
+    '/knowledge-sources/upload',
     { schema: { body: uploadBodySchema } },
     async (request, reply) => {
       try {
@@ -321,7 +321,7 @@ function registerUploadSourceRoute(app: FastifyInstance, useCases: UseCases): vo
 
 function registerListSourcesRoute(app: FastifyInstance, useCases: UseCases): void {
   app.get<{ Params: ScenarioParams; Querystring: ListKnowledgeSourcesQuery }>(
-    '/v1/scenarios/:scenarioId/knowledge-sources',
+    '/scenarios/:scenarioId/knowledge-sources',
     { schema: { params: scenarioParamsSchema, querystring: listQuerySchema } },
     async (request, reply) => {
       try {
@@ -342,7 +342,7 @@ function registerListSourcesRoute(app: FastifyInstance, useCases: UseCases): voi
 
 function registerUpdateSourceRoute(app: FastifyInstance, useCases: UseCases): void {
   app.patch<{ Params: SourceParams; Body: UpdateKnowledgeSourceRequest }>(
-    '/v1/knowledge-sources/:sourceId',
+    '/knowledge-sources/:sourceId',
     { schema: { params: sourceParamsSchema, body: updateSourceBodySchema } },
     async (request, reply) => {
       try {
@@ -369,7 +369,7 @@ function registerUpdateSourceRoute(app: FastifyInstance, useCases: UseCases): vo
 
 function registerDeleteSourceRoute(app: FastifyInstance, useCases: UseCases): void {
   app.delete<{ Params: SourceParams }>(
-    '/v1/knowledge-sources/:sourceId',
+    '/knowledge-sources/:sourceId',
     { schema: { params: sourceParamsSchema } },
     async (request, reply) => {
       try {
@@ -386,7 +386,7 @@ function registerDeleteSourceRoute(app: FastifyInstance, useCases: UseCases): vo
 
 function registerTriggerIngestionRoute(app: FastifyInstance, useCases: UseCases): void {
   app.post<{ Params: SourceParams; Body: TriggerIngestionRequest }>(
-    '/v1/knowledge-sources/:sourceId/ingest',
+    '/knowledge-sources/:sourceId/ingest',
     { schema: { params: sourceParamsSchema, body: triggerBodySchema } },
     async (request, reply) => {
       try {
@@ -407,7 +407,7 @@ function registerTriggerIngestionRoute(app: FastifyInstance, useCases: UseCases)
 
 function registerListIngestionJobsRoute(app: FastifyInstance, useCases: UseCases): void {
   app.get<{ Params: SourceParams }>(
-    '/v1/knowledge-sources/:sourceId/ingestion-jobs',
+    '/knowledge-sources/:sourceId/ingestion-jobs',
     { schema: { params: sourceParamsSchema } },
     async (request, reply) => {
       try {
@@ -428,7 +428,7 @@ function registerListIngestionJobsRoute(app: FastifyInstance, useCases: UseCases
 
 function registerGetIngestionJobRoute(app: FastifyInstance, useCases: UseCases): void {
   app.get<{ Params: JobParams }>(
-    '/v1/ingestion-jobs/:ingestionJobId',
+    '/ingestion-jobs/:ingestionJobId',
     { schema: { params: jobParamsSchema } },
     async (request, reply) => {
       try {
@@ -445,7 +445,7 @@ function registerGetIngestionJobRoute(app: FastifyInstance, useCases: UseCases):
 
 function registerListChunksRoute(app: FastifyInstance, useCases: UseCases): void {
   app.get<{ Params: SourceParams }>(
-    '/v1/knowledge-sources/:sourceId/chunks',
+    '/knowledge-sources/:sourceId/chunks',
     { schema: { params: sourceParamsSchema } },
     async (request, reply) => {
       try {
@@ -465,7 +465,7 @@ function registerRetrievalRoute(
   useCases: UseCases & { getTypedRetrievalUseCase: GetTypedRetrievalUseCase },
 ): void {
   app.post<{ Body: QueryKnowledgeRetrievalRequest }>(
-    '/v1/admin/knowledge/retrieval',
+    '/knowledge/retrieval',
     { schema: { body: retrievalBodySchema } },
     async (request, reply) => {
       const requestId = crypto.randomUUID()

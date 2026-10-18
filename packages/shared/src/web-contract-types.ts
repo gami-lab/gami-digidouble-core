@@ -3,6 +3,7 @@ import type {
   AvatarSummary,
   ConversationSummary,
   LifecycleStatus,
+  PublicScenarioSummary,
   ScenarioAvatarAvailability,
   ScenarioModelSelection,
   ScenarioSummary,
@@ -25,6 +26,11 @@ import type {
 
 export type ListScenariosResponse = {
   scenarios: ScenarioSummary[]
+}
+
+/** Public catalogue: active scenarios only. */
+export type ListPublicScenariosResponse = {
+  scenarios: PublicScenarioSummary[]
 }
 
 export type CreateScenarioRequest = {

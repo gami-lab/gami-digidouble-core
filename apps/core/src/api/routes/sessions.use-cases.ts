@@ -12,7 +12,6 @@ import type { ISessionRepository } from '../../application/ports/ISessionReposit
 import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
 import { EpisodicMemoryService } from '../../application/services/episodic-memory.service.js'
 import { MemoryMaintenanceService } from '../../application/services/memory-maintenance.service.js'
-import { DeleteSessionUseCase } from '../../application/use-cases/delete-session/delete-session.use-case.js'
 import { EndConversationUseCase } from '../../application/use-cases/end-conversation/end-conversation.use-case.js'
 import { GetAvailableAvatarsUseCase } from '../../application/use-cases/get-available-avatars/get-available-avatars.use-case.js'
 import { GetAvatarTransitionsUseCase } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.js'
@@ -40,7 +39,6 @@ export type SessionRouteUseCases = {
   getAvatarTransitionsUseCase: GetAvatarTransitionsUseCase
   getRuntimeStateUseCase: GetRuntimeStateUseCase
   endConversationUseCase: EndConversationUseCase
-  deleteSessionUseCase: DeleteSessionUseCase
 }
 
 export function createSessionRouteUseCases(deps: {
@@ -139,6 +137,5 @@ export function createSessionRouteUseCases(deps: {
       deps.sessionEventPublisher,
       episodicMemoryService,
     ),
-    deleteSessionUseCase: new DeleteSessionUseCase(deps.sessionRepository),
   }
 }

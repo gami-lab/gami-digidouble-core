@@ -75,7 +75,7 @@ async function seedConversation(): Promise<{
   sessionId: string
   conversationId: string
 }> {
-  const scenario = await postJson('/v1/scenarios', {
+  const scenario = await postJson('/v1/admin/scenarios', {
     name: `Voice stack e2e ${String(Date.now())}`,
     language: 'en',
   })
@@ -83,7 +83,7 @@ async function seedConversation(): Promise<{
   const scenarioBody = (await scenario.json()) as ApiResponse<{ scenario: { scenarioId: string } }>
   const scenarioId = requireId(scenarioBody.data?.scenario.scenarioId, 'scenarioId')
 
-  const avatar = await postJson(`/v1/scenarios/${scenarioId}/avatars`, {
+  const avatar = await postJson(`/v1/admin/scenarios/${scenarioId}/avatars`, {
     name: 'Voice Stack Avatar',
     personaPrompt: 'You are a concise helpful assistant.',
   })
@@ -120,8 +120,8 @@ async function cleanupFixture(ids: {
   sessionId: string
 }): Promise<void> {
   await deleteJson(`/v1/sessions/${ids.sessionId}`)
-  await deleteJson(`/v1/avatars/${ids.avatarId}`)
-  await deleteJson(`/v1/scenarios/${ids.scenarioId}`)
+  await deleteJson(`/v1/admin/avatars/${ids.avatarId}`)
+  await deleteJson(`/v1/admin/scenarios/${ids.scenarioId}`)
 }
 
 describe('Stack E2E — voice message route authentication', () => {

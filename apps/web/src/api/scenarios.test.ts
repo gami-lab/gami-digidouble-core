@@ -1,33 +1,20 @@
-import { describe, expect, it } from 'vitest'
-import type { ScenarioSummary } from '@gami/shared'
-import { filterActiveScenarios } from './scenarios'
+import { describe, expect, it, vi } from 'vitest'
+import { webRequest } from './client'
+import { listAvailableScenarios } from './scenarios'
 
-describe('scenario visibility filters', () => {
-  it('keeps only active scenarios for the public surface', () => {
-    const scenarios: ScenarioSummary[] = [
-      createScenario('scenario_a', 'active'),
-      createScenario('scenario_b', 'draft'),
-      createScenario('scenario_c', 'archived'),
-      createScenario('scenario_d', 'active'),
-    ]
+vi.mock('./client', () => ({
+  webRequest: vi.fn(),
+}))
 
-    expect(filterActiveScenarios(scenarios).map((scenario) => scenario.scenarioId)).toEqual([
-      'scenario_a',
-      'scenario_d',
-    ])
+describe('scenario catalogue api', () => {
+  it('reads the public catalogue, which Core already limits to active scenarios', async () => {
+    vi.mocked(webRequest).mockResolvedValue({
+      scenarios: [{ scenarioId: 'scenario_a', name: 'Scenario A', language: 'en' }],
+    })
+
+    const scenarios = await listAvailableScenarios()
+
+    expect(webRequest).toHaveBeenCalledWith('GET', '/v1/scenarios')
+    expect(scenarios).toEqual([{ scenarioId: 'scenario_a', name: 'Scenario A', language: 'en' }])
   })
 })
-
-function createScenario(scenarioId: string, status: ScenarioSummary['status']): ScenarioSummary {
-  return {
-    scenarioId,
-    name: `Scenario ${scenarioId}`,
-    status,
-    objectives: [],
-    worldContext: '',
-    avatarAvailability: { initialAvatarIds: [] },
-    config: {},
-    createdAt: '2026-06-01T00:00:00.000Z',
-    updatedAt: '2026-06-01T00:00:00.000Z',
-  }
-}

@@ -17,13 +17,13 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('POST /v1/exchange — auth and validation', () => {
+describe('POST /v1/admin/exchange — auth and validation', () => {
   it('returns 200 with standard envelope when request is valid', async () => {
     const app = makeApp('Arrr, hello!', 'gpt-5.6-luna')
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/exchange',
+      url: '/v1/admin/exchange',
       headers: { 'x-api-key': 'test-secret' },
       payload: { message: 'Hello, who are you?', systemPrompt: 'You are a pirate.' },
     })
@@ -40,7 +40,7 @@ describe('POST /v1/exchange — auth and validation', () => {
   it('returns 401 when API key is missing', async () => {
     const response = await makeApp().inject({
       method: 'POST',
-      url: '/v1/exchange',
+      url: '/v1/admin/exchange',
       payload: { message: 'Hello' },
     })
 
@@ -54,7 +54,7 @@ describe('POST /v1/exchange — auth and validation', () => {
   it('returns 401 when API key is wrong', async () => {
     const response = await makeApp().inject({
       method: 'POST',
-      url: '/v1/exchange',
+      url: '/v1/admin/exchange',
       headers: { 'x-api-key': 'wrong-secret' },
       payload: { message: 'Hello' },
     })
@@ -68,7 +68,7 @@ describe('POST /v1/exchange — auth and validation', () => {
   it('returns 400 when message field is missing', async () => {
     const response = await makeApp().inject({
       method: 'POST',
-      url: '/v1/exchange',
+      url: '/v1/admin/exchange',
       headers: { 'x-api-key': 'test-secret' },
       payload: {},
     })
@@ -82,7 +82,7 @@ describe('POST /v1/exchange — auth and validation', () => {
   it('returns 400 when message is an empty string', async () => {
     const response = await makeApp().inject({
       method: 'POST',
-      url: '/v1/exchange',
+      url: '/v1/admin/exchange',
       headers: { 'x-api-key': 'test-secret' },
       payload: { message: '' },
     })
@@ -94,7 +94,7 @@ describe('POST /v1/exchange — auth and validation', () => {
 })
 
 // eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
-describe('POST /v1/exchange — error handling and response shaping', () => {
+describe('POST /v1/admin/exchange — error handling and response shaping', () => {
   it('returns 502 when the LLM adapter throws a LlmError', async () => {
     const failingLlm = {
       complete: vi.fn().mockRejectedValue(new LlmError('openai', 'Provider timeout', 504)),
@@ -106,7 +106,7 @@ describe('POST /v1/exchange — error handling and response shaping', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/exchange',
+      url: '/v1/admin/exchange',
       headers: { 'x-api-key': 'test-secret' },
       payload: { message: 'Hello' },
     })
@@ -128,7 +128,7 @@ describe('POST /v1/exchange — error handling and response shaping', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/exchange',
+      url: '/v1/admin/exchange',
       headers: { 'x-api-key': 'test-secret' },
       payload: { message: 'Hello' },
     })
@@ -143,7 +143,7 @@ describe('POST /v1/exchange — error handling and response shaping', () => {
     const systemPrompt = 'x'.repeat(3000)
     const response = await makeApp('Arr pir8!').inject({
       method: 'POST',
-      url: '/v1/exchange',
+      url: '/v1/admin/exchange',
       headers: { 'x-api-key': 'test-secret' },
       payload: { message: 'Hello', systemPrompt },
     })
@@ -168,7 +168,7 @@ describe('POST /v1/exchange — error handling and response shaping', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/exchange',
+      url: '/v1/admin/exchange',
       headers: { 'x-api-key': 'test-secret' },
       payload: { message: 'Hello', model: { model: 'gpt-5.4-mini' } },
     })
@@ -192,7 +192,7 @@ describe('POST /v1/exchange — error handling and response shaping', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/exchange',
+      url: '/v1/admin/exchange',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         message: 'Hello',
@@ -218,7 +218,7 @@ describe('POST /v1/exchange — error handling and response shaping', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/exchange',
+      url: '/v1/admin/exchange',
       headers: { 'x-api-key': 'test-secret' },
       payload: { message: 'hello' },
     })

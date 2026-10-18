@@ -137,7 +137,7 @@ function createScriptedFetch(events: string[]): {
     calls.push(call)
     const path = new URL(url).pathname
 
-    if (path === `/v1/scenarios/${session.scenarioId}/avatars`) {
+    if (path === `/v1/admin/scenarios/${session.scenarioId}/avatars`) {
       return jsonResponse(okEnvelope({ avatars: [avatar] }))
     }
     if (path === '/v1/sessions') return jsonResponse(okEnvelope({ session }), 201)
@@ -156,7 +156,7 @@ function createScriptedFetch(events: string[]): {
         },
       )
     }
-    if (path === '/v1/exchange') {
+    if (path === '/v1/admin/exchange') {
       const body = call.body as { message: string }
       const evidence = JSON.parse(body.message) as { actualResponse: string }
       const questionNumber = evidence.actualResponse.includes('What happened?')
@@ -283,7 +283,7 @@ describe('composed scripted evaluation', () => {
     ])
     expect(scripted.calls[0]).toMatchObject({
       method: 'GET',
-      url: `https://core.example/v1/scenarios/${session.scenarioId}/avatars`,
+      url: `https://core.example/v1/admin/scenarios/${session.scenarioId}/avatars`,
     })
     expect(scripted.calls.find((call) => call.url.endsWith('/v1/sessions'))).toMatchObject({
       method: 'POST',
@@ -302,11 +302,12 @@ describe('composed scripted evaluation', () => {
         model: { provider: 'openai', model: 'gpt-5.4' },
       })),
     )
-    const exchangeBody = scripted.calls.filter((call) => call.url.endsWith('/v1/exchange'))[0]?.body
+    const exchangeBody = scripted.calls.filter((call) => call.url.endsWith('/v1/admin/exchange'))[0]
+      ?.body
     if (!isRecord(exchangeBody)) {
       throw new Error('Expected a structured judge request body.')
     }
     expect(exchangeBody['systemPrompt']).toContain('semantic evaluator')
-    expect(scripted.calls.filter((call) => call.url.endsWith('/v1/exchange'))).toHaveLength(3)
+    expect(scripted.calls.filter((call) => call.url.endsWith('/v1/admin/exchange'))).toHaveLength(3)
   })
 })

@@ -20,11 +20,11 @@ describe('adminRequest', () => {
       .mockResolvedValue(jsonResponse(200, { data: { ok: true }, error: null }))
     vi.stubGlobal('fetch', fetchMock)
 
-    const result = await adminRequest<{ ok: boolean }>('GET', '/v1/scenarios')
+    const result = await adminRequest<{ ok: boolean }>('GET', '/v1/admin/scenarios')
 
     expect(result).toEqual({ ok: true })
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(url).toBe('http://localhost:3000/v1/scenarios')
+    expect(url).toBe('http://localhost:3000/v1/admin/scenarios')
     expect((init.headers as Record<string, string>)['x-api-key']).toBeDefined()
   })
 
@@ -46,7 +46,7 @@ describe('adminRequest', () => {
       .mockResolvedValue(jsonResponse(201, { data: { ok: true }, error: null }))
     vi.stubGlobal('fetch', fetchMock)
 
-    await adminRequest('POST', '/v1/scenarios', { name: 'Test' })
+    await adminRequest('POST', '/v1/admin/scenarios', { name: 'Test' })
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     expect(init.body).toBe(JSON.stringify({ name: 'Test' }))
@@ -59,7 +59,7 @@ describe('adminRequest', () => {
       .mockResolvedValue(jsonResponse(200, { data: { ok: true }, error: null }))
     vi.stubGlobal('fetch', fetchMock)
 
-    await adminRequest('POST', '/v1/scenarios/scenario_1/prepare-avatar-traits')
+    await adminRequest('POST', '/v1/admin/scenarios/scenario_1/prepare-avatar-traits')
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     expect(init.body).toBeUndefined()
@@ -75,7 +75,7 @@ describe('adminRequest', () => {
     )
     vi.stubGlobal('fetch', fetchMock)
 
-    await expect(adminRequest('GET', '/v1/scenarios/missing')).rejects.toMatchObject({
+    await expect(adminRequest('GET', '/v1/admin/scenarios/missing')).rejects.toMatchObject({
       code: 'NOT_FOUND',
       message: 'Scenario missing',
     })
@@ -84,8 +84,8 @@ describe('adminRequest', () => {
   it('throws a NETWORK_ERROR ApiError when fetch itself rejects', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection refused')))
 
-    await expect(adminRequest('GET', '/v1/scenarios')).rejects.toBeInstanceOf(ApiError)
-    await expect(adminRequest('GET', '/v1/scenarios')).rejects.toMatchObject({
+    await expect(adminRequest('GET', '/v1/admin/scenarios')).rejects.toBeInstanceOf(ApiError)
+    await expect(adminRequest('GET', '/v1/admin/scenarios')).rejects.toMatchObject({
       code: 'NETWORK_ERROR',
     })
   })
@@ -100,7 +100,7 @@ describe('adminRequest', () => {
       }),
     )
 
-    await expect(adminRequest('GET', '/v1/scenarios')).rejects.toMatchObject({
+    await expect(adminRequest('GET', '/v1/admin/scenarios')).rejects.toMatchObject({
       code: 'NETWORK_ERROR',
     })
   })
@@ -108,7 +108,7 @@ describe('adminRequest', () => {
   it('throws a NETWORK_ERROR ApiError when the envelope shape is invalid', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, { unexpected: true })))
 
-    await expect(adminRequest('GET', '/v1/scenarios')).rejects.toMatchObject({
+    await expect(adminRequest('GET', '/v1/admin/scenarios')).rejects.toMatchObject({
       code: 'NETWORK_ERROR',
     })
   })
@@ -119,7 +119,7 @@ describe('adminRequest', () => {
       vi.fn().mockResolvedValue(jsonResponse(200, { data: null, error: null })),
     )
 
-    await expect(adminRequest('GET', '/v1/scenarios')).rejects.toMatchObject({
+    await expect(adminRequest('GET', '/v1/admin/scenarios')).rejects.toMatchObject({
       code: 'NETWORK_ERROR',
     })
   })

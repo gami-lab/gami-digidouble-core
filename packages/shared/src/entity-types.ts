@@ -99,6 +99,9 @@ export type ScenarioSummary = {
   updatedAt: string
 }
 
+/** Player catalogue projection; authoring fields (`worldContext`, `config`, ...) stay admin-only. */
+export type PublicScenarioSummary = Pick<ScenarioSummary, 'scenarioId' | 'name' | 'language'>
+
 export type SessionSummary = {
   sessionId: string
   userId: string

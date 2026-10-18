@@ -31,11 +31,16 @@ schemas belong to `packages/shared/src/` and route schemas; do not copy them her
 - Client protocol guards and environment-neutral operator request mappers:
   `api-client-protocol.ts` and `model-config-contract-mappers.ts`.
 
+## Route tiers
+
+Every route declares one tier: `public` (player), `admin` (authoring, operators, tools), or `open`
+(no credential). All `/v1/admin/*` routes are `admin`; no authoring route exists outside it.
+
+## Open routes
+
+- `GET /health`
+
 ## Public routes
-
-### Raw exchange
-
-- `POST /v1/exchange` — authenticated raw provider exchange for smoke tests and evaluation judging.
 
 ### Sessions and conversations
 
@@ -66,24 +71,11 @@ the scenario afterwards stay locked for existing sessions.
 - `GET /v1/sessions/{sessionId}/runtime-state`
 - `GET /v1/sessions/{sessionId}/events/stream`
 
-### Scenarios and Avatars
+### Scenario catalogue
 
-- `GET|POST /v1/scenarios`
-- `GET|PATCH|DELETE /v1/scenarios/{scenarioId}`
-- `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits`
-- `POST /v1/scenarios/{scenarioId}/avatars`
-- `GET /v1/scenarios/{scenarioId}/avatars`
-- `PATCH|DELETE /v1/avatars/{avatarId}`
-
-### Knowledge
-
-- `POST /v1/knowledge-sources`
-- `POST /v1/knowledge-sources/upload`
-- `PATCH /v1/knowledge-sources/{sourceId}`
-- `GET /v1/scenarios/{scenarioId}/knowledge-sources`
-- `POST /v1/knowledge-sources/{sourceId}/ingest`
-- `GET /v1/knowledge-sources/{sourceId}/ingestion-jobs`
-- `GET /v1/ingestion-jobs/{ingestionJobId}`
+- `GET /v1/scenarios` — active scenarios only, as `PublicScenarioSummary`
+  (`scenarioId`, `name`, `language`). Avatars reach the player through
+  `GET /v1/sessions/{sessionId}/available-avatars`.
 
 ### User persona
 
@@ -91,8 +83,36 @@ the scenario afterwards stay locked for existing sessions.
 
 ## Admin routes
 
-All admin routes use `/v1/admin/*` and the same API key in Phase A.
+All admin routes use `/v1/admin/*`.
 
+### Raw exchange
+
+- `POST /v1/admin/exchange` — raw provider exchange for smoke tests and evaluation judging.
+
+### Scenarios and Avatars
+
+- `GET|POST /v1/admin/scenarios`
+- `GET|PATCH|DELETE /v1/admin/scenarios/{scenarioId}`
+- `POST /v1/admin/scenarios/{scenarioId}/prepare-avatar-traits`
+- `POST /v1/admin/scenarios/{scenarioId}/avatars`
+- `GET /v1/admin/scenarios/{scenarioId}/avatars`
+- `PATCH|DELETE /v1/admin/avatars/{avatarId}`
+
+### Knowledge
+
+- `POST /v1/admin/knowledge-sources`
+- `POST /v1/admin/knowledge-sources/upload`
+- `PATCH|DELETE /v1/admin/knowledge-sources/{sourceId}`
+- `GET /v1/admin/scenarios/{scenarioId}/knowledge-sources`
+- `POST /v1/admin/knowledge-sources/{sourceId}/ingest`
+- `GET /v1/admin/knowledge-sources/{sourceId}/ingestion-jobs`
+- `GET /v1/admin/knowledge-sources/{sourceId}/chunks`
+- `GET /v1/admin/ingestion-jobs/{ingestionJobId}`
+
+### Operations
+
+- `GET /v1/admin/sessions?scenarioId=&userId=&status=` — cross-user session listing
+- `DELETE /v1/admin/sessions/{sessionId}`
 - `GET /v1/admin/health`
 - `GET|PUT /v1/admin/model-config`
 - `GET /v1/admin/voices?provider=&language=` — `providers` (text-to-speech providers with an API
@@ -190,7 +210,7 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   `scenario.modelSelection.gameMasterOverride` -> `scenario.modelSelection.defaultProfile` ->
   global GM override -> global default; Memory: `scenario.modelSelection.memoryOverride` ->
   `scenario.modelSelection.defaultProfile` -> global memory override -> global default.
-- `POST /v1/scenarios/{scenarioId}/prepare-avatar-traits` takes an optional body
+- `POST /v1/admin/scenarios/{scenarioId}/prepare-avatar-traits` takes an optional body
   `PrepareAvatarTraitsRequest`: `avatarId` prepares only that avatar (`404` when it is not in the
   scenario); otherwise `scope` is `all` (default, re-prepares every avatar) or `unprepared` (only
   avatars without `computedTraits`; skipped avatars are omitted from `results`). Each avatar's

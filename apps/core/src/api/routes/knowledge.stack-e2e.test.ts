@@ -12,7 +12,7 @@ function authHeaders(apiKey = API_KEY): Record<string, string> {
 
 describe('Stack E2E — knowledge routes — auth', () => {
   it('rejects create source with no API key (401)', async () => {
-    const res = await fetch(`${APP_URL}/v1/knowledge-sources`, {
+    const res = await fetch(`${APP_URL}/v1/admin/knowledge-sources`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({}),
@@ -32,7 +32,7 @@ describe('Stack E2E — knowledge routes — auth', () => {
   })
 
   it('rejects upload with missing API key (401)', async () => {
-    const res = await fetch(`${APP_URL}/v1/knowledge-sources/upload`, {
+    const res = await fetch(`${APP_URL}/v1/admin/knowledge-sources/upload`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({}),
@@ -44,7 +44,7 @@ describe('Stack E2E — knowledge routes — auth', () => {
 
 describe('Stack E2E — knowledge routes — validation', () => {
   it('rejects create source with missing required fields (400)', async () => {
-    const res = await fetch(`${APP_URL}/v1/knowledge-sources`, {
+    const res = await fetch(`${APP_URL}/v1/admin/knowledge-sources`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({ name: 'Only Name' }),
@@ -55,7 +55,7 @@ describe('Stack E2E — knowledge routes — validation', () => {
 
   it('rejects retrieval query with invalid knowledgeType enum in list filter (400)', async () => {
     const res = await fetch(
-      `${APP_URL}/v1/scenarios/scenario_test/knowledge-sources?knowledgeType=invalid`,
+      `${APP_URL}/v1/admin/scenarios/scenario_test/knowledge-sources?knowledgeType=invalid`,
       {
         method: 'GET',
         headers: { 'x-api-key': API_KEY },
@@ -67,7 +67,7 @@ describe('Stack E2E — knowledge routes — validation', () => {
 
   it('rejects upload with unsupported file extension (400)', async () => {
     const content = Buffer.from('some data').toString('base64')
-    const res = await fetch(`${APP_URL}/v1/knowledge-sources/upload`, {
+    const res = await fetch(`${APP_URL}/v1/admin/knowledge-sources/upload`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({
@@ -85,7 +85,7 @@ describe('Stack E2E — knowledge routes — validation', () => {
   })
 
   it('rejects upload with missing required fields (400)', async () => {
-    const res = await fetch(`${APP_URL}/v1/knowledge-sources/upload`, {
+    const res = await fetch(`${APP_URL}/v1/admin/knowledge-sources/upload`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({ name: 'Missing fields' }),
@@ -97,7 +97,7 @@ describe('Stack E2E — knowledge routes — validation', () => {
 
 describe('Stack E2E — knowledge routes — not found baseline', () => {
   it('returns 404 for unknown source on trigger ingestion', async () => {
-    const res = await fetch(`${APP_URL}/v1/knowledge-sources/source_missing/ingest`, {
+    const res = await fetch(`${APP_URL}/v1/admin/knowledge-sources/source_missing/ingest`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({}),
@@ -109,7 +109,7 @@ describe('Stack E2E — knowledge routes — not found baseline', () => {
   })
 
   it('returns 404 for unknown ingestion job', async () => {
-    const res = await fetch(`${APP_URL}/v1/ingestion-jobs/job_missing`, {
+    const res = await fetch(`${APP_URL}/v1/admin/ingestion-jobs/job_missing`, {
       method: 'GET',
       headers: { 'x-api-key': API_KEY },
     })
@@ -122,7 +122,7 @@ describe('Stack E2E — knowledge routes — not found baseline', () => {
 
 async function waitForJob(ingestionJobId: string): Promise<{ status: string }> {
   for (let attempt = 0; attempt < 20; attempt += 1) {
-    const res = await fetch(`${APP_URL}/v1/ingestion-jobs/${ingestionJobId}`, {
+    const res = await fetch(`${APP_URL}/v1/admin/ingestion-jobs/${ingestionJobId}`, {
       method: 'GET',
       headers: { 'x-api-key': API_KEY },
     })
@@ -180,7 +180,7 @@ async function seedReadyWorldKnowledgeSource(args: {
   inlineText: string
 }): Promise<{ scenarioId: string }> {
   const now = Date.now().toString()
-  const createScenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
+  const createScenarioRes = await fetch(`${APP_URL}/v1/admin/scenarios`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({ name: `Knowledge scenario ${now}`, language: 'en' }),
@@ -191,7 +191,7 @@ async function seedReadyWorldKnowledgeSource(args: {
   }
   const scenarioId = scenarioBody.data.scenario.scenarioId
 
-  const createSourceRes = await fetch(`${APP_URL}/v1/knowledge-sources`, {
+  const createSourceRes = await fetch(`${APP_URL}/v1/admin/knowledge-sources`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({
@@ -217,7 +217,7 @@ async function seedReadyWorldKnowledgeSource(args: {
   // lifecycle before exercising normal per-source ingestion.
   await ensureActiveKnowledgeCorpus()
 
-  const triggerRes = await fetch(`${APP_URL}/v1/knowledge-sources/${sourceId}/ingest`, {
+  const triggerRes = await fetch(`${APP_URL}/v1/admin/knowledge-sources/${sourceId}/ingest`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({}),
@@ -234,7 +234,7 @@ async function seedReadyWorldKnowledgeSource(args: {
 }
 
 async function deleteScenario(scenarioId: string): Promise<void> {
-  await fetch(`${APP_URL}/v1/scenarios/${scenarioId}`, {
+  await fetch(`${APP_URL}/v1/admin/scenarios/${scenarioId}`, {
     method: 'DELETE',
     headers: { 'x-api-key': API_KEY },
   })
@@ -345,7 +345,7 @@ describe('Stack E2E — knowledge routes — happy path', () => {
 describe('Stack E2E — knowledge upload — happy path', () => {
   it('uploads a TXT file, ingests it, and retrieves the extracted content', async () => {
     const now = Date.now().toString()
-    const createScenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
+    const createScenarioRes = await fetch(`${APP_URL}/v1/admin/scenarios`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({ name: `Upload scenario ${now}`, language: 'en' }),
@@ -360,7 +360,7 @@ describe('Stack E2E — knowledge upload — happy path', () => {
       const content = Buffer.from('Uploaded lore mentions a hidden lakeside passage.').toString(
         'base64',
       )
-      const uploadRes = await fetch(`${APP_URL}/v1/knowledge-sources/upload`, {
+      const uploadRes = await fetch(`${APP_URL}/v1/admin/knowledge-sources/upload`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
@@ -378,7 +378,7 @@ describe('Stack E2E — knowledge upload — happy path', () => {
 
       await ensureActiveKnowledgeCorpus()
 
-      const triggerRes = await fetch(`${APP_URL}/v1/knowledge-sources/${sourceId}/ingest`, {
+      const triggerRes = await fetch(`${APP_URL}/v1/admin/knowledge-sources/${sourceId}/ingest`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({}),

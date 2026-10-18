@@ -13,7 +13,7 @@ describe('api client protocol helpers', () => {
   it('normalizes API URLs and paths without changing non-trailing content', () => {
     expect(normalizeApiUrl('https://example.test///')).toBe('https://example.test//')
     expect(normalizeApiPath('v1/scenarios')).toBe('/v1/scenarios')
-    expect(normalizeApiPath('/v1/scenarios')).toBe('/v1/scenarios')
+    expect(normalizeApiPath('/v1/admin/scenarios')).toBe('/v1/admin/scenarios')
   })
 
   it('only omits authentication for the health path', () => {

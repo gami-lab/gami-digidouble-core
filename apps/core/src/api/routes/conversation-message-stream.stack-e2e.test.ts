@@ -38,8 +38,8 @@ async function cleanupFixture(ids: {
   scenarioId: string
 }): Promise<void> {
   await deleteJson(`/v1/sessions/${ids.sessionId}`)
-  await deleteJson(`/v1/avatars/${ids.avatarId}`)
-  await deleteJson(`/v1/scenarios/${ids.scenarioId}`)
+  await deleteJson(`/v1/admin/avatars/${ids.avatarId}`)
+  await deleteJson(`/v1/admin/scenarios/${ids.scenarioId}`)
 }
 
 async function seedConversation(): Promise<{
@@ -48,7 +48,7 @@ async function seedConversation(): Promise<{
   avatarId: string
   scenarioId: string
 }> {
-  const scenarioResponse = await postJson('/v1/scenarios', {
+  const scenarioResponse = await postJson('/v1/admin/scenarios', {
     name: `Message stream scenario ${String(Date.now())}`,
     language: 'en',
   })
@@ -58,7 +58,7 @@ async function seedConversation(): Promise<{
   }>
   const scenarioId = requireId(scenarioBody.data?.scenario.scenarioId, 'scenarioId')
 
-  const avatarResponse = await postJson(`/v1/scenarios/${scenarioId}/avatars`, {
+  const avatarResponse = await postJson(`/v1/admin/scenarios/${scenarioId}/avatars`, {
     name: 'Stream Avatar',
     personaPrompt: 'You are a helpful streaming avatar.',
   })

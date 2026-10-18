@@ -215,7 +215,7 @@ describe('runSequentialConversation', () => {
 
   it('resolves a unique normalized Avatar name through the scenario Avatar endpoint', async () => {
     const fetchMock = vi.fn<FetchLike>().mockImplementation((url) => {
-      if (url.endsWith('/v1/scenarios/scenario_1/avatars')) {
+      if (url.endsWith('/v1/admin/scenarios/scenario_1/avatars')) {
         return Promise.resolve(
           jsonResponse(
             okEnvelope({
@@ -241,7 +241,7 @@ describe('runSequentialConversation', () => {
     })
     expect(execution.avatarId).toBe('avatar_1')
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      'https://core.example/v1/scenarios/scenario_1/avatars',
+      'https://core.example/v1/admin/scenarios/scenario_1/avatars',
     )
   })
 

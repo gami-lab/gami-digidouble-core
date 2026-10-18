@@ -40,7 +40,7 @@ async function createScenarioAndAvatar(
 ): Promise<{ scenarioId: string; avatarId: string }> {
   const createScenarioResponse = await app.inject({
     method: 'POST',
-    url: '/v1/scenarios',
+    url: '/v1/admin/scenarios',
     headers: { 'x-api-key': 'test-secret' },
     payload: { name: 'Trait Prep Scenario' },
   })
@@ -50,7 +50,7 @@ async function createScenarioAndAvatar(
 
   const createAvatarResponse = await app.inject({
     method: 'POST',
-    url: `/v1/scenarios/${scenarioId}/avatars`,
+    url: `/v1/admin/scenarios/${scenarioId}/avatars`,
     headers: { 'x-api-key': 'test-secret' },
     payload: { name: 'Ava', personaPrompt: 'You are Ava, a warm local guide.' },
   })
@@ -60,11 +60,11 @@ async function createScenarioAndAvatar(
   return { scenarioId, avatarId }
 }
 
-describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — auth', () => {
+describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — auth', () => {
   it('returns 401 when API key is missing', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios/scenario_unknown/prepare-avatar-traits',
+      url: '/v1/admin/scenarios/scenario_unknown/prepare-avatar-traits',
     })
 
     expect(response.statusCode).toBe(401)
@@ -76,7 +76,7 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — auth', () => 
   it('returns 401 when API key is wrong', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios/scenario_unknown/prepare-avatar-traits',
+      url: '/v1/admin/scenarios/scenario_unknown/prepare-avatar-traits',
       headers: { 'x-api-key': 'wrong-secret' },
     })
 
@@ -87,7 +87,7 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — auth', () => 
   })
 })
 
-describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — validation', () => {
+describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — validation', () => {
   it.each([
     { label: 'unknown fields', payload: JSON.stringify({ avatarIds: ['avatar_1'] }) },
     { label: 'an empty avatarId', payload: JSON.stringify({ avatarId: ' ' }) },
@@ -101,7 +101,7 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — validation', 
   ])('returns 400 when a bodied request sends $label', async ({ payload }) => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios/scenario_unknown/prepare-avatar-traits',
+      url: '/v1/admin/scenarios/scenario_unknown/prepare-avatar-traits',
       headers: { 'x-api-key': 'test-secret', 'content-type': 'application/json' },
       payload,
     })
@@ -115,7 +115,7 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — validation', 
   it('accepts a request sent with no body at all', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios/scenario_unknown/prepare-avatar-traits',
+      url: '/v1/admin/scenarios/scenario_unknown/prepare-avatar-traits',
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -123,11 +123,11 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — validation', 
   })
 })
 
-describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — resource lookup', () => {
+describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — resource lookup', () => {
   it('returns 404 when the scenario does not exist', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios/scenario_unknown/prepare-avatar-traits',
+      url: '/v1/admin/scenarios/scenario_unknown/prepare-avatar-traits',
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -138,14 +138,14 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — resource look
   })
 })
 
-describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — success', () => {
+describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — success', () => {
   it('computes and persists computedTraits with a deterministic fake LLM response', async () => {
     const app = createServer(TEST_CONFIG, { llmAdapter: createDeterministicTraitLlm() })
     const { scenarioId, avatarId } = await createScenarioAndAvatar(app)
 
     const listBeforeResponse = await app.inject({
       method: 'GET',
-      url: `/v1/scenarios/${scenarioId}/avatars`,
+      url: `/v1/admin/scenarios/${scenarioId}/avatars`,
       headers: { 'x-api-key': 'test-secret' },
     })
     const listBeforeBody = listBeforeResponse.json<ApiResponse<ListScenarioAvatarsResponse>>()
@@ -155,7 +155,7 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — success', () 
 
     const prepareResponse = await app.inject({
       method: 'POST',
-      url: `/v1/scenarios/${scenarioId}/prepare-avatar-traits`,
+      url: `/v1/admin/scenarios/${scenarioId}/prepare-avatar-traits`,
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -169,7 +169,7 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — success', () 
 
     const listAfterResponse = await app.inject({
       method: 'GET',
-      url: `/v1/scenarios/${scenarioId}/avatars`,
+      url: `/v1/admin/scenarios/${scenarioId}/avatars`,
       headers: { 'x-api-key': 'test-secret' },
     })
     const listAfterBody = listAfterResponse.json<ApiResponse<ListScenarioAvatarsResponse>>()
@@ -182,7 +182,7 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — success', () 
     const app = createServer(TEST_CONFIG, { llmAdapter: createDeterministicTraitLlm() })
     const createScenarioResponse = await app.inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
       payload: { name: 'Empty Scenario' },
     })
@@ -192,7 +192,7 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — success', () 
 
     const response = await app.inject({
       method: 'POST',
-      url: `/v1/scenarios/${scenarioId}/prepare-avatar-traits`,
+      url: `/v1/admin/scenarios/${scenarioId}/prepare-avatar-traits`,
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -202,7 +202,7 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — success', () 
   })
 })
 
-describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — avatar selection', () => {
+describe('POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — avatar selection', () => {
   async function prepare(
     app: ReturnType<typeof createServer>,
     scenarioId: string,
@@ -210,7 +210,7 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — avatar select
   ): Promise<{ statusCode: number; body: ApiResponse<PrepareAvatarTraitsResponse> }> {
     const response = await app.inject({
       method: 'POST',
-      url: `/v1/scenarios/${scenarioId}/prepare-avatar-traits`,
+      url: `/v1/admin/scenarios/${scenarioId}/prepare-avatar-traits`,
       headers: { 'x-api-key': 'test-secret' },
       payload,
     })
@@ -225,7 +225,7 @@ describe('POST /v1/scenarios/:scenarioId/prepare-avatar-traits — avatar select
     const { scenarioId, avatarId } = await createScenarioAndAvatar(app)
     await app.inject({
       method: 'POST',
-      url: `/v1/scenarios/${scenarioId}/avatars`,
+      url: `/v1/admin/scenarios/${scenarioId}/avatars`,
       headers: { 'x-api-key': 'test-secret' },
       payload: { name: 'Theo', personaPrompt: 'You are Theo.' },
     })

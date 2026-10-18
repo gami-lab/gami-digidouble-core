@@ -1,11 +1,11 @@
 import type { JSX } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { ScenarioSummary } from '@gami/shared'
+import type { PublicScenarioSummary } from '@gami/shared'
 
 type ScenarioLoadStatus = 'loading' | 'ready' | 'error'
 
 type ScenarioDiscoverySectionProps = {
-  scenarios: ScenarioSummary[]
+  scenarios: PublicScenarioSummary[]
   scenarioStatus: ScenarioLoadStatus
   scenarioError: string | null
   selectedScenarioId: string | null
@@ -36,7 +36,9 @@ export function ScenarioDiscoverySection({
         <div className="scenario-grid" role="list" aria-label={t('scenarios.ariaLabel')}>
           {scenarios.map((scenario) => {
             const isSelected = scenario.scenarioId === selectedScenarioId
-            const cardClassName = isSelected ? 'scenario-card scenario-card-selected' : 'scenario-card'
+            const cardClassName = isSelected
+              ? 'scenario-card scenario-card-selected'
+              : 'scenario-card'
 
             return (
               <button

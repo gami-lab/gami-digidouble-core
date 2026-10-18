@@ -56,7 +56,7 @@ async function seedActiveConversation(app: TestApp): Promise<{
 }> {
   const createScenario = await app.inject({
     method: 'POST',
-    url: '/v1/scenarios',
+    url: '/v1/admin/scenarios',
     headers: authHeaders(),
     payload: { name: `End Scenario ${String(Date.now())}` },
   })
@@ -67,7 +67,7 @@ async function seedActiveConversation(app: TestApp): Promise<{
 
   const createAvatar1 = await app.inject({
     method: 'POST',
-    url: `/v1/scenarios/${scenarioId}/avatars`,
+    url: `/v1/admin/scenarios/${scenarioId}/avatars`,
     headers: authHeaders(),
     payload: { name: 'Avatar One', personaPrompt: 'You are avatar one.' },
   })

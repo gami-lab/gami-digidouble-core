@@ -421,7 +421,7 @@ export class CoreApiClient {
   ): Promise<ListScenarioAvatarsResponse> {
     return this.request(
       'GET',
-      `/v1/scenarios/${encodeURIComponent(scenarioId)}/avatars`,
+      `/v1/admin/scenarios/${encodeURIComponent(scenarioId)}/avatars`,
       undefined,
       isListScenarioAvatarsResponse,
       'avatar_resolution',

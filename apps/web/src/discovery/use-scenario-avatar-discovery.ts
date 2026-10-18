@@ -4,7 +4,7 @@ import type {
   AvailableAvatarSummary,
   LocalWebIdentity,
   RuntimeEvent,
-  ScenarioSummary,
+  PublicScenarioSummary,
   SessionSummary,
 } from '@gami/shared'
 import { subscribeToRuntimeEvents } from '../api/runtime-events-stream'
@@ -24,7 +24,7 @@ export type ScenarioSelectionState = {
 }
 
 export type ScenarioAvatarDiscoveryState = {
-  scenarios: ScenarioSummary[]
+  scenarios: PublicScenarioSummary[]
   scenarioStatus: ScenarioLoadStatus
   scenarioError: string | null
   selectedScenarioId: string | null
@@ -45,7 +45,7 @@ export function useScenarioAvatarDiscovery(
   options?: ScenarioAvatarDiscoveryOptions,
 ): ScenarioAvatarDiscoveryState {
   const initialSelectedScenarioId = options?.initialSelectedScenarioId ?? null
-  const [scenarios, setScenarios] = useState<ScenarioSummary[]>([])
+  const [scenarios, setScenarios] = useState<PublicScenarioSummary[]>([])
   const [scenarioStatus, setScenarioStatus] = useState<ScenarioLoadStatus>('loading')
   const [scenarioError, setScenarioError] = useState<string | null>(null)
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
@@ -145,7 +145,7 @@ export function createScenarioSelectionState(scenarioId: string): ScenarioSelect
 }
 
 function useScenarioList(
-  setScenarios: (value: ScenarioSummary[]) => void,
+  setScenarios: (value: PublicScenarioSummary[]) => void,
   setScenarioStatus: (value: ScenarioLoadStatus) => void,
   setScenarioError: (value: string | null) => void,
 ): void {

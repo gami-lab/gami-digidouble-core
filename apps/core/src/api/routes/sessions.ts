@@ -52,7 +52,6 @@ import { InMemorySessionEventPublisher } from '../../infrastructure/events/in-me
 import { resolveWorkingMemoryRepositories } from '../composition.js'
 import { startSessionBodySchema } from './start-session.schema.js'
 import { registerRuntimeEventsRoutes } from './runtime-events.js'
-import { registerDeleteSessionRoute } from './sessions.delete-route.js'
 import { createSessionRouteUseCases } from './sessions.use-cases.js'
 import { buildLlmConfig, createLlmAdapter } from '../../infrastructure/llm/index.js'
 import { createObservabilityAdapter } from '../../infrastructure/observability/index.js'
@@ -208,7 +207,6 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     getAvatarTransitionsUseCase,
     getRuntimeStateUseCase,
     endConversationUseCase,
-    deleteSessionUseCase,
   } = createSessionRouteUseCases({
     sessionRepository,
     scenarioRepository,
@@ -246,7 +244,6 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   registerSwitchAvatarRoute(app, switchAvatarUseCase)
   registerGetAvailableAvatarsRoute(app, getAvailableAvatarsUseCase)
   registerGetAvatarTransitionsRoute(app, getAvatarTransitionsUseCase)
-  registerDeleteSessionRoute(app, deleteSessionUseCase)
   registerRuntimeEventsRoutes(
     app,
     sessionRepository,

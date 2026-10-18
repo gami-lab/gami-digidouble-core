@@ -315,7 +315,7 @@ job, including retries. When it is omitted, text-like formats use the default 15
 For example:
 
 ```sh
-curl -X POST http://localhost:3000/v1/knowledge-sources/knowledge_source_123/ingest \
+curl -X POST http://localhost:3000/v1/admin/knowledge-sources/knowledge_source_123/ingest \
   -H 'content-type: application/json' \
   -H 'x-api-key: e2e-stack-secret' \
   -d '{"chunkSize":500}'

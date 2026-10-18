@@ -129,7 +129,7 @@ export class ApiClient {
   }
 
   listScenarios(): Promise<{ scenarios: ScenarioSummary[] }> {
-    return this.request('GET', '/v1/scenarios')
+    return this.request('GET', '/v1/admin/scenarios')
   }
 
   createScenario(input: {
@@ -141,7 +141,7 @@ export class ApiClient {
     avatarAvailability?: ScenarioAvatarAvailability
     config: Record<string, unknown>
   }): Promise<{ scenario: ScenarioSummary }> {
-    return this.request('POST', '/v1/scenarios', input, [201])
+    return this.request('POST', '/v1/admin/scenarios', input, [201])
   }
 
   updateScenario(
@@ -156,11 +156,11 @@ export class ApiClient {
       config: Record<string, unknown>
     }>,
   ): Promise<{ scenario: ScenarioSummary }> {
-    return this.request('PATCH', `/v1/scenarios/${scenarioId}`, input)
+    return this.request('PATCH', `/v1/admin/scenarios/${scenarioId}`, input)
   }
 
   listAvatars(scenarioId: string): Promise<{ avatars: AvatarSummary[] }> {
-    return this.request('GET', `/v1/scenarios/${scenarioId}/avatars`)
+    return this.request('GET', `/v1/admin/scenarios/${scenarioId}/avatars`)
   }
 
   createAvatar(
@@ -174,7 +174,7 @@ export class ApiClient {
       config: Record<string, unknown>
     },
   ): Promise<{ avatar: AvatarSummary }> {
-    return this.request('POST', `/v1/scenarios/${scenarioId}/avatars`, input, [201])
+    return this.request('POST', `/v1/admin/scenarios/${scenarioId}/avatars`, input, [201])
   }
 
   updateAvatar(
@@ -188,40 +188,40 @@ export class ApiClient {
       config: Record<string, unknown>
     }>,
   ): Promise<{ avatar: AvatarSummary }> {
-    return this.request('PATCH', `/v1/avatars/${avatarId}`, input)
+    return this.request('PATCH', `/v1/admin/avatars/${avatarId}`, input)
   }
 
   prepareAvatarTraits(scenarioId: string): Promise<PrepareAvatarTraitsResponse> {
-    return this.request('POST', `/v1/scenarios/${scenarioId}/prepare-avatar-traits`)
+    return this.request('POST', `/v1/admin/scenarios/${scenarioId}/prepare-avatar-traits`)
   }
 
   listKnowledgeSources(scenarioId: string): Promise<ListKnowledgeSourcesResponse> {
-    return this.request('GET', `/v1/scenarios/${scenarioId}/knowledge-sources`)
+    return this.request('GET', `/v1/admin/scenarios/${scenarioId}/knowledge-sources`)
   }
 
   createKnowledgeSource(
     input: CreateKnowledgeSourceRequest,
   ): Promise<CreateKnowledgeSourceResponse> {
-    return this.request('POST', '/v1/knowledge-sources', input, [201])
+    return this.request('POST', '/v1/admin/knowledge-sources', input, [201])
   }
 
   updateKnowledgeSource(
     sourceId: string,
     input: UpdateKnowledgeSourceRequest,
   ): Promise<UpdateKnowledgeSourceResponse> {
-    return this.request('PATCH', `/v1/knowledge-sources/${sourceId}`, input)
+    return this.request('PATCH', `/v1/admin/knowledge-sources/${sourceId}`, input)
   }
 
   deleteKnowledgeSource(sourceId: string): Promise<DeleteKnowledgeSourceResponse> {
-    return this.request('DELETE', `/v1/knowledge-sources/${sourceId}`)
+    return this.request('DELETE', `/v1/admin/knowledge-sources/${sourceId}`)
   }
 
   triggerIngestion(sourceId: string): Promise<TriggerIngestionResponse> {
-    return this.request('POST', `/v1/knowledge-sources/${sourceId}/ingest`, {}, [202])
+    return this.request('POST', `/v1/admin/knowledge-sources/${sourceId}/ingest`, {}, [202])
   }
 
   getIngestionJob(ingestionJobId: string): Promise<GetIngestionJobResponse> {
-    return this.request('GET', `/v1/ingestion-jobs/${ingestionJobId}`)
+    return this.request('GET', `/v1/admin/ingestion-jobs/${ingestionJobId}`)
   }
 
   startKnowledgeReindex(): Promise<StartKnowledgeReindexResponse> {

@@ -171,7 +171,7 @@ function createError(
     status,
     code,
     message,
-    path: '/v1/exchange',
+    path: '/v1/admin/exchange',
     kind,
   })
 }
@@ -377,7 +377,7 @@ export class SemanticJudgeClient {
     try {
       let response: Response
       try {
-        response = await this.fetchImpl(`${this.baseUrl}/v1/exchange`, {
+        response = await this.fetchImpl(`${this.baseUrl}/v1/admin/exchange`, {
           method: 'POST',
           headers: {
             Accept: 'application/json',

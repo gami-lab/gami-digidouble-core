@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret'
-const ENDPOINT = `${APP_URL}/v1/scenarios`
+const ENDPOINT = `${APP_URL}/v1/admin/scenarios`
 
 async function deleteScenario(scenarioId: string): Promise<void> {
   await fetch(`${ENDPOINT}/${scenarioId}`, {
@@ -11,7 +11,7 @@ async function deleteScenario(scenarioId: string): Promise<void> {
   })
 }
 
-describe('Stack E2E — POST /v1/scenarios — auth', () => {
+describe('Stack E2E — POST /v1/admin/scenarios — auth', () => {
   it('rejects requests with no API key (401)', async () => {
     const res = await fetch(ENDPOINT, {
       method: 'POST',
@@ -36,7 +36,7 @@ describe('Stack E2E — POST /v1/scenarios — auth', () => {
   })
 })
 
-describe('Stack E2E — POST /v1/scenarios — validation', () => {
+describe('Stack E2E — POST /v1/admin/scenarios — validation', () => {
   it('rejects requests with missing name field (400)', async () => {
     const res = await fetch(ENDPOINT, {
       method: 'POST',
@@ -88,7 +88,7 @@ describe('Stack E2E — POST /v1/scenarios — validation', () => {
   })
 })
 
-describe('Stack E2E — POST /v1/scenarios — success', () => {
+describe('Stack E2E — POST /v1/admin/scenarios — success', () => {
   it('creates scenario and returns 201 with default draft status', async () => {
     const res = await fetch(ENDPOINT, {
       method: 'POST',
@@ -159,7 +159,7 @@ describe('Stack E2E — POST /v1/scenarios — success', () => {
   })
 })
 
-describe('Stack E2E — PATCH /v1/scenarios/:id — auth', () => {
+describe('Stack E2E — PATCH /v1/admin/scenarios/:id — auth', () => {
   it('rejects requests with no API key (401)', async () => {
     const res = await fetch(`${ENDPOINT}/scenario_nonexistent`, {
       method: 'PATCH',
@@ -184,7 +184,7 @@ describe('Stack E2E — PATCH /v1/scenarios/:id — auth', () => {
   })
 })
 
-describe('Stack E2E — PATCH /v1/scenarios/:id — not found', () => {
+describe('Stack E2E — PATCH /v1/admin/scenarios/:id — not found', () => {
   it('returns 404 for unknown scenario id', async () => {
     const res = await fetch(`${ENDPOINT}/scenario_nonexistent`, {
       method: 'PATCH',
@@ -201,7 +201,7 @@ describe('Stack E2E — PATCH /v1/scenarios/:id — not found', () => {
   })
 })
 
-describe('Stack E2E — PATCH /v1/scenarios/:id — validation', () => {
+describe('Stack E2E — PATCH /v1/admin/scenarios/:id — validation', () => {
   it('returns 400 when body has no updatable fields', async () => {
     const createRes = await fetch(ENDPOINT, {
       method: 'POST',
@@ -237,7 +237,7 @@ describe('Stack E2E — PATCH /v1/scenarios/:id — validation', () => {
 })
 
 // eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
-describe('Stack E2E — PATCH /v1/scenarios/:id — success', () => {
+describe('Stack E2E — PATCH /v1/admin/scenarios/:id — success', () => {
   it('updates scenario name and returns 200 with updated scenario', async () => {
     const createRes = await fetch(ENDPOINT, {
       method: 'POST',

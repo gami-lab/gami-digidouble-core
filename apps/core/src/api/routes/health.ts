@@ -8,7 +8,7 @@ type HealthData = {
 }
 
 export const healthRoute: FastifyPluginCallback = (app) => {
-  app.get('/health', { config: { skipAuthentication: true } }, async (_request, reply) => {
+  app.get('/health', { config: { tier: 'open' } }, async (_request, reply) => {
     return reply.send(
       ok<HealthData>({
         status: 'ok',

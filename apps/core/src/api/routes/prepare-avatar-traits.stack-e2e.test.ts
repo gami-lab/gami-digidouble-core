@@ -13,7 +13,7 @@ import {
 
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret'
-const UNKNOWN_ENDPOINT = `${APP_URL}/v1/scenarios/scenario_unknown/prepare-avatar-traits`
+const UNKNOWN_ENDPOINT = `${APP_URL}/v1/admin/scenarios/scenario_unknown/prepare-avatar-traits`
 
 function authHeaders(apiKey = API_KEY): Record<string, string> {
   return {
@@ -27,7 +27,7 @@ function noBodyAuthHeaders(apiKey = API_KEY): Record<string, string> {
   return { 'x-api-key': apiKey }
 }
 
-describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits — auth', () => {
+describe('Stack E2E — POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — auth', () => {
   it('rejects requests with no API key (401)', async () => {
     const res = await fetch(UNKNOWN_ENDPOINT, { method: 'POST' })
 
@@ -44,7 +44,7 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits —
   })
 })
 
-describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits — validation', () => {
+describe('Stack E2E — POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — validation', () => {
   it.each([
     { label: 'object fields', body: JSON.stringify({ avatarIds: ['avatar_1'] }) },
     { label: 'null JSON', body: 'null' },
@@ -65,7 +65,7 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits —
   })
 })
 
-describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits — resource lookup', () => {
+describe('Stack E2E — POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — resource lookup', () => {
   it('returns 404 when scenarioId is unknown', async () => {
     const res = await fetch(UNKNOWN_ENDPOINT, {
       method: 'POST',
@@ -79,7 +79,7 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits —
 })
 
 async function createScenarioAndAvatar(): Promise<{ scenarioId: string; avatarId: string }> {
-  const createScenarioRes = await fetch(`${APP_URL}/v1/scenarios`, {
+  const createScenarioRes = await fetch(`${APP_URL}/v1/admin/scenarios`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({
@@ -91,7 +91,7 @@ async function createScenarioAndAvatar(): Promise<{ scenarioId: string; avatarId
   const createdScenario = (await createScenarioRes.json()) as ApiResponse<CreateScenarioResponse>
   const scenarioId = createdScenario.data?.scenario.scenarioId ?? ''
 
-  const createAvatarRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
+  const createAvatarRes = await fetch(`${APP_URL}/v1/admin/scenarios/${scenarioId}/avatars`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({
@@ -112,7 +112,7 @@ async function createKnowledgeSource(args: {
   knowledgeType: 'avatar_knowledge' | 'world'
   inlineText: string
 }): Promise<void> {
-  const createSourceRes = await fetch(`${APP_URL}/v1/knowledge-sources`, {
+  const createSourceRes = await fetch(`${APP_URL}/v1/admin/knowledge-sources`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({
@@ -129,14 +129,14 @@ async function createKnowledgeSource(args: {
 }
 
 async function deleteAvatar(avatarId: string): Promise<void> {
-  await fetch(`${APP_URL}/v1/avatars/${avatarId}`, {
+  await fetch(`${APP_URL}/v1/admin/avatars/${avatarId}`, {
     method: 'DELETE',
     headers: { 'x-api-key': API_KEY },
   })
 }
 
 async function deleteScenario(scenarioId: string): Promise<void> {
-  await fetch(`${APP_URL}/v1/scenarios/${scenarioId}`, {
+  await fetch(`${APP_URL}/v1/admin/scenarios/${scenarioId}`, {
     method: 'DELETE',
     headers: { 'x-api-key': API_KEY },
   })
@@ -186,7 +186,7 @@ function assertRealProviderTraitResult(
 async function prepareAvatarTraits(
   scenarioId: string,
 ): Promise<ApiResponse<PrepareAvatarTraitsResponse>> {
-  const res = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/prepare-avatar-traits`, {
+  const res = await fetch(`${APP_URL}/v1/admin/scenarios/${scenarioId}/prepare-avatar-traits`, {
     method: 'POST',
     headers: noBodyAuthHeaders(),
   })
@@ -199,7 +199,7 @@ async function listScenarioAvatar(
   scenarioId: string,
   avatarId: string,
 ): Promise<ListScenarioAvatarsResponse['avatars'][number] | undefined> {
-  const listRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
+  const listRes = await fetch(`${APP_URL}/v1/admin/scenarios/${scenarioId}/avatars`, {
     method: 'GET',
     headers: { 'x-api-key': API_KEY },
   })
@@ -217,12 +217,12 @@ function assertPreparedTraitShape(traits: AvatarComputedTraits): void {
   expect(AVATAR_COMPUTED_TRAIT_KEYS.some((key) => traits[key].length > 0)).toBe(true)
 }
 
-describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits — success (always-on)', () => {
+describe('Stack E2E — POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — success (always-on)', () => {
   it('returns 200 with one result per avatar and persists computedTraits deterministically', async (context) => {
     const { scenarioId, avatarId } = await createScenarioAndAvatar()
 
     try {
-      const res = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/prepare-avatar-traits`, {
+      const res = await fetch(`${APP_URL}/v1/admin/scenarios/${scenarioId}/prepare-avatar-traits`, {
         method: 'POST',
         headers: noBodyAuthHeaders(),
       })
@@ -237,7 +237,7 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits —
 
       assertNullProviderTraitResult(body.data?.results[0], avatarId)
 
-      const listRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/avatars`, {
+      const listRes = await fetch(`${APP_URL}/v1/admin/scenarios/${scenarioId}/avatars`, {
         method: 'GET',
         headers: { 'x-api-key': API_KEY },
       })
@@ -255,16 +255,22 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits —
     const { scenarioId, avatarId } = await createScenarioAndAvatar()
 
     try {
-      const firstRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/prepare-avatar-traits`, {
-        method: 'POST',
-        headers: noBodyAuthHeaders(),
-      })
+      const firstRes = await fetch(
+        `${APP_URL}/v1/admin/scenarios/${scenarioId}/prepare-avatar-traits`,
+        {
+          method: 'POST',
+          headers: noBodyAuthHeaders(),
+        },
+      )
       expect(firstRes.status).toBe(200)
 
-      const secondRes = await fetch(`${APP_URL}/v1/scenarios/${scenarioId}/prepare-avatar-traits`, {
-        method: 'POST',
-        headers: noBodyAuthHeaders(),
-      })
+      const secondRes = await fetch(
+        `${APP_URL}/v1/admin/scenarios/${scenarioId}/prepare-avatar-traits`,
+        {
+          method: 'POST',
+          headers: noBodyAuthHeaders(),
+        },
+      )
       expect(secondRes.status).toBe(200)
       const secondBody = (await secondRes.json()) as ApiResponse<PrepareAvatarTraitsResponse>
       expect(secondBody.data?.results).toHaveLength(1)
@@ -282,7 +288,7 @@ describe('Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits —
 })
 
 describe.skipIf(isNullProvider)(
-  'Stack E2E — POST /v1/scenarios/:scenarioId/prepare-avatar-traits — real provider flow',
+  'Stack E2E — POST /v1/admin/scenarios/:scenarioId/prepare-avatar-traits — real provider flow',
   () => {
     it('computes and persists a structured trait result with a real provider', async (context) => {
       const { scenarioId, avatarId } = await createScenarioAndAvatar()

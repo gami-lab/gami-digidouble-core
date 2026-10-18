@@ -9,19 +9,19 @@ import type {
 } from '@gami/shared'
 
 export async function listScenarios(): Promise<ScenarioSummary[]> {
-  const payload = await coreRequest<ListScenariosResponse>('GET', '/v1/scenarios')
+  const payload = await coreRequest<ListScenariosResponse>('GET', '/v1/admin/scenarios')
   return payload.scenarios
 }
 
 export async function getScenario(scenarioId: string): Promise<ScenarioSummary> {
-  const payload = await coreRequest<GetScenarioResponse>('GET', `/v1/scenarios/${scenarioId}`)
+  const payload = await coreRequest<GetScenarioResponse>('GET', `/v1/admin/scenarios/${scenarioId}`)
   return payload.scenario
 }
 
 export async function listScenarioAvatars(scenarioId: string): Promise<AvatarSummary[]> {
   const payload = await coreRequest<ListScenarioAvatarsResponse>(
     'GET',
-    `/v1/scenarios/${scenarioId}/avatars`,
+    `/v1/admin/scenarios/${scenarioId}/avatars`,
   )
   return payload.avatars
 }
@@ -31,6 +31,6 @@ export async function prepareAvatarTraits(
 ): Promise<PrepareAvatarTraitsResponse> {
   return coreRequest<PrepareAvatarTraitsResponse>(
     'POST',
-    `/v1/scenarios/${scenarioId}/prepare-avatar-traits`,
+    `/v1/admin/scenarios/${scenarioId}/prepare-avatar-traits`,
   )
 }

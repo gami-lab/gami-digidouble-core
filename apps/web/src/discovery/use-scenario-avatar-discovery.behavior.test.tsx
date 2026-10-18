@@ -38,13 +38,6 @@ describe('useScenarioAvatarDiscovery behavior', () => {
       {
         scenarioId: 'scenario_1',
         name: 'Scenario 1',
-        status: 'active',
-        objectives: [],
-        worldContext: '',
-        avatarAvailability: { initialAvatarIds: [] },
-        config: {},
-        createdAt: '2026-06-01T00:00:00.000Z',
-        updatedAt: '2026-06-01T00:00:00.000Z',
       },
     ])
     vi.mocked(ensureActiveSession).mockResolvedValue({

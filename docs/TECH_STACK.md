@@ -83,7 +83,7 @@ product code rather than in an external agent framework.
 - `apps/admin` — scenario/content authoring, distinct from console (debugging) and web (players).
 - `apps/console` — local operator/debug UI; not a production service.
 - `tools/conversation-evaluation` — standalone package for scripted evaluation: authenticated
-  sequential API execution, semantic judging through `/v1/exchange`, multi-model comparison, and
+  sequential API execution, semantic judging through `/v1/admin/exchange`, multi-model comparison, and
   local reports. It uses only public authenticated HTTP boundaries and shared DTOs — never provider
   SDKs or Core runtime internals directly — so evaluation stays a black-box consumer like any other
   client.

@@ -14,6 +14,10 @@ per module) live in [TEST_COVERAGE_PLAN.md](TEST_COVERAGE_PLAN.md).
 - Unit-test domain policies and orchestration with deterministic ports.
 - Integration-test repositories, schema assumptions, adapters, and application composition.
 - Test HTTP routes as contracts: auth, validation, error envelope, success shape, and cancellation.
+- The route-tier matrix (`apps/core/src/api/route-tiers.test.ts`) builds the real server and
+  enumerates every registered route: each has exactly one tier, every `/v1/admin/*` route is
+  `admin`, public routes stay player-facing, and `open` routes are an explicit list. New plugins
+  are covered automatically.
 - Test shared client protocol guards and pure contract mappers in `packages/shared`; keep JSON
   request, streaming, binary, and abort behavior covered at each app boundary.
 - Test the application exchange-window selector for ordering, complete-pair rules, caps, and

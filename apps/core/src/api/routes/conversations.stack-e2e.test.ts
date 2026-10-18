@@ -41,22 +41,22 @@ async function cleanupScenario(ids: {
   scenarioId: string
 }): Promise<void> {
   if (ids.sessionId !== undefined) await deleteJson(`/v1/sessions/${ids.sessionId}`)
-  if (ids.avatarId !== undefined) await deleteJson(`/v1/avatars/${ids.avatarId}`)
-  await deleteJson(`/v1/scenarios/${ids.scenarioId}`)
+  if (ids.avatarId !== undefined) await deleteJson(`/v1/admin/avatars/${ids.avatarId}`)
+  await deleteJson(`/v1/admin/scenarios/${ids.scenarioId}`)
 }
 
 async function seedSessionFixture(
   scenarioName: string,
   avatarName: string,
 ): Promise<{ scenarioId: string; avatarId: string; sessionId: string }> {
-  const scenarioRes = await postJson('/v1/scenarios', { name: scenarioName, language: 'en' })
+  const scenarioRes = await postJson('/v1/admin/scenarios', { name: scenarioName, language: 'en' })
   expect(scenarioRes.status).toBe(201)
   const scenarioBody = (await scenarioRes.json()) as ApiResponse<{
     scenario: { scenarioId: string }
   }>
   const scenarioId = requireValue(scenarioBody.data?.scenario.scenarioId, 'scenarioId')
 
-  const avatarRes = await postJson(`/v1/scenarios/${scenarioId}/avatars`, {
+  const avatarRes = await postJson(`/v1/admin/scenarios/${scenarioId}/avatars`, {
     name: avatarName,
     personaPrompt: `You are ${avatarName}.`,
   })

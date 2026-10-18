@@ -19,7 +19,7 @@ export async function prepareAndActivateAvatar(args: {
   avatarId: string
 }): Promise<void> {
   const prepareResponse = await fetch(
-    `${args.appUrl}/v1/scenarios/${args.scenarioId}/prepare-avatar-traits`,
+    `${args.appUrl}/v1/admin/scenarios/${args.scenarioId}/prepare-avatar-traits`,
     {
       method: 'POST',
       headers: { 'x-api-key': args.apiKey },
@@ -34,7 +34,7 @@ export async function prepareAndActivateAvatar(args: {
 
   assertPreparedAvatar(prepareBody, args.avatarId)
 
-  const activateResponse = await fetch(`${args.appUrl}/v1/avatars/${args.avatarId}`, {
+  const activateResponse = await fetch(`${args.appUrl}/v1/admin/avatars/${args.avatarId}`, {
     method: 'PATCH',
     headers: {
       'content-type': 'application/json',

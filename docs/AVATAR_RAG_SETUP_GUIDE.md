@@ -30,10 +30,10 @@ active Avatar in the session determines which chunks are eligible.
    than one large mixed-purpose document, and keeps chunks semantically coherent.
 3. Create the source with `knowledgeType`, `format`, `uriOrPath`, and a visibility policy
    (`visibleToAvatarIds`, or omit/empty for shared visibility).
-4. Trigger `POST /v1/knowledge-sources/{sourceId}/ingest`. Registering a source only records it —
+4. Trigger `POST /v1/admin/knowledge-sources/{sourceId}/ingest`. Registering a source only records it —
    ingestion is a separate, explicit step and nothing is retrievable until it completes.
-5. Poll the ingestion job (`GET /v1/ingestion-jobs/{id}` or
-   `GET /v1/knowledge-sources/{sourceId}/ingestion-jobs`) until `completed`, or investigate
+5. Poll the ingestion job (`GET /v1/admin/ingestion-jobs/{id}` or
+   `GET /v1/admin/knowledge-sources/{sourceId}/ingestion-jobs`) until `completed`, or investigate
    `failed`. Jobs start `queued`/`running`; pass `correlationId` in the ingest body if you need to
    line the run up with an external workflow.
 6. Verify with `POST /v1/admin/knowledge/retrieval` using the intended `scenarioId` and
@@ -92,7 +92,7 @@ Knowledge, Media Knowledge — and also show the owning scenario and Avatar visi
 
 ```bash
 # 1. Register the source (scope to one Avatar with visibleToAvatarIds, or omit for shared)
-curl -X POST "$BASE_URL/v1/knowledge-sources" -H "x-api-key: $API_KEY" \
+curl -X POST "$BASE_URL/v1/admin/knowledge-sources" -H "x-api-key: $API_KEY" \
   -H "Content-Type: application/json" -d '{
     "scenarioId": "scenario_id", "name": "Theo notes",
     "knowledgeType": "avatar_knowledge", "format": "markdown",
@@ -100,7 +100,7 @@ curl -X POST "$BASE_URL/v1/knowledge-sources" -H "x-api-key: $API_KEY" \
   }'
 
 # 2. Trigger ingestion (registering a source does not ingest it)
-curl -X POST "$BASE_URL/v1/knowledge-sources/$SOURCE_ID/ingest" -H "x-api-key: $API_KEY"
+curl -X POST "$BASE_URL/v1/admin/knowledge-sources/$SOURCE_ID/ingest" -H "x-api-key: $API_KEY"
 
 # 3. Verify retrieval before trusting chat quality
 curl -X POST "$BASE_URL/v1/admin/knowledge/retrieval" -H "x-api-key: $API_KEY" \

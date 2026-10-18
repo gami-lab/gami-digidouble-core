@@ -41,6 +41,9 @@ import { InMemorySessionEventPublisher } from '../infrastructure/events/in-memor
 import { buildLlmConfig, createLlmAdapter } from '../infrastructure/llm/index.js'
 import type { LlmAdapterRegistry } from '../infrastructure/llm/llm-adapter-registry.js'
 import { apiKeyVerifier, registerAuthentication } from './hooks/authenticate.js'
+import { enforceRouteTiers, registerTierScope } from './route-tiers.js'
+import { adminSessionManagementRoute } from './routes/admin-session-management.js'
+import { scenarioCatalogueRoute } from './routes/scenario-catalogue.js'
 import { adminMemoryRoute } from './routes/admin-memory.js'
 import { adminSessionsRoute } from './routes/admin-sessions.js'
 import { adminHealthRoute } from './routes/admin-health.js'
@@ -139,7 +142,6 @@ function isFastifyBodyParsingError(
   )
 }
 
-// eslint-disable-next-line max-lines-per-function -- composition root registers every route plugin and shared hook
 export function createServer(config: Config, adapters: ServerAdapters = {}): FastifyInstance {
   const resolvedAdapters = resolveServerAdapters(adapters)
 
@@ -191,75 +193,81 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     return reply.status(500).send(fail('INTERNAL_ERROR', 'Internal server error'))
   })
 
-  registerAuthentication(app, apiKeyVerifier(config.apiKeySecret))
+  enforceRouteTiers(app)
+  const apiKey = apiKeyVerifier(config.apiKeySecret)
+  registerAuthentication(app, { public: apiKey, admin: apiKey })
 
   app.register(healthRoute)
-  app.register(exchangeRoute, { config, ...resolvedAdapters })
-  app.register(sessionsRoute, {
-    prefix: '/v1/sessions',
-    config,
-    ...resolvedAdapters,
-    sessionEventPublisher: resolvedAdapters.sessionEventPublisher,
+  registerTierScope(app, 'public', '/v1', (scope) => {
+    registerPublicRoutes(scope, config, resolvedAdapters)
   })
-  app.register(conversationsRoute, {
-    prefix: '/v1/conversations',
-    config,
-    ...resolvedAdapters,
+  registerTierScope(app, 'admin', '/v1/admin', (scope) => {
+    registerAdminRoutes(scope, config, resolvedAdapters, adapters.probes ?? [])
   })
-  app.register(adminSessionsRoute, {
-    prefix: '/v1/admin',
-    config,
-    ...resolvedAdapters,
-  })
-  app.register(adminHealthRoute, {
-    prefix: '/v1/admin',
-    config,
-    probes: adapters.probes ?? [],
-  })
-  app.register(adminMemoryRoute, {
-    ...buildAdminMemoryRouteOptions(config, resolvedAdapters),
-  })
-  app.register(adminSessionContextRoute, {
-    ...buildAdminSessionContextRouteOptions(config, resolvedAdapters),
-  })
-  app.register(adminRuntimeActionsRoute, {
-    ...buildAdminRuntimeActionsRouteOptions(config, resolvedAdapters),
-  })
-  app.register(adminModelConfigRoute, {
-    prefix: '/v1/admin',
-    config,
-    modelConfigRepository: withDefault(
-      resolvedAdapters.modelConfigRepository,
-      new InMemoryModelConfigRepository(),
-    ),
-    ...(resolvedAdapters.modelConfigFallback !== undefined
-      ? { modelConfigFallback: resolvedAdapters.modelConfigFallback }
-      : {}),
-  })
-  app.register(adminVoicesRoute, {
-    prefix: '/v1/admin',
-    config,
-    textToSpeechProviders: withDefault(
-      resolvedAdapters.textToSpeechProviders,
-      new TextToSpeechProviders(),
-    ),
-  })
-  app.register(scenariosRoute, {
-    prefix: '/v1/scenarios',
-    ...buildScenariosRouteOptions(config, resolvedAdapters),
-  })
-  app.register(usersRoute, {
-    prefix: '/v1/users',
-    config,
-    userRepository: resolvedAdapters.userRepository,
-  })
-  app.register(avatarsRoute, {
-    prefix: '/v1/avatars',
-    ...buildAvatarsRouteOptions(config, resolvedAdapters),
-  })
-  registerKnowledgeRoute(app, config, resolvedAdapters)
 
   return app
+}
+
+function registerPublicRoutes(
+  scope: FastifyInstance,
+  config: Config,
+  adapters: ReturnType<typeof resolveServerAdapters>,
+): void {
+  scope.register(sessionsRoute, { prefix: '/sessions', config, ...adapters })
+  scope.register(conversationsRoute, { prefix: '/conversations', config, ...adapters })
+  scope.register(usersRoute, {
+    prefix: '/users',
+    config,
+    userRepository: adapters.userRepository,
+  })
+  scope.register(scenarioCatalogueRoute, {
+    prefix: '/scenarios',
+    ...(adapters.scenarioRepository !== undefined
+      ? { scenarioRepository: adapters.scenarioRepository }
+      : {}),
+  })
+}
+
+function registerAdminRoutes(
+  scope: FastifyInstance,
+  config: Config,
+  adapters: ReturnType<typeof resolveServerAdapters>,
+  probes: IDependencyProbe[],
+): void {
+  scope.register(exchangeRoute, { config, ...adapters })
+  scope.register(adminSessionsRoute, { config, ...adapters })
+  scope.register(adminSessionManagementRoute, {
+    ...(adapters.sessionRepository !== undefined
+      ? { sessionRepository: adapters.sessionRepository }
+      : {}),
+  })
+  scope.register(adminHealthRoute, { config, probes })
+  scope.register(adminMemoryRoute, buildAdminMemoryRouteOptions(config, adapters))
+  scope.register(adminSessionContextRoute, buildAdminSessionContextRouteOptions(config, adapters))
+  scope.register(adminRuntimeActionsRoute, buildAdminRuntimeActionsRouteOptions(config, adapters))
+  scope.register(adminModelConfigRoute, {
+    config,
+    modelConfigRepository: withDefault(
+      adapters.modelConfigRepository,
+      new InMemoryModelConfigRepository(),
+    ),
+    ...(adapters.modelConfigFallback !== undefined
+      ? { modelConfigFallback: adapters.modelConfigFallback }
+      : {}),
+  })
+  scope.register(adminVoicesRoute, {
+    config,
+    textToSpeechProviders: withDefault(adapters.textToSpeechProviders, new TextToSpeechProviders()),
+  })
+  scope.register(scenariosRoute, {
+    prefix: '/scenarios',
+    ...buildScenariosRouteOptions(config, adapters),
+  })
+  scope.register(avatarsRoute, {
+    prefix: '/avatars',
+    ...buildAvatarsRouteOptions(config, adapters),
+  })
+  registerKnowledgeRoute(scope, config, adapters)
 }
 
 function registerKnowledgeRoute(
@@ -299,7 +307,6 @@ function registerKnowledgeRoute(
       : {}),
   })
   app.register(adminKnowledgeReindexRoute, {
-    prefix: '/v1/admin',
     config,
     sourceRepository,
     corpusRepository,
@@ -387,7 +394,6 @@ function buildAvatarsRouteOptions(config: Config, adapters: ServerAdapters): Ava
 
 function buildAdminMemoryRouteOptions(config: Config, adapters: ServerAdapters) {
   return {
-    prefix: '/v1/admin',
     config,
     sessionRepository: adapters.sessionRepository ?? new InMemorySessionRepository(),
     ...(adapters.conversationRepository !== undefined
@@ -408,7 +414,6 @@ function buildAdminMemoryRouteOptions(config: Config, adapters: ServerAdapters) 
 
 function buildAdminSessionContextRouteOptions(config: Config, adapters: ServerAdapters) {
   return {
-    prefix: '/v1/admin',
     config,
     sessionRepository: withDefault(adapters.sessionRepository, new InMemorySessionRepository()),
     conversationRepository: withDefault(
@@ -429,7 +434,6 @@ function buildAdminSessionContextRouteOptions(config: Config, adapters: ServerAd
 
 function buildAdminRuntimeActionsRouteOptions(config: Config, adapters: ServerAdapters) {
   return {
-    prefix: '/v1/admin',
     config,
     llmAdapter:
       adapters.llmAdapter ??

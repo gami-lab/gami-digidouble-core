@@ -6,9 +6,9 @@ import { skipIfTransientProviderHttpError } from '../../test-utils/real-provider
 const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000'
 const API_KEY = 'e2e-stack-secret'
 
-describe('Stack E2E — POST /v1/exchange — auth', () => {
+describe('Stack E2E — POST /v1/admin/exchange — auth', () => {
   it('rejects requests with no API key (401)', async () => {
-    const res = await fetch(`${APP_URL}/v1/exchange`, {
+    const res = await fetch(`${APP_URL}/v1/admin/exchange`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: 'hello' }),
@@ -18,7 +18,7 @@ describe('Stack E2E — POST /v1/exchange — auth', () => {
   })
 
   it('rejects requests with wrong API key (401)', async () => {
-    const res = await fetch(`${APP_URL}/v1/exchange`, {
+    const res = await fetch(`${APP_URL}/v1/admin/exchange`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -31,7 +31,7 @@ describe('Stack E2E — POST /v1/exchange — auth', () => {
   })
 
   it('rejects requests with missing message field (400)', async () => {
-    const res = await fetch(`${APP_URL}/v1/exchange`, {
+    const res = await fetch(`${APP_URL}/v1/admin/exchange`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -46,9 +46,9 @@ describe('Stack E2E — POST /v1/exchange — auth', () => {
 
 const isNullProvider = (process.env['LLM_PROVIDER'] ?? 'null') === 'null'
 
-describe.skipIf(!isNullProvider)('Stack E2E — POST /v1/exchange — null provider', () => {
+describe.skipIf(!isNullProvider)('Stack E2E — POST /v1/admin/exchange — null provider', () => {
   it('returns 200 with correct response envelope', async () => {
-    const res = await fetch(`${APP_URL}/v1/exchange`, {
+    const res = await fetch(`${APP_URL}/v1/admin/exchange`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -72,9 +72,9 @@ describe.skipIf(!isNullProvider)('Stack E2E — POST /v1/exchange — null provi
   })
 })
 
-describe('Stack E2E — POST /v1/exchange — provider-backed flow', () => {
+describe('Stack E2E — POST /v1/admin/exchange — provider-backed flow', () => {
   it('returns a non-empty reply with token counts', async (context) => {
-    const res = await fetch(`${APP_URL}/v1/exchange`, {
+    const res = await fetch(`${APP_URL}/v1/admin/exchange`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

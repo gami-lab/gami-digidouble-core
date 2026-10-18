@@ -44,8 +44,8 @@ async function cleanupSession(ids: {
   scenarioId: string
 }): Promise<void> {
   await deleteJson(`/v1/sessions/${ids.sessionId}`)
-  await deleteJson(`/v1/avatars/${ids.avatarId}`)
-  await deleteJson(`/v1/scenarios/${ids.scenarioId}`)
+  await deleteJson(`/v1/admin/avatars/${ids.avatarId}`)
+  await deleteJson(`/v1/admin/scenarios/${ids.scenarioId}`)
 }
 
 async function seedConversation(context: TestContext): Promise<{
@@ -54,7 +54,7 @@ async function seedConversation(context: TestContext): Promise<{
   avatarId: string
   scenarioId: string
 }> {
-  const scenarioRes = await postJson('/v1/scenarios', {
+  const scenarioRes = await postJson('/v1/admin/scenarios', {
     name: `Admin Actions Scenario ${String(Date.now())}`,
     language: 'en',
   })
@@ -64,7 +64,7 @@ async function seedConversation(context: TestContext): Promise<{
   }>
   const scenarioId = requireId(scenarioBody.data?.scenario, 'scenarioId')
 
-  const avatarRes = await postJson(`/v1/scenarios/${scenarioId}/avatars`, {
+  const avatarRes = await postJson(`/v1/admin/scenarios/${scenarioId}/avatars`, {
     name: 'Action Guide',
     personaPrompt: 'You are a helpful guide.',
   })

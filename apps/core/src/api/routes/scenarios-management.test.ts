@@ -67,7 +67,7 @@ function makeApp({
   })
 }
 
-describe('GET /v1/scenarios', () => {
+describe('GET /v1/admin/scenarios', () => {
   it('returns scenarios ordered by createdAt DESC', async () => {
     const app = makeApp({
       scenarios: [
@@ -88,7 +88,7 @@ describe('GET /v1/scenarios', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -108,7 +108,7 @@ describe('GET /v1/scenarios', () => {
   it('returns empty list when no scenarios exist', async () => {
     const response = await makeApp().inject({
       method: 'GET',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -119,13 +119,13 @@ describe('GET /v1/scenarios', () => {
   })
 })
 
-describe('GET /v1/scenarios/:scenarioId', () => {
+describe('GET /v1/admin/scenarios/:scenarioId', () => {
   it('returns the scenario when it exists', async () => {
     const app = makeApp({ scenarios: [makeScenario()] })
 
     const response = await app.inject({
       method: 'GET',
-      url: '/v1/scenarios/scenario_1',
+      url: '/v1/admin/scenarios/scenario_1',
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -138,7 +138,7 @@ describe('GET /v1/scenarios/:scenarioId', () => {
   it('returns 404 when scenario does not exist', async () => {
     const response = await makeApp().inject({
       method: 'GET',
-      url: '/v1/scenarios/scenario_missing',
+      url: '/v1/admin/scenarios/scenario_missing',
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -148,7 +148,7 @@ describe('GET /v1/scenarios/:scenarioId', () => {
   })
 })
 
-describe('GET /v1/scenarios/:scenarioId/avatars', () => {
+describe('GET /v1/admin/scenarios/:scenarioId/avatars', () => {
   it('returns avatars for an existing scenario ordered by createdAt DESC', async () => {
     const app = makeApp({
       scenarios: [makeScenario({ scenarioId: 'scenario_1' })],
@@ -168,7 +168,7 @@ describe('GET /v1/scenarios/:scenarioId/avatars', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: '/v1/scenarios/scenario_1/avatars',
+      url: '/v1/admin/scenarios/scenario_1/avatars',
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -185,7 +185,7 @@ describe('GET /v1/scenarios/:scenarioId/avatars', () => {
   it('returns 404 when scenario does not exist', async () => {
     const response = await makeApp().inject({
       method: 'GET',
-      url: '/v1/scenarios/scenario_missing/avatars',
+      url: '/v1/admin/scenarios/scenario_missing/avatars',
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -200,7 +200,7 @@ describe('GET /v1/scenarios/:scenarioId/avatars', () => {
       avatars: [],
     }).inject({
       method: 'GET',
-      url: '/v1/scenarios/scenario_1/avatars',
+      url: '/v1/admin/scenarios/scenario_1/avatars',
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -211,7 +211,7 @@ describe('GET /v1/scenarios/:scenarioId/avatars', () => {
   })
 })
 
-describe('DELETE /v1/scenarios/:scenarioId', () => {
+describe('DELETE /v1/admin/scenarios/:scenarioId', () => {
   it('deletes scenario when it has no avatars and sessions', async () => {
     const app = makeApp({
       scenarios: [makeScenario({ scenarioId: 'scenario_1' })],
@@ -221,7 +221,7 @@ describe('DELETE /v1/scenarios/:scenarioId', () => {
 
     const response = await app.inject({
       method: 'DELETE',
-      url: '/v1/scenarios/scenario_1',
+      url: '/v1/admin/scenarios/scenario_1',
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -234,7 +234,7 @@ describe('DELETE /v1/scenarios/:scenarioId', () => {
   it('returns 404 when scenario does not exist', async () => {
     const response = await makeApp().inject({
       method: 'DELETE',
-      url: '/v1/scenarios/scenario_missing',
+      url: '/v1/admin/scenarios/scenario_missing',
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -250,7 +250,7 @@ describe('DELETE /v1/scenarios/:scenarioId', () => {
       sessions: [],
     }).inject({
       method: 'DELETE',
-      url: '/v1/scenarios/scenario_1',
+      url: '/v1/admin/scenarios/scenario_1',
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -266,7 +266,7 @@ describe('DELETE /v1/scenarios/:scenarioId', () => {
       sessions: [makeSession({ scenarioId: 'scenario_1', status: 'closed' })],
     }).inject({
       method: 'DELETE',
-      url: '/v1/scenarios/scenario_1',
+      url: '/v1/admin/scenarios/scenario_1',
       headers: { 'x-api-key': 'test-secret' },
     })
 

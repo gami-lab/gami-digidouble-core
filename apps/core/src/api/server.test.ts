@@ -35,7 +35,7 @@ describe('global error handler — Fastify body-parsing errors', () => {
   it('returns 400 VALIDATION_ERROR (not 500) for a malformed (non-empty, invalid) JSON body', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'content-type': 'application/json', ...AUTH_HEADERS },
       payload: '{not valid json',
     })
@@ -48,7 +48,7 @@ describe('authentication hook', () => {
   it('rejects an unauthenticated malformed JSON body with 401 before parsing it', async () => {
     const response = await createServer(TEST_CONFIG).inject({
       method: 'POST',
-      url: '/v1/scenarios',
+      url: '/v1/admin/scenarios',
       headers: { 'content-type': 'application/json' },
       payload: '{not valid json',
     })
@@ -69,7 +69,7 @@ describe('authentication hook', () => {
     },
     {
       name: 'knowledge upload',
-      url: '/v1/knowledge-sources/upload',
+      url: '/v1/admin/knowledge-sources/upload',
       contentType: 'application/json',
     },
     {

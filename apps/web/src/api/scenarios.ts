@@ -1,11 +1,7 @@
-import type { ScenarioSummary, ListScenariosResponse } from '@gami/shared'
+import type { ListPublicScenariosResponse, PublicScenarioSummary } from '@gami/shared'
 import { webRequest } from './client'
 
-export async function listAvailableScenarios(): Promise<ScenarioSummary[]> {
-  const payload = await webRequest<ListScenariosResponse>('GET', '/v1/scenarios')
-  return filterActiveScenarios(payload.scenarios)
-}
-
-export function filterActiveScenarios(scenarios: ScenarioSummary[]): ScenarioSummary[] {
-  return scenarios.filter((scenario) => scenario.status === 'active')
+export async function listAvailableScenarios(): Promise<PublicScenarioSummary[]> {
+  const payload = await webRequest<ListPublicScenariosResponse>('GET', '/v1/scenarios')
+  return payload.scenarios
 }

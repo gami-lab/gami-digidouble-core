@@ -38,11 +38,11 @@ function makeApp({
   })
 }
 
-describe('POST /v1/knowledge-sources — static knowledge contract', () => {
+describe('POST /v1/admin/knowledge-sources — static knowledge contract', () => {
   it('rejects the removed memory knowledge type at the API boundary', async () => {
     const response = await makeApp().inject({
       method: 'POST',
-      url: '/v1/knowledge-sources',
+      url: '/v1/admin/knowledge-sources',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
@@ -61,7 +61,7 @@ describe('POST /v1/knowledge-sources — static knowledge contract', () => {
   it('rejects reserved scope metadata recursively with a standard validation error', async () => {
     const response = await makeApp().inject({
       method: 'POST',
-      url: '/v1/knowledge-sources',
+      url: '/v1/admin/knowledge-sources',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
@@ -82,11 +82,11 @@ describe('POST /v1/knowledge-sources — static knowledge contract', () => {
   })
 })
 
-describe('PATCH /v1/knowledge-sources/:sourceId — success', () => {
+describe('PATCH /v1/admin/knowledge-sources/:sourceId — success', () => {
   it('updates only the provided fields', async () => {
     const response = await makeApp({ sources: [makeSource()] }).inject({
       method: 'PATCH',
-      url: '/v1/knowledge-sources/knowledge_source_1',
+      url: '/v1/admin/knowledge-sources/knowledge_source_1',
       headers: { 'x-api-key': 'test-secret' },
       payload: { name: 'Updated Lore' },
     })
@@ -103,7 +103,7 @@ describe('PATCH /v1/knowledge-sources/:sourceId — success', () => {
 
     const response = await app.inject({
       method: 'PATCH',
-      url: '/v1/knowledge-sources/knowledge_source_1',
+      url: '/v1/admin/knowledge-sources/knowledge_source_1',
       headers: { 'x-api-key': 'test-secret' },
       payload: { metadata: { inlineText: 'New content' } },
     })
@@ -114,13 +114,13 @@ describe('PATCH /v1/knowledge-sources/:sourceId — success', () => {
   })
 })
 
-describe('PATCH /v1/knowledge-sources/:sourceId — visibility and replacement', () => {
+describe('PATCH /v1/admin/knowledge-sources/:sourceId — visibility and replacement', () => {
   it('persists visibilityPolicy update', async () => {
     const app = makeApp({ sources: [makeSource()] })
 
     const response = await app.inject({
       method: 'PATCH',
-      url: '/v1/knowledge-sources/knowledge_source_1',
+      url: '/v1/admin/knowledge-sources/knowledge_source_1',
       headers: { 'x-api-key': 'test-secret' },
       payload: { visibilityPolicy: 'none' },
     })
@@ -136,7 +136,7 @@ describe('PATCH /v1/knowledge-sources/:sourceId — visibility and replacement',
 
     const response = await app.inject({
       method: 'PATCH',
-      url: '/v1/knowledge-sources/knowledge_source_1',
+      url: '/v1/admin/knowledge-sources/knowledge_source_1',
       headers: { 'x-api-key': 'test-secret' },
       payload: { visibleToAvatarIds: ['avatar_1'] },
     })
@@ -157,7 +157,7 @@ describe('PATCH /v1/knowledge-sources/:sourceId — visibility and replacement',
 
     const response = await app.inject({
       method: 'PATCH',
-      url: '/v1/knowledge-sources/knowledge_source_1',
+      url: '/v1/admin/knowledge-sources/knowledge_source_1',
       headers: { 'x-api-key': 'test-secret' },
       payload: { visibilityPolicy: 'all' },
     })
@@ -176,7 +176,7 @@ describe('PATCH /v1/knowledge-sources/:sourceId — visibility and replacement',
 
     const response = await app.inject({
       method: 'PATCH',
-      url: '/v1/knowledge-sources/knowledge_source_1',
+      url: '/v1/admin/knowledge-sources/knowledge_source_1',
       headers: { 'x-api-key': 'test-secret' },
       payload: { visibilityPolicy: 'avatars' },
     })
@@ -199,7 +199,7 @@ describe('PATCH /v1/knowledge-sources/:sourceId — visibility and replacement',
 
     const response = await app.inject({
       method: 'PATCH',
-      url: '/v1/knowledge-sources/knowledge_source_1',
+      url: '/v1/admin/knowledge-sources/knowledge_source_1',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         content: Buffer.from('Updated text file').toString('base64'),
@@ -220,13 +220,13 @@ describe('PATCH /v1/knowledge-sources/:sourceId — visibility and replacement',
   })
 })
 
-describe('PATCH /v1/knowledge-sources/:sourceId — validation', () => {
+describe('PATCH /v1/admin/knowledge-sources/:sourceId — validation', () => {
   it('returns 400 when body is empty', async () => {
     const app = makeApp({ sources: [makeSource()] })
 
     const response = await app.inject({
       method: 'PATCH',
-      url: '/v1/knowledge-sources/knowledge_source_1',
+      url: '/v1/admin/knowledge-sources/knowledge_source_1',
       headers: { 'x-api-key': 'test-secret' },
       payload: {},
     })
@@ -241,7 +241,7 @@ describe('PATCH /v1/knowledge-sources/:sourceId — validation', () => {
 
     const response = await app.inject({
       method: 'PATCH',
-      url: '/v1/knowledge-sources/knowledge_source_1',
+      url: '/v1/admin/knowledge-sources/knowledge_source_1',
       headers: { 'x-api-key': 'test-secret' },
       payload: { content: Buffer.from('Updated text').toString('base64') },
     })
@@ -254,7 +254,7 @@ describe('PATCH /v1/knowledge-sources/:sourceId — validation', () => {
   it('returns 404 when source does not exist', async () => {
     const response = await makeApp().inject({
       method: 'PATCH',
-      url: '/v1/knowledge-sources/knowledge_source_missing',
+      url: '/v1/admin/knowledge-sources/knowledge_source_missing',
       headers: { 'x-api-key': 'test-secret' },
       payload: { name: 'New Name' },
     })
@@ -269,7 +269,7 @@ describe('PATCH /v1/knowledge-sources/:sourceId — validation', () => {
 
     const response = await app.inject({
       method: 'PATCH',
-      url: '/v1/knowledge-sources/knowledge_source_1',
+      url: '/v1/admin/knowledge-sources/knowledge_source_1',
       headers: { 'x-api-key': 'test-secret' },
       payload: { metadata: { nested: { sessionId: 'private' } } },
     })
@@ -281,13 +281,13 @@ describe('PATCH /v1/knowledge-sources/:sourceId — validation', () => {
   })
 })
 
-describe('DELETE /v1/knowledge-sources/:sourceId', () => {
+describe('DELETE /v1/admin/knowledge-sources/:sourceId', () => {
   it('deletes an existing source', async () => {
     const app = makeApp({ sources: [makeSource()] })
 
     const response = await app.inject({
       method: 'DELETE',
-      url: '/v1/knowledge-sources/knowledge_source_1',
+      url: '/v1/admin/knowledge-sources/knowledge_source_1',
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -300,7 +300,7 @@ describe('DELETE /v1/knowledge-sources/:sourceId', () => {
   it('returns 404 when source does not exist', async () => {
     const response = await makeApp().inject({
       method: 'DELETE',
-      url: '/v1/knowledge-sources/knowledge_source_missing',
+      url: '/v1/admin/knowledge-sources/knowledge_source_missing',
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -310,7 +310,7 @@ describe('DELETE /v1/knowledge-sources/:sourceId', () => {
   })
 })
 
-describe('POST /v1/knowledge-sources/upload — success', () => {
+describe('POST /v1/admin/knowledge-sources/upload — success', () => {
   it('creates a text source from base64-encoded TXT content', async () => {
     const app = makeApp()
     const text = 'Kingdom timeline and history.'
@@ -318,7 +318,7 @@ describe('POST /v1/knowledge-sources/upload — success', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/knowledge-sources/upload',
+      url: '/v1/admin/knowledge-sources/upload',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
@@ -348,7 +348,7 @@ describe('POST /v1/knowledge-sources/upload — success', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/knowledge-sources/upload',
+      url: '/v1/admin/knowledge-sources/upload',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
@@ -366,14 +366,14 @@ describe('POST /v1/knowledge-sources/upload — success', () => {
   })
 })
 
-describe('POST /v1/knowledge-sources/upload — validation', () => {
+describe('POST /v1/admin/knowledge-sources/upload — validation', () => {
   it('returns 400 for unsupported file extension', async () => {
     const app = makeApp()
     const content = Buffer.from('some content').toString('base64')
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/knowledge-sources/upload',
+      url: '/v1/admin/knowledge-sources/upload',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
@@ -395,7 +395,7 @@ describe('POST /v1/knowledge-sources/upload — validation', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/knowledge-sources/upload',
+      url: '/v1/admin/knowledge-sources/upload',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
@@ -416,7 +416,7 @@ describe('POST /v1/knowledge-sources/upload — validation', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/knowledge-sources/upload',
+      url: '/v1/admin/knowledge-sources/upload',
       headers: { 'x-api-key': 'test-secret' },
       payload: { name: 'Missing fields' },
     })
@@ -429,7 +429,7 @@ describe('POST /v1/knowledge-sources/upload — validation', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/knowledge-sources/upload',
+      url: '/v1/admin/knowledge-sources/upload',
       payload: {
         scenarioId: 's',
         name: 'x',
@@ -443,13 +443,13 @@ describe('POST /v1/knowledge-sources/upload — validation', () => {
   })
 })
 
-describe('POST /v1/knowledge-sources — visibilityPolicy', () => {
+describe('POST /v1/admin/knowledge-sources — visibilityPolicy', () => {
   it('persists visibilityPolicy on create', async () => {
     const app = makeApp()
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/knowledge-sources',
+      url: '/v1/admin/knowledge-sources',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
@@ -472,7 +472,7 @@ describe('POST /v1/knowledge-sources — visibilityPolicy', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/knowledge-sources',
+      url: '/v1/admin/knowledge-sources',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
@@ -493,7 +493,7 @@ describe('POST /v1/knowledge-sources — visibilityPolicy', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/knowledge-sources',
+      url: '/v1/admin/knowledge-sources',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
@@ -520,7 +520,7 @@ describe('POST /v1/knowledge-sources — visibilityPolicy', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/knowledge-sources',
+      url: '/v1/admin/knowledge-sources',
       headers: { 'x-api-key': 'test-secret' },
       payload: {
         scenarioId: 'scenario_1',
@@ -538,13 +538,13 @@ describe('POST /v1/knowledge-sources — visibilityPolicy', () => {
   })
 })
 
-describe('GET /v1/knowledge-sources/:sourceId/chunks', () => {
+describe('GET /v1/admin/knowledge-sources/:sourceId/chunks', () => {
   it('returns an empty list for a source with no ingested chunks', async () => {
     const app = makeApp({ sources: [makeSource()] })
 
     const response = await app.inject({
       method: 'GET',
-      url: '/v1/knowledge-sources/knowledge_source_1/chunks',
+      url: '/v1/admin/knowledge-sources/knowledge_source_1/chunks',
       headers: { 'x-api-key': 'test-secret' },
     })
 
@@ -557,7 +557,7 @@ describe('GET /v1/knowledge-sources/:sourceId/chunks', () => {
   it('returns 404 when the source does not exist', async () => {
     const response = await makeApp().inject({
       method: 'GET',
-      url: '/v1/knowledge-sources/knowledge_source_missing/chunks',
+      url: '/v1/admin/knowledge-sources/knowledge_source_missing/chunks',
       headers: { 'x-api-key': 'test-secret' },
     })
 

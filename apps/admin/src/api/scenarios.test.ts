@@ -55,7 +55,7 @@ describe('scenarios API wrappers', () => {
 
     const result = await listScenarios()
 
-    expect(adminRequest).toHaveBeenCalledWith('GET', '/v1/scenarios')
+    expect(adminRequest).toHaveBeenCalledWith('GET', '/v1/admin/scenarios')
     expect(result).toHaveLength(1)
   })
 
@@ -64,7 +64,7 @@ describe('scenarios API wrappers', () => {
 
     const result = await getScenario('scenario_1')
 
-    expect(adminRequest).toHaveBeenCalledWith('GET', '/v1/scenarios/scenario_1')
+    expect(adminRequest).toHaveBeenCalledWith('GET', '/v1/admin/scenarios/scenario_1')
     expect(result.scenarioId).toBe('scenario_1')
   })
 
@@ -73,7 +73,7 @@ describe('scenarios API wrappers', () => {
 
     await createScenario({ name: 'Villa Miralac', status: 'active' })
 
-    expect(adminRequest).toHaveBeenCalledWith('POST', '/v1/scenarios', {
+    expect(adminRequest).toHaveBeenCalledWith('POST', '/v1/admin/scenarios', {
       name: 'Villa Miralac',
       status: 'active',
     })
@@ -84,7 +84,7 @@ describe('scenarios API wrappers', () => {
 
     await updateScenario('scenario_1', { name: 'Renamed' })
 
-    expect(adminRequest).toHaveBeenCalledWith('PATCH', '/v1/scenarios/scenario_1', {
+    expect(adminRequest).toHaveBeenCalledWith('PATCH', '/v1/admin/scenarios/scenario_1', {
       name: 'Renamed',
     })
   })
@@ -94,7 +94,7 @@ describe('scenarios API wrappers', () => {
 
     const result = await listScenarioAvatars('scenario_1')
 
-    expect(adminRequest).toHaveBeenCalledWith('GET', '/v1/scenarios/scenario_1/avatars')
+    expect(adminRequest).toHaveBeenCalledWith('GET', '/v1/admin/scenarios/scenario_1/avatars')
     expect(result).toHaveLength(1)
   })
 
@@ -103,7 +103,7 @@ describe('scenarios API wrappers', () => {
 
     await createAvatar('scenario_1', { name: 'Clara', personaPrompt: 'You are Clara.' })
 
-    expect(adminRequest).toHaveBeenCalledWith('POST', '/v1/scenarios/scenario_1/avatars', {
+    expect(adminRequest).toHaveBeenCalledWith('POST', '/v1/admin/scenarios/scenario_1/avatars', {
       name: 'Clara',
       personaPrompt: 'You are Clara.',
     })
@@ -114,7 +114,7 @@ describe('scenarios API wrappers', () => {
 
     await updateAvatar('avatar_1', { name: 'Clara Whitcombe' })
 
-    expect(adminRequest).toHaveBeenCalledWith('PATCH', '/v1/avatars/avatar_1', {
+    expect(adminRequest).toHaveBeenCalledWith('PATCH', '/v1/admin/avatars/avatar_1', {
       name: 'Clara Whitcombe',
     })
   })
@@ -124,7 +124,7 @@ describe('scenarios API wrappers', () => {
 
     await deleteAvatar('avatar_1')
 
-    expect(adminRequest).toHaveBeenCalledWith('DELETE', '/v1/avatars/avatar_1')
+    expect(adminRequest).toHaveBeenCalledWith('DELETE', '/v1/admin/avatars/avatar_1')
   })
 
   it('triggers avatar trait preparation for a scenario', async () => {
@@ -152,7 +152,7 @@ describe('scenarios API wrappers', () => {
 
     expect(adminRequest).toHaveBeenCalledWith(
       'POST',
-      '/v1/scenarios/scenario_1/prepare-avatar-traits',
+      '/v1/admin/scenarios/scenario_1/prepare-avatar-traits',
       { avatarId: 'avatar_1' },
     )
     expect(result).toEqual(response)

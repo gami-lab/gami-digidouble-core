@@ -47,7 +47,7 @@ async function seedConversation(): Promise<{
   conversationId: string
 }> {
   const scenarioResponse = await postJson(
-    '/v1/scenarios',
+    '/v1/admin/scenarios',
     {
       name: `Audio stack e2e ${String(Date.now())}`,
       language: 'en',
@@ -61,7 +61,7 @@ async function seedConversation(): Promise<{
   const scenarioId = requireId(scenarioBody.data?.scenario.scenarioId, 'scenarioId')
 
   const avatarResponse = await postJson(
-    `/v1/scenarios/${scenarioId}/avatars`,
+    `/v1/admin/scenarios/${scenarioId}/avatars`,
     {
       name: 'Audio Stack Avatar',
       personaPrompt: 'You are a concise helpful assistant.',
@@ -113,8 +113,8 @@ async function cleanupConversation(fixture: {
   sessionId: string
 }): Promise<void> {
   await deleteJson(`/v1/sessions/${fixture.sessionId}`)
-  await deleteJson(`/v1/avatars/${fixture.avatarId}`)
-  await deleteJson(`/v1/scenarios/${fixture.scenarioId}`)
+  await deleteJson(`/v1/admin/avatars/${fixture.avatarId}`)
+  await deleteJson(`/v1/admin/scenarios/${fixture.scenarioId}`)
 }
 
 describe('Stack E2E — conversation message audio authentication', () => {

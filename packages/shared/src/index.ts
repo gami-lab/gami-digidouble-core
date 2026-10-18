@@ -52,6 +52,7 @@ export type {
   LifecycleStatus,
   ScenarioStatus,
   ScenarioSummary,
+  PublicScenarioSummary,
   ScenarioAvatarAvailability,
   SessionSummary,
   ConversationSummary,
@@ -240,6 +241,7 @@ export type {
 } from './runtime-inspector-types.js'
 export type {
   ListScenariosResponse,
+  ListPublicScenariosResponse,
   CreateScenarioRequest,
   CreateScenarioResponse,
   UpdateScenarioRequest,

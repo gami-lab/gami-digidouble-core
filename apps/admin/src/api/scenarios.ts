@@ -21,17 +21,20 @@ import { adminRequest } from './client'
 export type { AvatarSummary, ScenarioSummary }
 
 export async function listScenarios(): Promise<ScenarioSummary[]> {
-  const payload = await adminRequest<ListScenariosResponse>('GET', '/v1/scenarios')
+  const payload = await adminRequest<ListScenariosResponse>('GET', '/v1/admin/scenarios')
   return payload.scenarios
 }
 
 export async function getScenario(scenarioId: string): Promise<ScenarioSummary> {
-  const payload = await adminRequest<GetScenarioResponse>('GET', `/v1/scenarios/${scenarioId}`)
+  const payload = await adminRequest<GetScenarioResponse>(
+    'GET',
+    `/v1/admin/scenarios/${scenarioId}`,
+  )
   return payload.scenario
 }
 
 export async function createScenario(input: CreateScenarioRequest): Promise<ScenarioSummary> {
-  const payload = await adminRequest<CreateScenarioResponse>('POST', '/v1/scenarios', input)
+  const payload = await adminRequest<CreateScenarioResponse>('POST', '/v1/admin/scenarios', input)
   return payload.scenario
 }
 
@@ -41,7 +44,7 @@ export async function updateScenario(
 ): Promise<ScenarioSummary> {
   const payload = await adminRequest<UpdateScenarioResponse>(
     'PATCH',
-    `/v1/scenarios/${scenarioId}`,
+    `/v1/admin/scenarios/${scenarioId}`,
     input,
   )
   return payload.scenario
@@ -50,7 +53,7 @@ export async function updateScenario(
 export async function listScenarioAvatars(scenarioId: string): Promise<AvatarSummary[]> {
   const payload = await adminRequest<ListScenarioAvatarsResponse>(
     'GET',
-    `/v1/scenarios/${scenarioId}/avatars`,
+    `/v1/admin/scenarios/${scenarioId}/avatars`,
   )
   return payload.avatars
 }
@@ -61,7 +64,7 @@ export async function createAvatar(
 ): Promise<AvatarSummary> {
   const payload = await adminRequest<CreateAvatarResponse>(
     'POST',
-    `/v1/scenarios/${scenarioId}/avatars`,
+    `/v1/admin/scenarios/${scenarioId}/avatars`,
     input,
   )
   return payload.avatar
@@ -73,14 +76,14 @@ export async function updateAvatar(
 ): Promise<AvatarSummary> {
   const payload = await adminRequest<UpdateAvatarResponse>(
     'PATCH',
-    `/v1/avatars/${avatarId}`,
+    `/v1/admin/avatars/${avatarId}`,
     input,
   )
   return payload.avatar
 }
 
 export async function deleteAvatar(avatarId: string): Promise<void> {
-  await adminRequest<DeleteAvatarResponse>('DELETE', `/v1/avatars/${avatarId}`)
+  await adminRequest<DeleteAvatarResponse>('DELETE', `/v1/admin/avatars/${avatarId}`)
 }
 
 export async function prepareAvatarTraits(
@@ -89,7 +92,7 @@ export async function prepareAvatarTraits(
 ): Promise<PrepareAvatarTraitsResponse> {
   return adminRequest<PrepareAvatarTraitsResponse>(
     'POST',
-    `/v1/scenarios/${scenarioId}/prepare-avatar-traits`,
+    `/v1/admin/scenarios/${scenarioId}/prepare-avatar-traits`,
     request,
   )
 }

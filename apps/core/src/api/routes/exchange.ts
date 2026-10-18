@@ -82,7 +82,7 @@ export const exchangeRoute: FastifyPluginCallback<ExchangeRouteOptions> = (app, 
   })
 
   app.post<{ Body: RawExchangeRequest }>(
-    '/v1/exchange',
+    '/exchange',
     {
       schema: { body: exchangeBodySchema },
     },

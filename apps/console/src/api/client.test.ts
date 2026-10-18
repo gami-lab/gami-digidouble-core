@@ -20,12 +20,12 @@ describe('coreRequest', () => {
       .mockResolvedValue(jsonResponse(200, { data: { ok: true }, error: null }))
     vi.stubGlobal('fetch', fetchMock)
 
-    await expect(coreRequest<{ ok: boolean }>('GET', '/v1/scenarios')).resolves.toEqual({
+    await expect(coreRequest<{ ok: boolean }>('GET', '/v1/admin/scenarios')).resolves.toEqual({
       ok: true,
     })
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(url).toBe('http://localhost:3000/v1/scenarios')
+    expect(url).toBe('http://localhost:3000/v1/admin/scenarios')
     expect(new Headers(init.headers).get('x-api-key')).toEqual(expect.any(String))
   })
 
@@ -47,7 +47,7 @@ describe('coreRequest', () => {
       .mockResolvedValue(jsonResponse(201, { data: { id: 'scenario_1' }, error: null }))
     vi.stubGlobal('fetch', fetchMock)
 
-    await coreRequest('POST', '/v1/scenarios', { name: 'Test' })
+    await coreRequest('POST', '/v1/admin/scenarios', { name: 'Test' })
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     expect(init.method).toBe('POST')
@@ -103,15 +103,15 @@ describe('coreRequest', () => {
 
   it('maps transport and invalid-envelope failures to ApiError', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection refused')))
-    await expect(coreRequest('GET', '/v1/scenarios')).rejects.toBeInstanceOf(ApiError)
+    await expect(coreRequest('GET', '/v1/admin/scenarios')).rejects.toBeInstanceOf(ApiError)
 
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(jsonResponse(200, { data: null, error: null })),
     )
-    await expect(coreRequest('GET', '/v1/scenarios')).rejects.toMatchObject({
+    await expect(coreRequest('GET', '/v1/admin/scenarios')).rejects.toMatchObject({
       code: 'NETWORK_ERROR',
-      message: 'Invalid API response envelope from /v1/scenarios',
+      message: 'Invalid API response envelope from /v1/admin/scenarios',
     })
   })
 })
