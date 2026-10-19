@@ -93,12 +93,10 @@ async function cleanupSession(ids: {
 
 async function seedSession(): Promise<{
   sessionId: string
-  userId: string
   conversationId: string
   avatarId: string
   scenarioId: string
 }> {
-  const userId = `e2e_user_${crypto.randomUUID()}`
   const scenarioRes = await fetch(buildUrl('/v1/admin/scenarios'), {
     method: 'POST',
     headers: {
@@ -131,7 +129,7 @@ async function seedSession(): Promise<{
       ...authHeaders(),
       'content-type': 'application/json',
     },
-    body: JSON.stringify({ userId, scenarioId }),
+    body: JSON.stringify({ scenarioId }),
   })
   const sessionBody = (await sessionRes.json()) as ApiResponse<{ session: { sessionId: string } }>
   const sessionId = requireId(sessionBody.data?.session, 'sessionId')
@@ -148,7 +146,7 @@ async function seedSession(): Promise<{
     conversation: { conversationId: string }
   }>
   const conversationId = requireId(convoBody.data?.conversation, 'conversationId')
-  return { sessionId, userId, conversationId, avatarId, scenarioId }
+  return { sessionId, conversationId, avatarId, scenarioId }
 }
 
 describe('GET /v1/admin/sessions/:sessionId/memory-layers — stack auth', () => {

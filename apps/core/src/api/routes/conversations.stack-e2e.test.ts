@@ -71,7 +71,6 @@ async function seedSessionFixture(
   await prepareAndActivateAvatar({ appUrl: APP_URL, apiKey: API_KEY, scenarioId, avatarId })
 
   const sessionRes = await postJson('/v1/sessions', {
-    userId: `user_${Date.now().toString()}`,
     scenarioId,
   })
   expect(sessionRes.status).toBe(201)

@@ -36,6 +36,12 @@ export function requirePlayerId(request: FastifyRequest): string {
   return request.auth.userId
 }
 
+/** How the admin authenticated; only valid on `admin` routes, where the hook guarantees it. */
+export function requireAdminMethod(request: FastifyRequest): AdminAuthenticationMethod {
+  if (request.auth?.tier !== 'admin') throw new Error('Admin identity is only set on admin routes')
+  return request.auth.method
+}
+
 /**
  * Registers the single authentication hook for every route, choosing the verifier from the
  * route's tier. It runs at `onRequest`, before any content-type parser, so unauthenticated voice,

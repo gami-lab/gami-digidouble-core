@@ -92,7 +92,7 @@ async function seedSessionWithAvatar(app: TestApp): Promise<{
     method: 'POST',
     url: '/v1/sessions',
     headers: authHeaders(),
-    payload: { userId: `user_${String(Date.now())}`, scenarioId },
+    payload: { scenarioId },
   })
   expect(createSession.statusCode).toBe(201)
   const sessionId = requireId(
@@ -174,7 +174,7 @@ async function seedPolicySessionWithGuideEthics(app: TestApp): Promise<{
     method: 'POST',
     url: '/v1/sessions',
     headers: authHeaders(),
-    payload: { userId: `user_${String(Date.now())}`, scenarioId },
+    payload: { scenarioId },
   })
   expect(createSession.statusCode).toBe(201)
   const sessionId = requireId(

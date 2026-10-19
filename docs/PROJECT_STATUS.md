@@ -110,7 +110,8 @@ that touches persistence, retrieval, or provider adapters.
 - EPIC 12.1 is complete: see `EPICS.md` for the shipped summary and `API_CONTRACT.md` for the tier,
   identity, ownership, and abuse-control rules.
 - Phase A has one operator password and anonymous Core-issued player identities (no user
-  accounts, roles, or OIDC; a player who clears the browser loses their sessions), one Core deployment unit, optional
+  accounts, roles, or OIDC; a player who clears the browser, or stays away longer than the token refresh window, starts
+  as a new player), one Core deployment unit, optional
   provider integrations, and no audio persistence — sufficient for the current prototype scope, but
   worth revisiting before multi-tenant or external-user deployment.
 - Stack/provider/database checks depend on the configured environment; deterministic package tests remain the default gate.

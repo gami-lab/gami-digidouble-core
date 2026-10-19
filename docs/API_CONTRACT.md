@@ -45,7 +45,8 @@ Every route declares one tier: `public` (player), `admin` (authoring, operators,
   player; a token it cannot verify returns `401`.
 - Every public route requires `Authorization: Bearer <player token>`; `userId` always comes from the
   token. No public request names a user: `StartSessionRequest` has no `userId`, `GET /v1/sessions`
-  lists only the caller's sessions, and persona lives at `/v1/me/persona`.
+  lists only the caller's sessions, and persona lives at `/v1/me/persona`. A body or query that
+  still names a `userId` is an unknown field and returns `400 VALIDATION_ERROR`.
 - A `sessionId` or `conversationId` in a public path must belong to the caller. A foreign id returns
   the same `404 NOT_FOUND` as an unknown one, checked before the body is read (voice, audio, and SSE
   routes never start work for another player).

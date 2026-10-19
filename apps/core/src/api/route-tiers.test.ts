@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { createServer } from './server.js'
 import { TEST_CONFIG } from './routes/test-config.js'
 import { enforceRouteTiers, registerTierScope } from './route-tiers.js'
-import { playerHeaders } from './routes/test-auth.js'
+import { playerHeaders, serviceKeyHeaders } from './routes/test-auth.js'
 
 const OPEN_ROUTES = ['GET /health', 'POST /v1/auth/player', 'POST /v1/admin/auth/login']
 const PLAYER_ROUTE_PATTERN = /^\/v1\/(sessions|conversations|me|scenarios\/?$)/
+/** Path params the player ownership hook resolves; a new kind of id must extend that hook first. */
+const OWNED_PATH_PARAMS = ['sessionId', 'conversationId', 'messageId']
 
 async function listRegisteredRoutes(): Promise<{ route: string; tier: unknown }[]> {
   const app = createServer(TEST_CONFIG)
@@ -79,6 +81,42 @@ describe('route tier matrix', () => {
 
     expect(adminRoutes.length).toBeGreaterThan(30)
     expect(statuses.filter((status) => !status.endsWith(' 403'))).toEqual([])
+  })
+
+  it('names only resource params that the player ownership check covers', async () => {
+    const routes = await listRegisteredRoutes()
+
+    const uncovered = routes
+      .filter(({ tier }) => tier === 'public')
+      .flatMap(({ route }) =>
+        [...route.matchAll(/:(\w+)/g)]
+          .map((match) => match[1] ?? '')
+          .filter((param) => !OWNED_PATH_PARAMS.includes(param))
+          .map((param) => `${route} :${param}`),
+      )
+    expect(uncovered).toEqual([])
+  })
+
+  it('refuses the admin service key alone with 401 on every public route', async () => {
+    const routes = await listRegisteredRoutes()
+    const app = createServer(TEST_CONFIG)
+
+    const publicRoutes = routes.filter(({ tier }) => tier === 'public')
+    const statuses = await Promise.all(
+      publicRoutes.map(async ({ route }) => {
+        const [method, url] = route.split(' ')
+        const response = await app.inject({
+          method: method as 'GET',
+          url: (url ?? '').replace(/:\w+/g, 'x'),
+          headers: serviceKeyHeaders(),
+        })
+        return `${route} ${String(response.statusCode)}`
+      }),
+    )
+    await app.close()
+
+    expect(publicRoutes.length).toBeGreaterThan(15)
+    expect(statuses.filter((status) => !status.endsWith(' 401'))).toEqual([])
   })
 
   it('fails startup when a route has no tier', async () => {

@@ -281,7 +281,7 @@ describe('session API', () => {
       method: 'POST',
       url: '/v1/sessions',
       headers: { ...credentialHeaders('test-secret') },
-      payload: { userId: 'user_x', scenarioId: 'scenario_1' },
+      payload: { scenarioId: 'scenario_1' },
     })
     expect(response.statusCode).toBe(201)
     const body = response.json<ApiResponse<{ session: { sessionId: string } }>>()

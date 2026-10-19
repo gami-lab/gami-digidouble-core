@@ -95,7 +95,6 @@ async function seedConversation(): Promise<{
   await prepareAndActivateAvatar({ appUrl: APP_URL, apiKey: API_KEY, scenarioId, avatarId })
 
   const session = await postJson('/v1/sessions', {
-    userId: `voice_stack_${crypto.randomUUID()}`,
     scenarioId,
   })
   expect(session.status).toBe(201)

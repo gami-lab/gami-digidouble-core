@@ -42,7 +42,7 @@ async function createScenarioAndSession(): Promise<{ sessionId: string; scenario
   const sessionRes = await fetch(`${APP_URL}/v1/sessions`, {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify({ userId: `user_${Date.now().toString()}`, scenarioId }),
+    body: JSON.stringify({ scenarioId }),
   })
   expect(sessionRes.status).toBe(201)
   const sessionBody = (await sessionRes.json()) as ApiResponse<{

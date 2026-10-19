@@ -1,7 +1,6 @@
 import type { FastifyInstance } from 'fastify'
-import { fail, ok } from '@gami/shared'
+import { ok } from '@gami/shared'
 import type { GetRuntimeStateResponse } from '@gami/shared'
-import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import type { ISessionEventPublisher } from '../../application/ports/ISessionEventPublisher.js'
 import { GetRuntimeStateUseCase } from '../../application/use-cases/get-runtime-state/get-runtime-state.use-case.js'
 import {
@@ -15,12 +14,11 @@ const KEEPALIVE_INTERVAL_MS = 30_000
 
 export function registerRuntimeEventsRoutes(
   app: FastifyInstance,
-  sessionRepository: ISessionRepository,
   publisher: ISessionEventPublisher,
   getRuntimeStateUseCase: GetRuntimeStateUseCase,
 ): void {
   registerGetRuntimeStateRoute(app, getRuntimeStateUseCase)
-  registerStreamRuntimeEventsRoute(app, sessionRepository, publisher)
+  registerStreamRuntimeEventsRoute(app, publisher)
 }
 
 function registerGetRuntimeStateRoute(app: FastifyInstance, useCase: GetRuntimeStateUseCase): void {
@@ -38,9 +36,9 @@ function registerGetRuntimeStateRoute(app: FastifyInstance, useCase: GetRuntimeS
   )
 }
 
+/** The player ownership hook has already answered 404 for a foreign or unknown session. */
 function registerStreamRuntimeEventsRoute(
   app: FastifyInstance,
-  sessionRepository: ISessionRepository,
   publisher: ISessionEventPublisher,
 ): void {
   app.get<{ Params: SessionParams }>(
@@ -48,11 +46,6 @@ function registerStreamRuntimeEventsRoute(
     { schema: { params: sessionParamsSchema, response: {} } },
     async (request, reply) => {
       const { sessionId } = request.params
-      const session = await sessionRepository.findById(sessionId)
-      if (session === null) {
-        return await reply.status(404).send(fail('NOT_FOUND', `Session '${sessionId}' not found`))
-      }
-
       copyReplyHeadersToRaw(reply)
       reply.raw.setHeader('Content-Type', 'text/event-stream')
       reply.raw.setHeader('Cache-Control', 'no-cache')

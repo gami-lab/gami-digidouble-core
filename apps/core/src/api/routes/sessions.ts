@@ -235,7 +235,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
   registerSwitchAvatarRoute(app, switchAvatarUseCase)
   registerGetAvailableAvatarsRoute(app, getAvailableAvatarsUseCase)
   registerGetAvatarTransitionsRoute(app, getAvatarTransitionsUseCase)
-  registerRuntimeEventsRoutes(app, sessionRepository, sessionEventPublisher, getRuntimeStateUseCase)
+  registerRuntimeEventsRoutes(app, sessionEventPublisher, getRuntimeStateUseCase)
 }
 
 function resolveRouteDependencies(options: SessionsRouteOptions) {

@@ -76,7 +76,6 @@ async function seedSession(): Promise<{
   await prepareAndActivateAvatar({ appUrl: APP_URL, apiKey: API_KEY, scenarioId, avatarId })
 
   const sessionRes = await postJson('/v1/sessions', {
-    userId: `context_user_${crypto.randomUUID()}`,
     scenarioId,
   })
   expect(sessionRes.status).toBe(201)

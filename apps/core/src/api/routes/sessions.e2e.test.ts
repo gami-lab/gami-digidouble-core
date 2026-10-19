@@ -124,7 +124,7 @@ async function seedSessionWithAvatars(app: TestApp): Promise<{
     method: 'POST',
     url: '/v1/sessions',
     headers: authHeaders(),
-    payload: { userId: `user_${String(Date.now())}`, scenarioId },
+    payload: { scenarioId },
   })
   expect(createSession.statusCode).toBe(201)
   const sessionBody = createSession.json<ApiResponse<{ session: { sessionId: string } }>>()
@@ -188,7 +188,7 @@ describe('POST /v1/sessions Avatar retrieval configuration', () => {
       method: 'POST',
       url: '/v1/sessions',
       headers: authHeaders(),
-      payload: { userId: 'retrieval-user', scenarioId, avatarOptions },
+      payload: { scenarioId, avatarOptions },
     })
 
     expect(response.statusCode).toBe(201)

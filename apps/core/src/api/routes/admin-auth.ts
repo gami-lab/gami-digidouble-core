@@ -8,6 +8,7 @@ import type {
 } from '@gami/shared'
 import type { AdminAuthService } from '../../application/auth/admin-auth.service.js'
 import { serializeAdminSessionCookie } from '../hooks/admin-credentials.js'
+import { requireAdminMethod } from '../hooks/authenticate.js'
 
 export type AdminAuthRouteOptions = {
   authService: AdminAuthService
@@ -54,9 +55,6 @@ export const adminAuthRoute: FastifyPluginCallback<AdminAuthRouteOptions> = (app
   })
 
   app.get('/auth/me', async (request, reply) => {
-    if (request.auth?.tier !== 'admin') {
-      return await reply.status(401).send(fail('UNAUTHORIZED', 'Missing or invalid credentials'))
-    }
-    return await reply.send(ok<AdminMeResponse>({ authenticatedBy: request.auth.method }))
+    return await reply.send(ok<AdminMeResponse>({ authenticatedBy: requireAdminMethod(request) }))
   })
 }

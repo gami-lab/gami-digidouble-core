@@ -164,6 +164,8 @@ export function createServer(config: Config, adapters: ServerAdapters = {}): Fas
     logger: config.nodeEnv !== 'test' ? { level: config.logLevel } : false,
     trustProxy: (_address: string, hop: number) => hop < config.trustProxyHops,
     bodyLimit: DEFAULT_BODY_LIMITS.open,
+    // Fastify strips unknown properties by default; the contract rejects them instead.
+    ajv: { customOptions: { removeAdditional: false } },
   })
 
   registerTierCors(app, {

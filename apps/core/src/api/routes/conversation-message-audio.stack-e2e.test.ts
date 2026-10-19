@@ -81,7 +81,6 @@ async function seedConversation(): Promise<{
   const sessionResponse = await postJson(
     '/v1/sessions',
     {
-      userId: `audio_stack_${crypto.randomUUID()}`,
       scenarioId,
     },
     API_KEY,

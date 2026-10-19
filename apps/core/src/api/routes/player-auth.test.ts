@@ -95,14 +95,25 @@ describe('public route credentials', () => {
     expect(response.statusCode).toBe(401)
   })
 
-  it("lists only the caller's sessions even when the query names another user", async () => {
+  it('rejects a query that tries to name another user', async () => {
     const response = await createPlayerServer().inject({
       method: 'GET',
       url: '/v1/sessions?userId=user_a',
       headers: playerHeaders('user_b'),
     })
 
-    expect(response.json<ApiResponse<{ sessions: unknown[] }>>().data?.sessions).toEqual([])
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('rejects a session start body that names a user', async () => {
+    const response = await createPlayerServer().inject({
+      method: 'POST',
+      url: '/v1/sessions',
+      headers: playerHeaders('user_b'),
+      payload: { scenarioId: 'scenario_1', userId: 'user_a' },
+    })
+
+    expect(response.statusCode).toBe(400)
   })
 })
 

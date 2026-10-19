@@ -213,3 +213,70 @@ None blocking: `API_CONTRACT.md` describes tiers, identity, ownership, and abuse
 
 Close with debt — the four steps above are small and should be applied before 12.2 builds on the
 public contract.
+
+## Remediation Outcome
+
+### Changes Made
+
+- Fastify now validates with `removeAdditional: false`, so unknown body and query fields return
+  `400 VALIDATION_ERROR` as `API_CONTRACT.md` states. A player request that names a `userId`
+  (session start body or listing query) is rejected; route tests prove both.
+- Removed every stale `userId` from session-start payloads in e2e and stack fixtures (one
+  shorthand property the first sweep missed surfaced as a stack failure and is fixed). The
+  model-config test that asserted silent stripping now asserts rejection.
+- The tier matrix gained two assertions: the admin service key alone gets `401` on every public
+  route, mirroring the existing `403` for player tokens on every admin route, so each route's tier
+  placement is proven regardless of the combined credentials route tests use; and every public
+  route's path params must be ones the ownership hook covers (`sessionId`, `conversationId`,
+  `messageId`), so a new kind of id fails CI until ownership handles it.
+- Removed the unreachable `/v1/admin/auth/me` credential branch (now `requireAdminMethod`, matching
+  `requirePlayerId`) and the events stream's redundant session lookup.
+- Documented the anonymous-identity limitation (a lapsed refresh window starts a new player).
+
+### Findings Resolved
+
+- Unknown body fields are stripped, not rejected — resolved.
+- Route-test credentials satisfy both tiers — resolved at the matrix level; per-route placement is
+  now proven for every route in both directions.
+- Ownership depends on parameter names — resolved by the param-coverage assertion.
+- Unreachable and redundant checks — resolved.
+- Stale `userId` fields in tests — resolved.
+
+### Findings Deferred
+
+- Duplicated admin/console sign-in UI: kept separate deliberately. The two apps share no UI
+  package, the copies are small, and a shared React package would be a new abstraction for two
+  consumers.
+- Web identity divergence after a forced new player: documented in `PROJECT_STATUS.md` as a
+  limitation of anonymous Phase A identity.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS — Core 1,291; admin 126; web 96; evaluation 88; console 33; shared 21; lint-rule
+  and bundle-scanner suites
+- integration/e2e: PASS — 172 passed, 3 skipped (provider-gated)
+- stack-e2e: PASS — 134 passed, 8 skipped (provider-gated). Docker Hub was unreachable, so the
+  stack ran the freshly built `apps/core/dist` and `packages/shared/dist` copied into the existing
+  e2e image rather than a rebuilt image.
+- coverage: PASS — Core 87.58% statements / 84.51% branches
+- bundle secrets: PASS — `pnpm check:bundle-secrets` on fresh web/admin/console builds
+
+### Final Feature Confidence
+
+All features in the matrix are High, except the two client flows without browser tests: web player
+identity refresh (unit-tested) and the console acting as a session owner (unit-tested).
+
+### Final Grade
+
+**A**
+
+### Remaining Risks
+
+- The admin cookie is `SameSite=Strict` and requires Core and the admin app on one registrable
+  domain; a cross-site deployment would need `SameSite=None` plus the existing origin check.
+- The admin app and the web player share one origin in the documented Coolify layout
+  (`app.example.com` and `/admin`), so the CSRF origin check cannot tell them apart; a separate
+  admin host is the stronger deployment.
+- Rate limits fail open during a Redis outage by design.

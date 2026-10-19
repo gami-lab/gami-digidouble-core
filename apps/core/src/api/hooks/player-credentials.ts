@@ -27,7 +27,9 @@ export function playerVerifier(playerTokens: PlayerTokenService): CredentialVeri
 
 /**
  * Checks, before any body is read, that every session or conversation named in a public route's
- * path belongs to the authenticated player. Foreign and unknown ids both return `404`.
+ * path belongs to the authenticated player. Foreign and unknown ids both return `404`. A
+ * `messageId` is only ever looked up inside its owned conversation; `route-tiers.test.ts` fails if
+ * a public route introduces any other resource param.
  */
 export function registerPlayerOwnership(scope: FastifyInstance, access: PlayerAccessService): void {
   scope.addHook('onRequest', async (request, reply) => {

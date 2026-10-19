@@ -136,7 +136,7 @@ describe('PUT /v1/admin/model-config auth and validation', () => {
 })
 
 describe('PUT /v1/admin/model-config schema edge validation', () => {
-  it('ignores unknown top-level fields and persists valid payload', async () => {
+  it('rejects unknown top-level fields with 400 VALIDATION_ERROR', async () => {
     const response = await makeApp().inject({
       method: 'PUT',
       url: '/v1/admin/model-config',
@@ -147,10 +147,8 @@ describe('PUT /v1/admin/model-config schema edge validation', () => {
       },
     })
 
-    expect(response.statusCode).toBe(200)
-    const body = response.json<ApiResponse<{ modelConfig: ModelConfigResponse }>>()
-    expect(body.error).toBeNull()
-    expect(body.data?.modelConfig.globalDefault.provider).toBe('openai')
+    expect(response.statusCode).toBe(400)
+    expect(response.json<ApiResponse<null>>().error?.code).toBe('VALIDATION_ERROR')
   })
 
   it('returns 400 VALIDATION_ERROR when roleOverrides is an array', async () => {

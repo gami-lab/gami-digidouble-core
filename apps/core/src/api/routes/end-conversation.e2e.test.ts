@@ -84,7 +84,7 @@ async function seedActiveConversation(app: TestApp): Promise<{
     method: 'POST',
     url: '/v1/sessions',
     headers: authHeaders(),
-    payload: { userId: `user_${String(Date.now())}`, scenarioId },
+    payload: { scenarioId },
   })
   const sessionId = requireId(
     createSession.json<ApiResponse<{ session: { sessionId: string } }>>().data?.session,
