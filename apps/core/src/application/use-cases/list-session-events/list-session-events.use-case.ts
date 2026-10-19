@@ -297,10 +297,20 @@ function readDecision(value: unknown): GmSessionEventPayload['decision'] | undef
     ...readOptionalStringField(value, 'routingReason'),
     ...(unlockEvaluations !== undefined ? { unlockEvaluations } : {}),
     ...readOptionalStringField(value, 'switchedAvatarId'),
+    ...readOptionalStringField(value, 'mediaCueAssetId'),
+    ...readMediaCueOutcome(value['mediaCueOutcome']),
     ...readOptionalStringArrayField(value, 'unlockedAvatarIds'),
     progression: progression === 'increase' ? 'increase' : 'none',
     ...readOptionalStringField(value, 'objectiveId'),
   }
+}
+
+function readMediaCueOutcome(
+  value: unknown,
+): Pick<NonNullable<GmSessionEventPayload['decision']>, 'mediaCueOutcome'> {
+  return value === 'accepted' || value === 'rejected_not_in_catalogue'
+    ? { mediaCueOutcome: value }
+    : {}
 }
 
 function readRetrievalPlan(

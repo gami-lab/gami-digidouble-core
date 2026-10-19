@@ -5,7 +5,11 @@ export interface IEventLogRepository {
    * id already exists; the id makes the write idempotent across retries and replays.
    */
   appendOnce(eventId: string, event: StoredEvent): Promise<boolean>
-  findBySessionId(sessionId: string, opts?: { limit?: number }): Promise<StoredEvent[]>
+  /** Newest first; `type` narrows to one event type. */
+  findBySessionId(
+    sessionId: string,
+    opts?: { limit?: number; type?: string },
+  ): Promise<StoredEvent[]>
 }
 
 export type StoredEvent = {

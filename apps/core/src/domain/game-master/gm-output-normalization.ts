@@ -1,13 +1,25 @@
 import type { AvatarConfig } from '../avatar/avatar.types.js'
-import type { GameMasterOutput, RoutingDecision } from './game-master.types.js'
+import type {
+  GameMasterMediaCatalogueEntry,
+  GameMasterOutput,
+  RoutingDecision,
+} from './game-master.types.js'
 
+/**
+ * A media cue survives only when it names an asset of the catalogue given to this run, so an
+ * invented, non-cue-able, or foreign id never reaches the player.
+ */
 export function normalizeGameMasterOutput(
   output: GameMasterOutput,
   scenarioAvatars: AvatarConfig[],
+  mediaCatalogue: readonly GameMasterMediaCatalogueEntry[] = [],
 ): GameMasterOutput {
   const activeAvatars = scenarioAvatars.filter((avatar) => avatar.status === 'active')
   const routing =
     activeAvatars.length > 1 ? normalizeRouting(output.routing, activeAvatars) : undefined
+  const mediaCue = mediaCatalogue.some((entry) => entry.assetId === output.mediaCue?.assetId)
+    ? output.mediaCue
+    : undefined
 
   return {
     dialogueControl: output.dialogueControl,
@@ -15,6 +27,7 @@ export function normalizeGameMasterOutput(
     directorNotes: output.directorNotes,
     ...(routing !== undefined ? { routing } : {}),
     progressionUpdate: output.progressionUpdate,
+    ...(mediaCue !== undefined ? { mediaCue } : {}),
   }
 }
 

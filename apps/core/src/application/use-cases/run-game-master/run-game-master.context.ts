@@ -9,6 +9,7 @@ import type { RetrievedKnowledgeItem } from '../../../domain/knowledge/knowledge
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import type { Session } from '../../../domain/conversation/session.types.js'
 import type { IMessageRepository } from '../../ports/IMessageRepository.js'
+import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import { MemorySelectionService } from '../../services/memory-selection.service.js'
 import { toGameMasterMemoryContext } from '../../services/memory-selection-context.js'
 import { selectExchangeMessageWindow } from '../../services/conversation-exchange-window.js'
@@ -35,12 +36,31 @@ export type GameMasterContextDependencies = {
   typedRetrievalService?: TypedRetrievalService
 }
 
+export async function loadGameMasterScenarioContext(
+  scenarioRepository: IScenarioRepository | undefined,
+  scenarioId: string,
+): Promise<GameMasterScenarioContext> {
+  const scenario = await scenarioRepository?.findById(scenarioId)
+  if (scenario === undefined || scenario === null) return {}
+  const goals = [
+    ...scenario.objectives,
+    ...(Array.isArray(scenario.config.goals) ? scenario.config.goals : []),
+  ]
+  return {
+    ...(scenario.language !== undefined ? { language: scenario.language } : {}),
+    ...(scenario.worldContext.trim().length > 0 ? { description: scenario.worldContext } : {}),
+    ...(goals.length > 0 ? { goals } : {}),
+    ...(scenario.modelSelection !== undefined ? { modelSelection: scenario.modelSelection } : {}),
+  }
+}
+
 export async function buildGameMasterInput(args: {
   input: RunGameMasterInput
   currentState: GameMasterState
   scenarioContext: GameMasterScenarioContext
   session: Session | null
   scenarioAvatars: AvatarConfig[]
+  mediaCatalogue: NonNullable<GameMasterInput['context']['mediaCatalogue']>
   dependencies: GameMasterContextDependencies
 }): Promise<{
   gmInput: GameMasterInput
@@ -96,6 +116,7 @@ export async function buildGameMasterInput(args: {
   if (assembledGmContext.sections.userPersona !== null) {
     context.userPersona = assembledGmContext.sections.userPersona
   }
+  if (args.mediaCatalogue.length > 0) context.mediaCatalogue = args.mediaCatalogue
 
   return {
     assembledGmContext,

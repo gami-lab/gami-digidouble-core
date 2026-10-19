@@ -19,8 +19,14 @@ export class InMemoryEventLogRepository implements IEventLogRepository {
     return true
   }
 
-  findBySessionId(sessionId: string, opts?: { limit?: number }): Promise<StoredEvent[]> {
-    const events = this.events.filter((event) => event.sessionId === sessionId).reverse()
+  findBySessionId(
+    sessionId: string,
+    opts?: { limit?: number; type?: string },
+  ): Promise<StoredEvent[]> {
+    const events = this.events
+      .filter((event) => event.sessionId === sessionId)
+      .filter((event) => opts?.type === undefined || event.type === opts.type)
+      .reverse()
     return Promise.resolve(opts?.limit === undefined ? events : events.slice(0, opts.limit))
   }
 

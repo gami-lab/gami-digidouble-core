@@ -21,6 +21,19 @@ const UNLOCK_OUTPUT = {
 }
 
 function setup(gmOutput: object = UNLOCK_OUTPUT) {
+  const assets = new InMemoryMediaAssetRepository([
+    makeMediaAsset({ assetId: 'media_reveal', kind: 'video', mimeType: 'video/mp4' }),
+    makeMediaAsset({ assetId: 'media_cut' }),
+    makeMediaAsset({ assetId: 'media_chalet', cueable: true, description: 'The chalet in snow' }),
+  ])
+  const gmStates = new InMemoryGmStateRepository()
+  const complete = vi.fn().mockResolvedValue({
+    content: JSON.stringify(gmOutput),
+    model: 'null-model',
+    inputTokens: 1,
+    outputTokens: 1,
+    latencyMs: 1,
+  })
   const sessions = new InMemorySessionRepository([
     {
       sessionId: 'session_1',
@@ -40,7 +53,7 @@ function setup(gmOutput: object = UNLOCK_OUTPUT) {
     events.push(event)
   })
   const useCase = new RunGameMasterUseCase(
-    new InMemoryGmStateRepository(),
+    gmStates,
     sessions,
     new InMemoryAvatarRepository([
       makeAvatarConfig({ avatarId: 'avatar_1', scenarioId: 'scenario_1', name: 'Ava' }),
@@ -51,15 +64,7 @@ function setup(gmOutput: object = UNLOCK_OUTPUT) {
         config: { mediaTriggers: { onUnlock: 'media_reveal', onSwitchTo: 'media_cut' } },
       }),
     ]),
-    {
-      complete: vi.fn().mockResolvedValue({
-        content: JSON.stringify(gmOutput),
-        model: 'null-model',
-        inputTokens: 1,
-        outputTokens: 1,
-        latencyMs: 1,
-      }),
-    },
+    { complete },
     { trace: vi.fn(), flush: vi.fn() },
     {
       eventLogRepository: eventLog,
@@ -80,14 +85,8 @@ function setup(gmOutput: object = UNLOCK_OUTPUT) {
           createdAt: '2026-10-19T10:00:01.000Z',
         },
       ]),
-      mediaCueService: new MediaCueService(
-        new InMemoryMediaAssetRepository([
-          makeMediaAsset({ assetId: 'media_reveal', kind: 'video', mimeType: 'video/mp4' }),
-          makeMediaAsset({ assetId: 'media_cut' }),
-        ]),
-        eventLog,
-        publisher,
-      ),
+      mediaAssetRepository: assets,
+      mediaCueService: new MediaCueService(assets, eventLog, publisher),
     },
   )
   const run = () =>
@@ -100,7 +99,7 @@ function setup(gmOutput: object = UNLOCK_OUTPUT) {
       turnIndex: 1,
       correlationId: 'corr_1',
     })
-  return { run, events, eventLog }
+  return { run, events, eventLog, gmStates, complete }
 }
 
 describe('RunGameMasterUseCase — media triggers', () => {
@@ -140,5 +139,79 @@ describe('RunGameMasterUseCase — media triggers', () => {
         .filter((event) => event.type === 'runtime.media_cue')
         .map((event) => event.payload['origin']),
     ).toEqual(['avatar_unlocked', 'avatar_switched'])
+  })
+})
+
+const STAY_OUTPUT = {
+  dialogueControl: { mode: 'avatar_guided', askFollowUp: false },
+  retrievalPlan: { required: false },
+  directorNotes: 'Let the chalet come back to you.',
+  progressionUpdate: { progression: 'increase' },
+}
+
+function cues(events: RuntimeEvent[]): unknown[] {
+  return events.filter((event) => event.type === 'runtime.media_cue').map((event) => event.payload)
+}
+
+function decisionOf(eventLog: InMemoryEventLogRepository): Record<string, unknown> {
+  const triggered = eventLog.getAll().find((event) => event.type === 'gm_triggered')
+  return triggered?.payload['decision'] as Record<string, unknown>
+}
+
+describe('RunGameMasterUseCase — GM media cue', () => {
+  it('shows the GM the cue-able catalogue and the cue rules', async () => {
+    const { run, complete } = setup(STAY_OUTPUT)
+
+    await run()
+
+    const request = complete.mock.calls[0]?.[0] as {
+      systemPrompt: string
+      messages: Array<{ content: string }>
+    }
+    expect(request.systemPrompt).toContain('Media cues:')
+    expect(request.messages[0]?.content).toContain('- media_chalet (image): The chalet in snow')
+    expect(request.messages[0]?.content).not.toContain('media_reveal')
+  })
+
+  it('emits one game_master cue for an accepted asset, once even when the run replays', async () => {
+    const { run, events, eventLog } = setup({
+      ...STAY_OUTPUT,
+      mediaCue: { assetId: 'media_chalet' },
+    })
+
+    await run()
+    await run()
+
+    expect(cues(events)).toEqual([
+      expect.objectContaining({ origin: 'game_master', display: 'overlay' }),
+    ])
+    expect(decisionOf(eventLog)).toMatchObject({
+      mediaCueAssetId: 'media_chalet',
+      mediaCueOutcome: 'accepted',
+    })
+  })
+
+  it('ignores a cue outside the catalogue without changing the other decisions', async () => {
+    const rejected = setup({ ...STAY_OUTPUT, mediaCue: { assetId: 'media_reveal' } })
+    const plain = setup(STAY_OUTPUT)
+
+    await rejected.run()
+    await plain.run()
+
+    expect(cues(rejected.events)).toEqual([])
+    expect(decisionOf(rejected.eventLog)).toMatchObject({
+      mediaCueOutcome: 'rejected_not_in_catalogue',
+      progression: 'increase',
+    })
+    const withoutTimestamps = async (repository: InMemoryGmStateRepository) => {
+      const state = await repository.findBySessionId('session_1')
+      return {
+        ...state,
+        nextTurnOrchestration: { ...state?.nextTurnOrchestration, generatedAt: '' },
+      }
+    }
+    expect(await withoutTimestamps(rejected.gmStates)).toEqual(
+      await withoutTimestamps(plain.gmStates),
+    )
   })
 })

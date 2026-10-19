@@ -61,25 +61,21 @@ export class PostgresEventLogRepository implements IEventLogRepository {
     return result.count
   }
 
-  async findBySessionId(sessionId: string, opts?: { limit?: number }): Promise<StoredEvent[]> {
+  async findBySessionId(
+    sessionId: string,
+    opts?: { limit?: number; type?: string },
+  ): Promise<StoredEvent[]> {
     const uuid = extractUuid('session_', sessionId)
     if (uuid === null) return []
 
-    const rows =
-      opts?.limit === undefined
-        ? await this.sql<EventLogRow[]>`
-            SELECT id, session_id, type, severity, correlation_id, request_id, payload, created_at
-            FROM event_log
-            WHERE session_id = ${uuid}
-            ORDER BY created_at DESC
-          `
-        : await this.sql<EventLogRow[]>`
-            SELECT id, session_id, type, severity, correlation_id, request_id, payload, created_at
-            FROM event_log
-            WHERE session_id = ${uuid}
-            ORDER BY created_at DESC
-            LIMIT ${opts.limit}
-          `
+    const rows = await this.sql<EventLogRow[]>`
+      SELECT id, session_id, type, severity, correlation_id, request_id, payload, created_at
+      FROM event_log
+      WHERE session_id = ${uuid}
+        ${opts?.type === undefined ? this.sql`` : this.sql`AND type = ${opts.type}`}
+      ORDER BY created_at DESC
+      ${opts?.limit === undefined ? this.sql`` : this.sql`LIMIT ${opts.limit}`}
+    `
 
     return rows.map(rowToStoredEvent)
   }

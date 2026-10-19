@@ -1,10 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { buildGameMasterSystemPrompt, type GmPromptAvatarContext } from './gm-prompt.service.js'
+import { buildGameMasterSystemPrompt, type GmPromptRunContext } from './gm-prompt.service.js'
 
 /* eslint-disable max-lines-per-function -- retained fixture or orchestration setup is clearer together */
-const SINGLE_AVATAR: GmPromptAvatarContext = { activeAvatarCount: 1, hasLockedAvatars: false }
-const MULTI_NO_LOCKED: GmPromptAvatarContext = { activeAvatarCount: 2, hasLockedAvatars: false }
-const MULTI_WITH_LOCKED: GmPromptAvatarContext = { activeAvatarCount: 2, hasLockedAvatars: true }
+const NO_MEDIA = { hasMediaCatalogue: false }
+const SINGLE_AVATAR: GmPromptRunContext = {
+  ...NO_MEDIA,
+  activeAvatarCount: 1,
+  hasLockedAvatars: false,
+}
+const MULTI_NO_LOCKED: GmPromptRunContext = {
+  ...NO_MEDIA,
+  activeAvatarCount: 2,
+  hasLockedAvatars: false,
+}
+const MULTI_WITH_LOCKED: GmPromptRunContext = {
+  ...NO_MEDIA,
+  activeAvatarCount: 2,
+  hasLockedAvatars: true,
+}
 
 describe('buildGameMasterSystemPrompt', () => {
   it('renders the static prompt sections in order', () => {
@@ -203,3 +216,19 @@ function readSection(prompt: string, startMarker: string, endMarker: string): st
 
   return prompt.slice(start, end)
 }
+
+describe('buildGameMasterSystemPrompt media cue guidance', () => {
+  it('never mentions mediaCue without a catalogue', () => {
+    expect(buildGameMasterSystemPrompt(MULTI_WITH_LOCKED)).not.toContain('mediaCue')
+    expect(buildGameMasterSystemPrompt(SINGLE_AVATAR)).not.toContain('Media cues')
+  })
+
+  it('adds a rare-cue policy, the schema field, and the field rule with a catalogue', () => {
+    const prompt = buildGameMasterSystemPrompt({ ...SINGLE_AVATAR, hasMediaCatalogue: true })
+
+    expect(prompt).toContain('Media cues:')
+    expect(prompt).toContain('Cueing is rare')
+    expect(prompt).toContain('"mediaCue"')
+    expect(prompt).toContain('mediaCue.assetId must be one id from the Media Catalogue')
+  })
+})

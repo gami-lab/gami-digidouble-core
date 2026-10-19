@@ -39,6 +39,7 @@ export function readOptionalStringField<
     | 'routingAvatarId'
     | 'routingReason'
     | 'switchedAvatarId'
+    | 'mediaCueAssetId'
     | 'correlationId'
     | 'injectedNote'
     | 'errorCode'

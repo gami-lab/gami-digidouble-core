@@ -130,6 +130,8 @@ export type GmSessionEventPayload = {
     unlockedAvatarIds?: string[]
     unlockEvaluations?: GmUnlockEvaluation[]
     switchedAvatarId?: string
+    mediaCueAssetId?: string
+    mediaCueOutcome?: 'accepted' | 'rejected_not_in_catalogue'
     progression: 'none' | 'increase'
     objectiveId?: string
   }

@@ -1,5 +1,3 @@
-import crypto from 'node:crypto'
-import type { RuntimeEvent } from '@gami/shared'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IGmStateRepository } from '../../ports/IGmStateRepository.js'
 import type { ILlmAdapter, LlmResponse } from '../../ports/ILlmAdapter.js'
@@ -13,7 +11,8 @@ import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { MemorySelectionService } from '../../services/memory-selection.service.js'
 import type { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
 import type { MediaCueService } from '../../services/media/media-cue.service.js'
-import { emitTriggeredMediaCues } from './run-game-master.media-cues.js'
+import type { IMediaAssetRepository } from '../../ports/IMediaAssetRepository.js'
+import { emitTriggeredMediaCues, loadMediaCatalogue } from './run-game-master.media-cues.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import {
   GAME_MASTER_INPUT_RENDERER_VERSION,
@@ -39,9 +38,15 @@ import {
   resolveRoleLlmCall,
 } from '../../services/model-resolution-runtime.service.js'
 import { type UnlockEvaluation, resolveAvatarUnlocks } from './run-game-master.avatar-unlocks.js'
-import { buildGameMasterInput, type GameMasterScenarioContext } from './run-game-master.context.js'
+import {
+  buildGameMasterInput,
+  loadGameMasterScenarioContext,
+  type GameMasterScenarioContext,
+} from './run-game-master.context.js'
 import {
   emitGameMasterError,
+  emitRuntimeEvent,
+  publishDecisionRuntimeEvents,
   gameMasterLlmTraceId,
   emitTriggeredGameMasterTurn,
   handleInvalidGameMasterOutput,
@@ -72,6 +77,7 @@ export type RunGameMasterOptions = {
   llmAdapterRegistry?: LlmAdapterRegistry
   modelConfigFallback?: ModelConfig
   mediaCueService?: MediaCueService
+  mediaAssetRepository?: IMediaAssetRepository
 }
 
 export class RunGameMasterUseCase {
@@ -87,7 +93,7 @@ export class RunGameMasterUseCase {
   async execute(input: RunGameMasterInput): Promise<void> {
     let success = true
     this.options.sessionEventPublisher?.setProcessing(input.sessionId, true)
-    this.emitRuntimeEvent({
+    emitRuntimeEvent(this.options.sessionEventPublisher, {
       sessionId: input.sessionId,
       type: 'runtime.processing_started',
       correlationId: input.correlationId,
@@ -97,7 +103,10 @@ export class RunGameMasterUseCase {
     const gmRunStartMs = Date.now()
     try {
       const currentState = await this.loadCurrentState(input.sessionId)
-      const scenarioContext = await this.loadScenarioContext(input.scenarioId)
+      const scenarioContext = await loadGameMasterScenarioContext(
+        this.options.scenarioRepository,
+        input.scenarioId,
+      )
       const session = await this.loadSession(input.sessionId)
       const scenarioAvatars = await this.avatarRepository.listByScenarioId(input.scenarioId)
 
@@ -114,7 +123,7 @@ export class RunGameMasterUseCase {
       throw error
     } finally {
       this.options.sessionEventPublisher?.setProcessing(input.sessionId, false)
-      this.emitRuntimeEvent({
+      emitRuntimeEvent(this.options.sessionEventPublisher, {
         sessionId: input.sessionId,
         type: 'runtime.processing_finished',
         correlationId: input.correlationId,
@@ -137,6 +146,11 @@ export class RunGameMasterUseCase {
       scenarioContext,
       session,
       scenarioAvatars,
+      mediaCatalogue: await loadMediaCatalogue(
+        this.options.mediaAssetRepository,
+        this.options.eventLogRepository,
+        input,
+      ),
       dependencies: {
         ...(this.options.messageRepository !== undefined
           ? { messageRepository: this.options.messageRepository }
@@ -165,7 +179,7 @@ export class RunGameMasterUseCase {
 
     const { llmResponse, llmLatencyMs, llmProvider } = llmCallResult
 
-    const normalizedOutput = await this.parseAndNormalizeOutput({
+    const parsedOutput = await this.parseAndNormalizeOutput({
       input,
       currentState,
       triggerReason,
@@ -174,10 +188,12 @@ export class RunGameMasterUseCase {
       llmStart,
       gmRunStartMs,
       scenarioAvatars,
+      mediaCatalogue: gmInput.context.mediaCatalogue ?? [],
     })
-    if (normalizedOutput === null) {
+    if (parsedOutput === null) {
       return
     }
+    const { normalizedOutput, requestedMediaCue } = parsedOutput
 
     const unlockResult = await this.applyAvatarUnlocks(
       input,
@@ -216,6 +232,7 @@ export class RunGameMasterUseCase {
       llmLatencyMs,
       llmResponse,
       llmProvider,
+      requestedMediaCue,
     })
   }
 
@@ -234,8 +251,10 @@ export class RunGameMasterUseCase {
     llmLatencyMs: number
     llmResponse: LlmResponse
     llmProvider: string
+    requestedMediaCue: GameMasterOutput['mediaCue']
   }): Promise<void> {
-    this.publishDecisionRuntimeEvents(
+    publishDecisionRuntimeEvents(
+      this.options.sessionEventPublisher,
       args.input,
       args.effectiveOutput,
       args.unlockResult.newlyUnlockedAvatarIds,
@@ -246,6 +265,7 @@ export class RunGameMasterUseCase {
         scenarioAvatars: args.scenarioAvatars,
         unlockedAvatarIds: args.unlockResult.newlyUnlockedAvatarIds,
         switchedAvatarId: args.routingResult.switchedAvatarId,
+        mediaCue: args.effectiveOutput.mediaCue,
       })
     }
     await persistGameMasterResult({
@@ -279,6 +299,7 @@ export class RunGameMasterUseCase {
       llmLatencyMs: args.llmLatencyMs,
       llmResponse: args.llmResponse,
       llmProvider: args.llmProvider,
+      requestedMediaCue: args.requestedMediaCue,
       ...(this.options.eventLogRepository !== undefined
         ? { eventLogRepository: this.options.eventLogRepository }
         : {}),
@@ -294,10 +315,21 @@ export class RunGameMasterUseCase {
     llmStart: number
     gmRunStartMs: number
     scenarioAvatars: AvatarConfig[]
-  }): Promise<GameMasterOutput | null> {
+    mediaCatalogue: NonNullable<GameMasterInput['context']['mediaCatalogue']>
+  }): Promise<{
+    normalizedOutput: GameMasterOutput
+    requestedMediaCue: GameMasterOutput['mediaCue']
+  } | null> {
     const parsed = safeParseGameMasterOutput(args.llmResponse.content)
     if (parsed !== null) {
-      return normalizeGameMasterOutput(parsed, args.scenarioAvatars)
+      return {
+        normalizedOutput: normalizeGameMasterOutput(
+          parsed,
+          args.scenarioAvatars,
+          args.mediaCatalogue,
+        ),
+        requestedMediaCue: parsed.mediaCue,
+      }
     }
 
     await handleInvalidGameMasterOutput({
@@ -340,6 +372,7 @@ export class RunGameMasterUseCase {
         hasLockedAvatars: gmInput.context.availableAvatars.some(
           (avatar) => avatar.availability === 'locked',
         ),
+        hasMediaCatalogue: gmInput.context.mediaCatalogue !== undefined,
       }),
       messages: [{ role: 'user' as const, content: renderGameMasterInputForLlm(gmInput) }],
       maxTokens: GAME_MASTER_RESPONSE_MAX_TOKENS,
@@ -451,70 +484,4 @@ export class RunGameMasterUseCase {
       evaluations: unlocks.evaluations,
     }
   }
-
-  private async loadScenarioContext(scenarioId: string): Promise<GameMasterScenarioContext> {
-    if (this.options.scenarioRepository === undefined) {
-      return {}
-    }
-    const scenario = await this.options.scenarioRepository.findById(scenarioId)
-    if (scenario === null) {
-      return {}
-    }
-    const goals = [
-      ...scenario.objectives,
-      ...(Array.isArray(scenario.config.goals) ? scenario.config.goals : []),
-    ]
-    return {
-      ...(scenario.language !== undefined ? { language: scenario.language } : {}),
-      ...(hasText(scenario.worldContext) ? { description: scenario.worldContext } : {}),
-      ...(goals.length > 0 ? { goals } : {}),
-      ...(scenario.modelSelection !== undefined ? { modelSelection: scenario.modelSelection } : {}),
-    }
-  }
-
-  private publishDecisionRuntimeEvents(
-    input: RunGameMasterInput,
-    output: GameMasterOutput,
-    unlockedAvatarIds: string[],
-  ): void {
-    const baseFields = {
-      sessionId: input.sessionId,
-      ...(input.conversationId !== undefined ? { conversationId: input.conversationId } : {}),
-      correlationId: input.correlationId,
-    }
-
-    if (unlockedAvatarIds.length > 0) {
-      this.emitRuntimeEvent({
-        ...baseFields,
-        type: 'runtime.avatar_unlocked',
-        payload: { unlockedAvatarIds },
-      })
-    }
-
-    if (output.routing?.action === 'suggest' && output.routing.avatarId !== undefined) {
-      this.emitRuntimeEvent({
-        ...baseFields,
-        type: 'runtime.avatar_suggested',
-        payload: { suggestedAvatarId: output.routing.avatarId },
-      })
-    }
-  }
-
-  private emitRuntimeEvent(fields: Omit<RuntimeEvent, 'eventId' | 'occurredAt'>): void {
-    if (this.options.sessionEventPublisher === undefined) return
-    try {
-      const event: RuntimeEvent = {
-        eventId: `rev_${crypto.randomUUID()}`,
-        occurredAt: new Date().toISOString(),
-        ...fields,
-      }
-      this.options.sessionEventPublisher.emit(event)
-    } catch (error: unknown) {
-      console.warn('[GM] Runtime event emission failed:', error)
-    }
-  }
-}
-
-function hasText(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0
 }

@@ -216,6 +216,7 @@ function buildRunGameMasterUseCase(deps: {
       llmAdapterRegistry: deps.llmAdapterRegistry,
       modelConfigFallback: deps.modelConfigFallback,
       typedRetrievalService: deps.typedRetrievalService,
+      mediaAssetRepository: repositories.mediaAssetRepository,
       mediaCueService: new MediaCueService(
         repositories.mediaAssetRepository,
         repositories.eventLogRepository,

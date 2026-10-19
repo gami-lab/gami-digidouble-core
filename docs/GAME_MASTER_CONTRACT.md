@@ -42,6 +42,10 @@ GM input is a bounded projection of:
   visibility-filtered, but GM sees an unrestricted corpus only through this explicit mode. A
   missing active avatar is not itself an authorization bypass.
 - pending guidance from the previous GM turn, consumed at most once
+- a media catalogue: the scenario's `cueable` media assets not yet cued in this session (any
+  trigger), as `assetId`, kind, and description, capped at 20 entries and 300 characters per
+  description. It is static scenario data loaded with the run — not memory and not retrieval —
+  and is omitted entirely (no section, prose, field, or schema) when empty
 
 The exact input DTO lives in `apps/core/src/domain/game-master/game-master.types.ts`; treat this
 section as the ownership/safety boundary, not a field-by-field template.
@@ -69,6 +73,13 @@ The current output contains only structured, validated decisions:
   present: `stay` needs no `avatarId`; `suggest`/`switch` require an active, unlocked `avatarId`;
   `unlock`/`unlock_and_switch` require a locked `avatarId` (or `unlockDecisions` for several
   targets). GM never repeats the current Avatar as a routing target.
+- `mediaCue`: optional `{ assetId }`, at most one per run, offered only when the input carries a
+  media catalogue. It is kept only when `assetId` names an entry of the catalogue given to that
+  run; an unknown, non-cue-able, foreign, already-cued, or malformed cue is dropped while every
+  other decision stays. An accepted cue is emitted as `runtime.media_cue` with
+  `origin: 'game_master'` after the run, keyed `gm:{correlationId}` so a replay of the same run
+  never cues twice. It reaches the player after the Avatar reply has started; the player queues
+  it.
 
 The parser rejects missing required current fields and obsolete/legacy shapes. Empty or invalid
 proposals are ignored or reduced to a safe `stay` outcome; they cannot mutate lifecycle state.
@@ -125,8 +136,8 @@ scenario with no explicit `modelSelection` falls back to the global config path.
 ## Prompt structure rules
 
 The static GM prompt stays short: `Role`, `Responsibilities`, `Fact Discipline`,
-`Decision Policies` (dialogue control, retrieval planning, director notes, avatar routing,
-progression), `Output Contract`. The dynamic input renderer covers `Participants`,
+`Decision Policies` (dialogue control, retrieval planning, director notes, avatar routing, media
+cues, progression), `Output Contract`. The dynamic input renderer covers `Participants`,
 `Current Turn`, `Conversation State`, `Experience Context`, `Retrieved Context`, `Output Reminder`.
 
 `Participants` always names the active Avatar and frames the User Persona as the human user's
@@ -138,7 +149,10 @@ persona-provided information or leaks GM guidance.
 The static prompt is built dynamically from the current avatar roster: a single active Avatar
 omits routing entirely (prose, field, and JSON schema); no locked Avatars omits unlock instructions/actions;
 locked Avatars present includes only valid locked targets; multiple active Avatars includes
-`stay`/`suggest`/`switch` plus unlock actions when applicable.
+`stay`/`suggest`/`switch` plus unlock actions when applicable. Media-cue guidance and the
+`mediaCue` field appear only when the input lists a Media Catalogue (under `Experience Context`):
+cue only when the conversation reaches the moment a description depicts, rarely, and never more
+than one asset.
 
 Prompt wording may evolve, but these rules must hold: JSON-only output matching
 `GameMasterOutput`; evidence-based bias toward `user_led`/`avatar_guided` over forcing routing or
@@ -163,7 +177,9 @@ non-blocking.
 
 Successful runs emit `gm_triggered`; safe failures emit `gm_error`. Record: correlation with the
 originating turn, trigger reason, turn index, interaction count, state before/after, a safe
-decision summary, and latency/token metadata when available. Never emit raw prompts, raw provider
+decision summary, and latency/token metadata when available. The decision summary records a
+requested media cue as `mediaCueAssetId` (bounded) and `mediaCueOutcome`
+(`accepted | rejected_not_in_catalogue`). Never emit raw prompts, raw provider
 payloads, raw user-message content, vectors, unbounded document content, or secrets/credentials.
 
 `GET /v1/admin/sessions/{sessionId}/context` exposes a bounded current snapshot of the same inputs

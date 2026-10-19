@@ -259,6 +259,34 @@ describe('ListSessionEventsUseCase — gm payload safety', () => {
     expect(JSON.stringify(output)).not.toContain('inlineText')
   })
 
+  it('maps the GM media cue diagnostic and drops unknown outcomes', async () => {
+    const event = makeEvent()
+    const decision = event.payload['decision'] as Record<string, unknown>
+    const { useCase } = createUseCase({
+      events: [
+        {
+          ...event,
+          payload: {
+            ...event.payload,
+            decision: { ...decision, mediaCueAssetId: 'media_1', mediaCueOutcome: 'accepted' },
+          },
+        },
+        {
+          ...event,
+          payload: { ...event.payload, decision: { ...decision, mediaCueOutcome: 'shown' } },
+        },
+      ],
+    })
+
+    const output = await useCase.execute({ sessionId: 'session_1' })
+    const decisions = output.events.map(
+      (item) => (item.payload as { decision?: Record<string, unknown> }).decision,
+    )
+
+    expect(decisions[0]).toMatchObject({ mediaCueAssetId: 'media_1', mediaCueOutcome: 'accepted' })
+    expect(decisions[1]).not.toHaveProperty('mediaCueOutcome')
+  })
+
   it('maps gm_error events to the correct safe output shape', async () => {
     const { useCase } = createUseCase({ events: [makeErrorEvent()] })
 

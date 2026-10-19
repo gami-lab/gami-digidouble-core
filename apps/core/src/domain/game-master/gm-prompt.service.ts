@@ -1,16 +1,19 @@
-export const GAME_MASTER_SYSTEM_PROMPT_VERSION = 'gm-system-prompt.v8'
+export const GAME_MASTER_SYSTEM_PROMPT_VERSION = 'gm-system-prompt.v9'
 
-/** Avatar-count facts the static prompt needs to decide which routing guidance to include. */
-export interface GmPromptAvatarContext {
+/** Run facts the static prompt needs to decide which routing and media guidance to include. */
+export interface GmPromptRunContext {
   activeAvatarCount: number
   hasLockedAvatars: boolean
+  /** True when the input lists a Media Catalogue; otherwise `mediaCue` is never mentioned. */
+  hasMediaCatalogue: boolean
 }
 
 type RoutingPromptMode = 'none' | 'no_unlock' | 'with_unlock'
 
-export function buildGameMasterSystemPrompt(avatarContext: GmPromptAvatarContext): string {
-  const routingMode = resolveRoutingMode(avatarContext)
-  const schema = JSON.stringify(buildOutputSchema(routingMode), null, 2)
+export function buildGameMasterSystemPrompt(runContext: GmPromptRunContext): string {
+  const routingMode = resolveRoutingMode(runContext)
+  const hasMedia = runContext.hasMediaCatalogue
+  const schema = JSON.stringify(buildOutputSchema(routingMode, hasMedia), null, 2)
 
   return [
     renderSection('Role', [
@@ -27,6 +30,7 @@ export function buildGameMasterSystemPrompt(avatarContext: GmPromptAvatarContext
       '- Prepare focused retrieval for the next related turn.',
       '- Provide compact narrative guidance for the next Avatar turn.',
       ...(routingMode !== 'none' ? ['- Suggest, switch, or unlock Avatars when supported.'] : []),
+      ...(hasMedia ? ['- Rarely, show the user one prepared image or film.'] : []),
       '- Update progression only when the exchange materially advances it.',
     ]),
     renderSection('Fact Discipline', [
@@ -44,6 +48,7 @@ export function buildGameMasterSystemPrompt(avatarContext: GmPromptAvatarContext
       ...renderRetrievalPlanningPolicy(),
       ...renderDirectorNotesPolicy(),
       ...renderRoutingPolicy(routingMode),
+      ...(hasMedia ? renderMediaCuePolicy() : []),
       ...renderProgressionPolicy(),
     ]),
     renderSection('Output Contract', [
@@ -58,14 +63,17 @@ export function buildGameMasterSystemPrompt(avatarContext: GmPromptAvatarContext
       '- askFollowUp must always be stated explicitly; never infer it from mode alone.',
       '- retrievalPlan.queries and requiredFacts should be omitted or empty when required is false.',
       ...(routingMode !== 'none' ? renderRoutingFieldRules(routingMode) : []),
+      ...(hasMedia
+        ? ['- mediaCue is optional; mediaCue.assetId must be one id from the Media Catalogue.']
+        : []),
       '- Do not include a routing target that repeats the current Avatar with no actual change.',
     ]),
   ].join('\n\n')
 }
 
-function resolveRoutingMode(avatarContext: GmPromptAvatarContext): RoutingPromptMode {
-  if (avatarContext.activeAvatarCount <= 1) return 'none'
-  return avatarContext.hasLockedAvatars ? 'with_unlock' : 'no_unlock'
+function resolveRoutingMode(runContext: GmPromptRunContext): RoutingPromptMode {
+  if (runContext.activeAvatarCount <= 1) return 'none'
+  return runContext.hasLockedAvatars ? 'with_unlock' : 'no_unlock'
 }
 
 function renderDialogueControlPolicy(): string[] {
@@ -129,6 +137,14 @@ function renderRoutingPolicy(routingMode: RoutingPromptMode): string[] {
   return lines
 }
 
+function renderMediaCuePolicy(): string[] {
+  return [
+    'Media cues:',
+    '- Cue an asset only when the conversation has just reached the exact moment, place, person, or object its catalogue description depicts.',
+    '- Cueing is rare: at most one asset per response, never to illustrate a passing mention, and omit mediaCue whenever in doubt.',
+  ]
+}
+
 function renderProgressionPolicy(): string[] {
   return [
     'Progression:',
@@ -145,7 +161,10 @@ function renderRoutingFieldRules(routingMode: RoutingPromptMode): string[] {
   return rules
 }
 
-function buildOutputSchema(routingMode: RoutingPromptMode): Record<string, unknown> {
+function buildOutputSchema(
+  routingMode: RoutingPromptMode,
+  hasMedia: boolean,
+): Record<string, unknown> {
   const schema: Record<string, unknown> = {
     dialogueControl: {
       mode: '<"user_led" | "avatar_guided" | "avatar_led" | "repair" | "transition">',
@@ -167,6 +186,10 @@ function buildOutputSchema(routingMode: RoutingPromptMode): Record<string, unkno
     progression: '<"none" | "increase">',
     objectiveId: '<optional string>',
     reason: '<optional short evidence-based reason>',
+  }
+
+  if (hasMedia) {
+    schema['mediaCue'] = { assetId: '<optional — one id from the Media Catalogue>' }
   }
 
   return schema

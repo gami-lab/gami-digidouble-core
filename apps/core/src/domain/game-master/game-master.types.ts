@@ -48,7 +48,20 @@ export interface GameMasterInput {
       scope?: string
       availability?: 'available' | 'locked'
     }>
+    /** Cue-able scenario media the GM may show; omitted when the scenario has none. */
+    mediaCatalogue?: GameMasterMediaCatalogueEntry[]
   }
+}
+
+export interface GameMasterMediaCatalogueEntry {
+  assetId: string
+  kind: 'image' | 'video'
+  description: string
+}
+
+/** Asks the player to show one catalogue asset; validated against this run's catalogue. */
+export interface MediaCueDecision {
+  assetId: string
 }
 
 export type DialogueControlMode =
@@ -116,6 +129,8 @@ export interface GameMasterOutput {
   /** Omitted when routing is not applicable. */
   routing?: RoutingDecision
   progressionUpdate: ProgressionUpdate
+  /** Omitted unless the GM cues catalogue media this turn. */
+  mediaCue?: MediaCueDecision
 }
 
 export type GameMasterStateSummary = {
@@ -154,6 +169,8 @@ export type GameMasterEvent = {
         outcome: 'unlocked' | 'already_unlocked' | 'rejected_not_mentioned'
       }>
       switchedAvatarId?: string
+      mediaCueAssetId?: string
+      mediaCueOutcome?: 'accepted' | 'rejected_not_in_catalogue'
       progression: ProgressionState
       objectiveId?: string
     }

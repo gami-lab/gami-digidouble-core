@@ -1,6 +1,6 @@
 import type { GameMasterInput } from './game-master.types.js'
 
-export const GAME_MASTER_INPUT_RENDERER_VERSION = 'gm-input-renderer.v5'
+export const GAME_MASTER_INPUT_RENDERER_VERSION = 'gm-input-renderer.v6'
 
 /**
  * Internal LLM rendering for the Game Master input contract.
@@ -28,6 +28,7 @@ export function renderGameMasterInputForLlm(input: GameMasterInput): string {
     renderSection('Experience Context', [
       ...renderExperience(input.context.experience),
       ...renderAvailableAvatars(input.context.availableAvatars),
+      ...renderMediaCatalogue(input.context.mediaCatalogue),
     ]),
     renderSection(
       'Retrieved Context',
@@ -263,6 +264,17 @@ function renderAvailableAvatars(avatars: GameMasterInput['context']['availableAv
           return details.length > 0 ? `${label}; ${details.join('; ')}` : label
         })
       : ['- None provided.']),
+  ]
+}
+
+function renderMediaCatalogue(catalogue: GameMasterInput['context']['mediaCatalogue']): string[] {
+  if (catalogue === undefined || catalogue.length === 0) return []
+  return [
+    '### Media Catalogue',
+    ...catalogue.map(
+      (entry) =>
+        `- ${normalizeInlineText(entry.assetId)} (${entry.kind}): ${normalizeInlineText(entry.description)}`,
+    ),
   ]
 }
 

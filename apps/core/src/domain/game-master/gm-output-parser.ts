@@ -2,6 +2,7 @@ import type {
   DialogueControl,
   DialogueControlMode,
   GameMasterOutput,
+  MediaCueDecision,
   ProgressionUpdate,
   RetrievalPlan,
   RetrievalScope,
@@ -57,6 +58,7 @@ function toGameMasterOutput(value: unknown): GameMasterOutput | null {
       'directorNotes',
       'routing',
       'progressionUpdate',
+      'mediaCue',
     ])
   ) {
     return null
@@ -74,6 +76,7 @@ function toGameMasterOutput(value: unknown): GameMasterOutput | null {
   const directorNotes = toRequiredDirectorNotes(value['directorNotes'])
   if (directorNotes === null) return null
   const routing = toRoutingDecision(value['routing'])
+  const mediaCue = toMediaCue(value['mediaCue'])
 
   return {
     dialogueControl,
@@ -81,7 +84,18 @@ function toGameMasterOutput(value: unknown): GameMasterOutput | null {
     directorNotes,
     ...(routing !== undefined ? { routing } : {}),
     progressionUpdate,
+    ...(mediaCue !== undefined ? { mediaCue } : {}),
   }
+}
+
+/** `mediaCue` is optional: a malformed cue is dropped without invalidating the other decisions. */
+function toMediaCue(value: unknown): MediaCueDecision | undefined {
+  if (value === undefined || value === null) return undefined
+  if (isRecord(value) && hasOnlyKeys(value, ['assetId']) && hasText(value['assetId'])) {
+    return { assetId: value['assetId'].trim() }
+  }
+  console.warn('[GM] Dropped malformed mediaCue.')
+  return undefined
 }
 
 function toRequiredDirectorNotes(value: unknown): string | null {

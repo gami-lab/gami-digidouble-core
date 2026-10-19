@@ -1,5 +1,8 @@
 import type { IEventLogRepository, StoredEvent } from '../../ports/IEventLogRepository.js'
+import crypto from 'node:crypto'
+import type { RuntimeEvent } from '@gami/shared'
 import type { IObservabilityAdapter } from '../../ports/IObservabilityAdapter.js'
+import type { ISessionEventPublisher } from '../../ports/ISessionEventPublisher.js'
 import type {
   GameMasterOutput,
   GameMasterState,
@@ -114,6 +117,7 @@ export async function emitTriggeredGameMasterTurn(args: {
     outputTokens: number
   }
   llmProvider?: string
+  requestedMediaCue?: GameMasterOutput['mediaCue']
   eventLogRepository?: IEventLogRepository
 }): Promise<void> {
   await emitEventSafe(args.eventLogRepository, {
@@ -127,12 +131,15 @@ export async function emitTriggeredGameMasterTurn(args: {
       interactionCount: args.reconciledState.interactionCount,
       stateBefore: buildStateSummary(args.currentState),
       gmContext: toRecordedGmContextSnapshot(args.gmContext),
-      decision: buildTriggeredDecision(
-        args.output,
-        args.unlockedAvatarIds,
-        args.unlockEvaluations,
-        args.switchedAvatarId,
-      ),
+      decision: {
+        ...buildTriggeredDecision(
+          args.output,
+          args.unlockedAvatarIds,
+          args.unlockEvaluations,
+          args.switchedAvatarId,
+        ),
+        ...describeMediaCue(args.requestedMediaCue, args.output.mediaCue),
+      },
       stateAfter: buildStateSummary(args.reconciledState),
       latencyMs: args.llmLatencyMs,
       totalLatencyMs: Date.now() - args.gmRunStartMs,
@@ -218,6 +225,20 @@ export function buildTriggeredDecision(
   }
 }
 
+const MEDIA_CUE_ASSET_ID_MAX_LENGTH = 80
+
+/** Bounded diagnostic of the GM's media cue: what it asked for and whether it was accepted. */
+function describeMediaCue(
+  requested: GameMasterOutput['mediaCue'],
+  accepted: GameMasterOutput['mediaCue'],
+): Record<string, unknown> {
+  if (requested === undefined) return {}
+  return {
+    mediaCueAssetId: requested.assetId.slice(0, MEDIA_CUE_ASSET_ID_MAX_LENGTH),
+    mediaCueOutcome: accepted !== undefined ? 'accepted' : 'rejected_not_in_catalogue',
+  }
+}
+
 function normalizeInjectedNote(value: string | undefined): string | undefined {
   if (typeof value !== 'string') return undefined
   const normalized = value.replace(/\s+/g, ' ').trim()
@@ -226,4 +247,50 @@ function normalizeInjectedNote(value: string | undefined): string | undefined {
   return normalized.length <= MAX_NOTE_LENGTH
     ? normalized
     : `${normalized.slice(0, MAX_NOTE_LENGTH - 1)}…`
+}
+
+export function publishDecisionRuntimeEvents(
+  publisher: ISessionEventPublisher | undefined,
+  input: RunGameMasterInput,
+  output: GameMasterOutput,
+  unlockedAvatarIds: string[],
+): void {
+  const baseFields = {
+    sessionId: input.sessionId,
+    ...(input.conversationId !== undefined ? { conversationId: input.conversationId } : {}),
+    correlationId: input.correlationId,
+  }
+
+  if (unlockedAvatarIds.length > 0) {
+    emitRuntimeEvent(publisher, {
+      ...baseFields,
+      type: 'runtime.avatar_unlocked',
+      payload: { unlockedAvatarIds },
+    })
+  }
+
+  if (output.routing?.action === 'suggest' && output.routing.avatarId !== undefined) {
+    emitRuntimeEvent(publisher, {
+      ...baseFields,
+      type: 'runtime.avatar_suggested',
+      payload: { suggestedAvatarId: output.routing.avatarId },
+    })
+  }
+}
+
+export function emitRuntimeEvent(
+  publisher: ISessionEventPublisher | undefined,
+  fields: Omit<RuntimeEvent, 'eventId' | 'occurredAt'>,
+): void {
+  if (publisher === undefined) return
+  try {
+    const event: RuntimeEvent = {
+      eventId: `rev_${crypto.randomUUID()}`,
+      occurredAt: new Date().toISOString(),
+      ...fields,
+    }
+    publisher.emit(event)
+  } catch (error: unknown) {
+    console.warn('[GM] Runtime event emission failed:', error)
+  }
 }
