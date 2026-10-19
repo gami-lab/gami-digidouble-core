@@ -31,6 +31,9 @@ per module) live in [TEST_COVERAGE_PLAN.md](TEST_COVERAGE_PLAN.md).
 - The retrieval-quality harness supplements conversation evaluation with labelled recall@k/MRR; its live OpenAI run is opt-in and is not a CI gate.
 - Knowledge ingestion tests cover paragraph splitting, the hard per-chunk character ceiling, no-overlap
   boundaries, metadata/header preservation, and reindex reuse of the same chunking path.
+- Player flow: every `flow-state.ts` transition (including back, skip, resume, and error) has a
+  reducer test; `App.behavior.test.tsx` drives the real screens over mocked HTTP modules from
+  landing to the first message, Enter/Shift+Enter, outro/restart, resume, and load failure.
 - Never assert writing style. Assert structure, safety, ownership, ordering, and failure behavior.
 - Test admin/inspection projections for redaction and boundedness, not internal object identity.
 - Mock only at infrastructure adapter boundaries: domain/application tests use `vi.fn()` references

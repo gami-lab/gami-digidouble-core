@@ -85,6 +85,13 @@ each talks to Core only over HTTP and has no direct access to domain/infrastruct
 tools (e.g. `tools/conversation-evaluation`) are external HTTP consumers too — they may import
 shared wire DTOs but never Core domain, repositories, or provider SDKs.
 
+`apps/web` is the visitor-facing player. A pure reducer (`flow/flow-state.ts`) owns the guided flow
+`landing → intro → entryQuestion → characterChoice → conversation → outro` (plus a scenario picker
+when several scenarios are active, and `loading`/`error`); screens only dispatch flow events and
+render authored presentation. Session, conversation, voice, and runtime-event logic stay in their
+existing hooks. A returning visitor with a remembered live conversation resumes in
+`conversation`. Debug and operator views live in `apps/console`, never in the player.
+
 ## API surfaces
 
 Every route declares exactly one tier, and the tier decides which credential it accepts:

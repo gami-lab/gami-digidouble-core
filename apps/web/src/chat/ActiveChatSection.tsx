@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import type { JSX } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { AvailableAvatarSummary } from '@gami/shared'
 import type {
   ActiveChatRuntimeState,
   ChatThreadAvatarDraft,
@@ -11,12 +10,11 @@ import type { AudioPlaybackState } from './use-message-audio-playback'
 import { useVoiceConversation, type VoiceConversationState } from '../voice/use-voice-conversation'
 
 type ActiveChatSectionProps = {
-  avatars: AvailableAvatarSummary[]
+  title: string
   chat: ActiveChatRuntimeState
 }
 
-export function ActiveChatSection({ avatars, chat }: ActiveChatSectionProps): JSX.Element {
-  const { t } = useTranslation()
+export function ActiveChatSection({ title, chat }: ActiveChatSectionProps): JSX.Element {
   const voice = useVoiceConversation(chat)
   const hasConversation = chat.conversation !== null
   const { enabled: voiceEnabled, stop: stopVoice } = voice
@@ -28,60 +26,10 @@ export function ActiveChatSection({ avatars, chat }: ActiveChatSectionProps): JS
 
   return (
     <section className="chat-section" aria-labelledby="chat-title">
-      <h2 id="chat-title">{t('chat.title')}</h2>
-      <ChatEntryPanel avatars={avatars} chat={chat} />
+      <h1 id="chat-title">{title}</h1>
       <ChatThreadPanel chat={chat} />
       <ChatComposer chat={chat} voice={voice} />
     </section>
-  )
-}
-
-type ChatEntryPanelProps = {
-  avatars: AvailableAvatarSummary[]
-  chat: ActiveChatRuntimeState
-}
-
-function ChatEntryPanel({ avatars, chat }: ChatEntryPanelProps): JSX.Element {
-  const { t } = useTranslation()
-
-  if (avatars.length === 0) {
-    return <p className="muted">{t('chat.noAvatars')}</p>
-  }
-
-  return (
-    <div className="chat-entry-panel">
-      <p className="muted">{t('chat.pickAvatar')}</p>
-      <div className="chat-avatar-list" role="list" aria-label={t('chat.avatarsAriaLabel')}>
-        {avatars.map((avatar) => {
-          const isActive = avatar.avatarId === chat.activeAvatarId
-          const isStarting = chat.conversationStatus === 'starting' && isActive
-          const className = isActive
-            ? 'chat-avatar-button chat-avatar-button-active'
-            : 'chat-avatar-button'
-
-          return (
-            <button
-              key={avatar.avatarId}
-              type="button"
-              className={className}
-              onClick={() => {
-                chat.startChatWithAvatar(avatar.avatarId)
-              }}
-            >
-              <span>{avatar.name}</span>
-              <span className="chat-avatar-button-meta">
-                {isStarting
-                  ? t('chat.starting')
-                  : isActive
-                    ? t('chat.currentThread')
-                    : t('chat.startChat')}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-      {chat.conversationError !== null ? <p className="error">{chat.conversationError}</p> : null}
-    </div>
   )
 }
 
@@ -89,7 +37,14 @@ function ChatThreadPanel({ chat }: { chat: ActiveChatRuntimeState }): JSX.Elemen
   const { t } = useTranslation()
 
   if (chat.conversation === null) {
-    return <p className="muted">{t('chat.selectAvatar')}</p>
+    return (
+      <>
+        <p className="muted" role="status">
+          {t('conversation.starting')}
+        </p>
+        {chat.conversationError !== null ? <p className="error">{chat.conversationError}</p> : null}
+      </>
+    )
   }
 
   return (
@@ -259,10 +214,17 @@ function ChatComposer({
             onChange={(event) => {
               chat.setComposerValue(event.target.value)
             }}
+            onKeyDown={(event) => {
+              if (isSendKey(event)) {
+                event.preventDefault()
+                event.currentTarget.form?.requestSubmit()
+              }
+            }}
             rows={3}
             placeholder={t('chat.message.placeholder')}
           />
         </label>
+        {chat.conversationError !== null ? <p className="error">{chat.conversationError}</p> : null}
         {chat.sendError !== null ? <p className="error">{chat.sendError}</p> : null}
         <div className="chat-composer-actions">
           <button type="submit" className="button-primary" disabled={!chat.canSend}>
@@ -327,4 +289,13 @@ function getVoiceStatusMessage(
     case 'speaking':
       return translate('chat.voice.speaking')
   }
+}
+
+/** Enter sends; Shift+Enter keeps a newline; Enter that confirms an IME composition never sends. */
+export function isSendKey(event: {
+  key: string
+  shiftKey: boolean
+  nativeEvent: { isComposing: boolean }
+}): boolean {
+  return event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing
 }

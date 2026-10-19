@@ -223,11 +223,3 @@ export type UpsertUserPersonaRequest = UserPersona
 export type UpsertUserPersonaApiResponse = UpsertUserPersonaResponse
 
 export type EndConversationApiResponse = EndConversationResponse
-
-export type LocalWebIdentity = {
-  version: 1
-  userId: string
-  persona: UserPersona
-  createdAt: string
-  updatedAt: string
-}

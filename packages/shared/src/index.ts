@@ -305,7 +305,6 @@ export type {
   UpsertUserPersonaRequest,
   UpsertUserPersonaApiResponse,
   EndConversationApiResponse,
-  LocalWebIdentity,
 } from './web-contract-types.js'
 export {
   AVATAR_RETRIEVAL_DEFAULT_MAX_CHUNKS,

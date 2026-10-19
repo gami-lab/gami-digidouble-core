@@ -64,9 +64,9 @@ describe('ActiveChatSection audio controls', () => {
   it('offers playback only for completed Avatar messages and uses the message ID', () => {
     const chat = createChat()
 
-    render(<ActiveChatSection avatars={[]} chat={chat} />)
+    render(<ActiveChatSection title="Clara" chat={chat} />)
 
-    const playButton = screen.getByRole('button', { name: 'Play Avatar response' })
+    const playButton = screen.getByRole('button', { name: 'Listen to this reply' })
     expect(screen.queryByRole('button', { name: 'Play user response' })).toBeNull()
 
     fireEvent.click(playButton)
@@ -77,7 +77,7 @@ describe('ActiveChatSection audio controls', () => {
   it('exposes a stop control while the active message is playing', () => {
     const chat = createChat({ messageId: 'message_avatar_1', status: 'playing' })
 
-    render(<ActiveChatSection avatars={[]} chat={chat} />)
+    render(<ActiveChatSection title="Clara" chat={chat} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Stop audio' }))
 

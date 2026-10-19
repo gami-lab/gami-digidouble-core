@@ -40,7 +40,7 @@ describe('Stack E2E — presentation round trip', () => {
       presentation,
     })
     const avatarPresentation = { hook: 'Stack hook', starterQuestions: ['First?', 'Second?'] }
-    await admin<CreateAvatarResponse>(
+    const { avatar } = await admin<CreateAvatarResponse>(
       'POST',
       `/v1/admin/scenarios/${scenario.scenarioId}/avatars`,
       {
@@ -49,31 +49,40 @@ describe('Stack E2E — presentation round trip', () => {
         presentation: avatarPresentation,
       },
     )
-
-    const updated = await admin<UpdateScenarioResponse>(
-      'PATCH',
-      `/v1/admin/scenarios/${scenario.scenarioId}`,
-      { config: { goals: ['stack goal'] } },
-    )
-    expect(updated.scenario.presentation).toEqual(presentation)
-    expect(updated.scenario.config).toEqual({ goals: ['stack goal'] })
-
-    const { avatars } = await admin<ListScenarioAvatarsResponse>(
-      'GET',
-      `/v1/admin/scenarios/${scenario.scenarioId}/avatars`,
-    )
-    expect(avatars[0]?.presentation).toEqual(avatarPresentation)
-
-    const catalogue = await fetch(`${APP_URL}/v1/scenarios`, { headers: stackPlayerHeaders() })
-    const listed = ((await catalogue.json()) as ApiResponse<ListPublicScenariosResponse>).data
-    expect(listed?.scenarios.find((item) => item.scenarioId === scenario.scenarioId)).toEqual({
-      scenarioId: scenario.scenarioId,
-      name: 'Presentation stack scenario',
-      language: 'en',
-      presentation,
-    })
-
-    await admin('DELETE', `/v1/admin/avatars/${avatars[0]?.avatarId ?? ''}`)
-    await admin('DELETE', `/v1/admin/scenarios/${scenario.scenarioId}`)
+    try {
+      await assertRoundTrip(scenario.scenarioId, presentation, avatarPresentation)
+    } finally {
+      await admin('DELETE', `/v1/admin/avatars/${avatar.avatarId}`)
+      await admin('DELETE', `/v1/admin/scenarios/${scenario.scenarioId}`)
+    }
   })
 })
+
+async function assertRoundTrip(
+  scenarioId: string,
+  presentation: object,
+  avatarPresentation: object,
+): Promise<void> {
+  const updated = await admin<UpdateScenarioResponse>(
+    'PATCH',
+    `/v1/admin/scenarios/${scenarioId}`,
+    { config: { goals: ['stack goal'] } },
+  )
+  expect(updated.scenario.presentation).toEqual(presentation)
+  expect(updated.scenario.config).toEqual({ goals: ['stack goal'] })
+
+  const { avatars } = await admin<ListScenarioAvatarsResponse>(
+    'GET',
+    `/v1/admin/scenarios/${scenarioId}/avatars`,
+  )
+  expect(avatars[0]?.presentation).toEqual(avatarPresentation)
+
+  const catalogue = await fetch(`${APP_URL}/v1/scenarios`, { headers: stackPlayerHeaders() })
+  const listed = ((await catalogue.json()) as ApiResponse<ListPublicScenariosResponse>).data
+  expect(listed?.scenarios.find((item) => item.scenarioId === scenarioId)).toEqual({
+    scenarioId,
+    name: 'Presentation stack scenario',
+    language: 'en',
+    presentation,
+  })
+}

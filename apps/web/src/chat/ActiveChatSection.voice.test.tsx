@@ -71,13 +71,13 @@ describe('ActiveChatSection voice controls', () => {
 
   it('starts and stops the voice conversation from the Talk button', () => {
     const voice = mockVoice()
-    const { rerender } = render(<ActiveChatSection avatars={[]} chat={createChat()} />)
+    const { rerender } = render(<ActiveChatSection title="Clara" chat={createChat()} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Talk' }))
     expect(voice.start).toHaveBeenCalledTimes(1)
 
     const listening = mockVoice({ enabled: true, phase: 'listening' })
-    rerender(<ActiveChatSection avatars={[]} chat={createChat()} />)
+    rerender(<ActiveChatSection title="Clara" chat={createChat()} />)
     expect(screen.getByRole('status').textContent).toBe(i18n.t('chat.voice.listening'))
     fireEvent.click(screen.getByRole('button', { name: 'Stop talking', pressed: true }))
     expect(listening.stop).toHaveBeenCalledTimes(1)
@@ -92,7 +92,7 @@ describe('ActiveChatSection voice controls', () => {
     [{ error: 'unsupported' }, 'chat.voice.unsupported'],
   ])('shows the voice status for %o', (state, key) => {
     mockVoice({ enabled: state.error === undefined, ...state })
-    render(<ActiveChatSection avatars={[]} chat={createChat()} />)
+    render(<ActiveChatSection title="Clara" chat={createChat()} />)
 
     expect(screen.getByRole('status').textContent).toBe(i18n.t(key))
   })
@@ -101,7 +101,7 @@ describe('ActiveChatSection voice controls', () => {
     const voice = mockVoice({ enabled: true, phase: 'listening', hearing: true })
     vi.mocked(voice.submitNow).mockReturnValue(true)
     const chat = createChat()
-    render(<ActiveChatSection avatars={[]} chat={chat} />)
+    render(<ActiveChatSection title="Clara" chat={chat} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
 
@@ -112,7 +112,7 @@ describe('ActiveChatSection voice controls', () => {
   it('sends typed text even while voice is listening', () => {
     const voice = mockVoice({ enabled: true, phase: 'listening', hearing: true })
     const chat = createChat('Typed instead')
-    render(<ActiveChatSection avatars={[]} chat={chat} />)
+    render(<ActiveChatSection title="Clara" chat={chat} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
 
@@ -122,7 +122,7 @@ describe('ActiveChatSection voice controls', () => {
 
   it('stops the voice loop when the conversation ends', () => {
     const voice = mockVoice({ enabled: true, phase: 'listening' })
-    render(<ActiveChatSection avatars={[]} chat={{ ...createChat(), conversation: null }} />)
+    render(<ActiveChatSection title="Clara" chat={{ ...createChat(), conversation: null }} />)
 
     expect(voice.stop).toHaveBeenCalledTimes(1)
   })

@@ -8,7 +8,6 @@ export type LocalWebRuntimeState = {
   version: 1
   userId: string
   selectedScenarioId: string | null
-  sessionId: string | null
   activeAvatarId: string | null
   conversationId: string | null
   updatedAt: string
@@ -56,7 +55,6 @@ function isLocalWebRuntimeState(value: unknown): value is LocalWebRuntimeState {
     record['version'] === 1 &&
     typeof record['userId'] === 'string' &&
     isNullableString(record['selectedScenarioId']) &&
-    isNullableString(record['sessionId']) &&
     isNullableString(record['activeAvatarId']) &&
     isNullableString(record['conversationId']) &&
     typeof record['updatedAt'] === 'string'

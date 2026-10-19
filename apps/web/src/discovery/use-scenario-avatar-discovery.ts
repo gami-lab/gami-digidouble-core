@@ -2,14 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import i18n from '../i18n/index'
 import type {
   AvailableAvatarSummary,
-  LocalWebIdentity,
   RuntimeEvent,
   PublicScenarioSummary,
   SessionSummary,
 } from '@gami/shared'
 import { subscribeToRuntimeEvents } from '../api/runtime-events-stream'
 import { listAvailableScenarios } from '../api/scenarios'
-import { ensureActiveSession, getAvailableAvatarsForSession } from '../api/sessions'
+import { ensureActiveSession, getAvailableAvatarsForSession, startSession } from '../api/sessions'
 
 type ScenarioLoadStatus = 'loading' | 'ready' | 'error'
 type AvatarLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
@@ -33,7 +32,12 @@ export type ScenarioAvatarDiscoveryState = {
   avatarStatus: AvatarLoadStatus
   avatarError: string | null
   lastAvatarSyncAt: string | null
+  /** True once Core reports the current session closed. */
+  sessionClosed: boolean
   selectScenario: (scenarioId: string) => void
+  /** Starts a fresh session for the selected scenario with the same player. */
+  restartSession: () => void
+  reloadScenarios: () => void
 }
 
 type ScenarioAvatarDiscoveryOptions = {
@@ -41,7 +45,7 @@ type ScenarioAvatarDiscoveryOptions = {
 }
 
 export function useScenarioAvatarDiscovery(
-  identity: LocalWebIdentity,
+  userId: string,
   options?: ScenarioAvatarDiscoveryOptions,
 ): ScenarioAvatarDiscoveryState {
   const initialSelectedScenarioId = options?.initialSelectedScenarioId ?? null
@@ -59,10 +63,12 @@ export function useScenarioAvatarDiscovery(
   )
   const [avatarError, setAvatarError] = useState<string | null>(null)
   const [lastAvatarSyncAt, setLastAvatarSyncAt] = useState<string | null>(null)
+  const [closedSessionId, setClosedSessionId] = useState<string | null>(null)
+  const [scenarioListVersion, setScenarioListVersion] = useState(0)
 
   const scenarioSelectionRequestIdRef = useRef(0)
 
-  useScenarioList(setScenarios, setScenarioStatus, setScenarioError)
+  useScenarioList(scenarioListVersion, setScenarios, setScenarioStatus, setScenarioError)
   useAvatarAvailabilitySubscription(
     selectedScenarioId,
     session,
@@ -70,6 +76,7 @@ export function useScenarioAvatarDiscovery(
     setAvatarStatus,
     setAvatarError,
     setLastAvatarSyncAt,
+    setClosedSessionId,
   )
   useEffect(() => {
     if (selectedScenarioId === null) {
@@ -105,7 +112,7 @@ export function useScenarioAvatarDiscovery(
       setLastAvatarSyncAt,
       scenarioSelectionRequestIdRef,
     })
-  }, [identity.userId, selectedScenarioId])
+  }, [userId, selectedScenarioId])
 
   function selectScenario(scenarioId: string): void {
     scenarioSelectionRequestIdRef.current += 1
@@ -119,6 +126,15 @@ export function useScenarioAvatarDiscovery(
     setLastAvatarSyncAt(selectionState.lastAvatarSyncAt)
   }
 
+  const sessionSetters: SessionAvatarSetters = {
+    setSession,
+    setAvatars,
+    setAvatarStatus,
+    setAvatarError,
+    setLastAvatarSyncAt,
+    scenarioSelectionRequestIdRef,
+  }
+
   return {
     scenarios,
     scenarioStatus,
@@ -129,7 +145,14 @@ export function useScenarioAvatarDiscovery(
     avatarStatus,
     avatarError,
     lastAvatarSyncAt,
+    sessionClosed: session !== null && closedSessionId === session.sessionId,
     selectScenario,
+    restartSession: () => {
+      if (selectedScenarioId !== null) restartScenarioSession(selectedScenarioId, sessionSetters)
+    },
+    reloadScenarios: () => {
+      setScenarioListVersion((version) => version + 1)
+    },
   }
 }
 
@@ -145,6 +168,7 @@ export function createScenarioSelectionState(scenarioId: string): ScenarioSelect
 }
 
 function useScenarioList(
+  version: number,
   setScenarios: (value: PublicScenarioSummary[]) => void,
   setScenarioStatus: (value: ScenarioLoadStatus) => void,
   setScenarioError: (value: string | null) => void,
@@ -173,7 +197,7 @@ function useScenarioList(
     return () => {
       isCancelled = true
     }
-  }, [setScenarios, setScenarioStatus, setScenarioError])
+  }, [version, setScenarios, setScenarioStatus, setScenarioError])
 }
 
 function useAvatarAvailabilitySubscription(
@@ -185,6 +209,7 @@ function useAvatarAvailabilitySubscription(
   ) => void,
   setAvatarError: (value: string | null) => void,
   setLastAvatarSyncAt: (value: string | null) => void,
+  setClosedSessionId: (value: string) => void,
 ): void {
   useEffect(() => {
     if (selectedScenarioId === null || session === null) return
@@ -215,6 +240,8 @@ function useAvatarAvailabilitySubscription(
         void refreshAvailableAvatars()
       },
       onEvent: (event) => {
+        if (event.sessionId !== sessionId) return
+        if (event.type === 'runtime.session_closed') setClosedSessionId(sessionId)
         if (shouldRefreshAvatarAvailabilityFromEvent(event)) {
           void refreshAvailableAvatars()
         }
@@ -232,11 +259,25 @@ function useAvatarAvailabilitySubscription(
     setAvatarStatus,
     setAvatarError,
     setLastAvatarSyncAt,
+    setClosedSessionId,
   ])
 }
 
 function shouldRefreshAvatarAvailabilityFromEvent(event: RuntimeEvent): boolean {
   return event.type === 'runtime.avatar_unlocked'
+}
+
+function restartScenarioSession(scenarioId: string, setters: SessionAvatarSetters): void {
+  setters.scenarioSelectionRequestIdRef.current += 1
+  setters.setSession(null)
+  setters.setAvatars([])
+  setters.setAvatarStatus('loading')
+  void loadScenarioSessionAndAvatars(
+    scenarioId,
+    setters.scenarioSelectionRequestIdRef.current,
+    setters,
+    startSession,
+  )
 }
 
 type SessionAvatarSetters = {
@@ -256,9 +297,10 @@ async function loadScenarioSessionAndAvatars(
   scenarioId: string,
   requestId: number,
   setters: SessionAvatarSetters,
+  obtainSession: typeof ensureActiveSession = ensureActiveSession,
 ): Promise<void> {
   try {
-    const activeSession = await ensureActiveSession({ scenarioId })
+    const activeSession = await obtainSession({ scenarioId })
 
     if (requestId !== setters.scenarioSelectionRequestIdRef.current) {
       return

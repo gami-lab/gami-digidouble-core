@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 
 import { act, renderHook, waitFor } from '@testing-library/react'
-import type { LocalWebIdentity, RuntimeEvent } from '@gami/shared'
+import type { RuntimeEvent } from '@gami/shared'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { subscribeToRuntimeEvents } from '../api/runtime-events-stream'
 import { listAvailableScenarios } from '../api/scenarios'
-import { ensureActiveSession, getAvailableAvatarsForSession } from '../api/sessions'
+import { ensureActiveSession, getAvailableAvatarsForSession, startSession } from '../api/sessions'
 import { useScenarioAvatarDiscovery } from './use-scenario-avatar-discovery'
 
 vi.mock('../api/scenarios', () => ({
@@ -15,19 +15,14 @@ vi.mock('../api/scenarios', () => ({
 vi.mock('../api/sessions', () => ({
   ensureActiveSession: vi.fn(),
   getAvailableAvatarsForSession: vi.fn(),
+  startSession: vi.fn(),
 }))
 
 vi.mock('../api/runtime-events-stream', () => ({
   subscribeToRuntimeEvents: vi.fn(),
 }))
 
-const identity: LocalWebIdentity = {
-  version: 1,
-  userId: 'user_12345678',
-  persona: {},
-  createdAt: '2026-06-01T00:00:00.000Z',
-  updatedAt: '2026-06-01T00:00:00.000Z',
-}
+const userId = 'user_12345678'
 
 // eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('useScenarioAvatarDiscovery behavior', () => {
@@ -42,7 +37,7 @@ describe('useScenarioAvatarDiscovery behavior', () => {
     ])
     vi.mocked(ensureActiveSession).mockResolvedValue({
       sessionId: 'session_1',
-      userId: identity.userId,
+      userId: userId,
       scenarioId: 'scenario_1',
       unlockedAvatarIds: [],
       status: 'active',
@@ -92,7 +87,7 @@ describe('useScenarioAvatarDiscovery behavior', () => {
         },
       ])
 
-    const { result, unmount } = renderHook(() => useScenarioAvatarDiscovery(identity))
+    const { result, unmount } = renderHook(() => useScenarioAvatarDiscovery(userId))
 
     await waitFor(() => {
       expect(result.current.scenarioStatus).toBe('ready')
@@ -171,7 +166,7 @@ describe('useScenarioAvatarDiscovery behavior', () => {
         },
       ])
 
-    const { result } = renderHook(() => useScenarioAvatarDiscovery(identity))
+    const { result } = renderHook(() => useScenarioAvatarDiscovery(userId))
 
     await waitFor(() => {
       expect(result.current.scenarioStatus).toBe('ready')
@@ -222,7 +217,7 @@ describe('useScenarioAvatarDiscovery behavior', () => {
       },
     ])
 
-    const { result } = renderHook(() => useScenarioAvatarDiscovery(identity))
+    const { result } = renderHook(() => useScenarioAvatarDiscovery(userId))
 
     await waitFor(() => {
       expect(result.current.scenarioStatus).toBe('ready')
@@ -237,5 +232,85 @@ describe('useScenarioAvatarDiscovery behavior', () => {
     })
 
     expect(setIntervalSpy.mock.calls.some(([, timeout]) => timeout === 5_000)).toBe(false)
+  })
+})
+
+describe('useScenarioAvatarDiscovery session lifecycle', () => {
+  let onEvent: ((event: RuntimeEvent) => void) | undefined
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(listAvailableScenarios).mockResolvedValue([{ scenarioId: 'scenario_1', name: 'S' }])
+    vi.mocked(ensureActiveSession).mockResolvedValue({
+      sessionId: 'session_1',
+      userId,
+      scenarioId: 'scenario_1',
+      unlockedAvatarIds: [],
+      status: 'active',
+      startedAt: '2026-06-01T00:00:00.000Z',
+      lastActivityAt: '2026-06-01T00:00:00.000Z',
+    })
+    vi.mocked(getAvailableAvatarsForSession).mockResolvedValue([])
+    vi.mocked(subscribeToRuntimeEvents).mockImplementation((_, handlers) => {
+      onEvent = handlers.onEvent
+      return { close: vi.fn() }
+    })
+  })
+
+  async function renderWithSession() {
+    const hook = renderHook(() =>
+      useScenarioAvatarDiscovery(userId, { initialSelectedScenarioId: 'scenario_1' }),
+    )
+    await waitFor(() => {
+      expect(hook.result.current.session?.sessionId).toBe('session_1')
+    })
+    return hook
+  }
+
+  function closedEvent(sessionId: string): RuntimeEvent {
+    return {
+      eventId: `closed_${sessionId}`,
+      sessionId,
+      type: 'runtime.session_closed',
+      occurredAt: '2026-06-01T00:00:01.000Z',
+      payload: {},
+    }
+  }
+
+  it('reports the current session closed and ignores other sessions', async () => {
+    const { result } = await renderWithSession()
+
+    act(() => {
+      onEvent?.(closedEvent('session_other'))
+    })
+    expect(result.current.sessionClosed).toBe(false)
+
+    act(() => {
+      onEvent?.(closedEvent('session_1'))
+    })
+    expect(result.current.sessionClosed).toBe(true)
+  })
+
+  it('starts a fresh session on restart', async () => {
+    vi.mocked(startSession).mockResolvedValue({
+      sessionId: 'session_2',
+      userId,
+      scenarioId: 'scenario_1',
+      unlockedAvatarIds: [],
+      status: 'active',
+      startedAt: '2026-06-01T00:00:02.000Z',
+      lastActivityAt: '2026-06-01T00:00:02.000Z',
+    })
+    const { result } = await renderWithSession()
+
+    act(() => {
+      result.current.restartSession()
+    })
+
+    await waitFor(() => {
+      expect(result.current.session?.sessionId).toBe('session_2')
+    })
+    expect(startSession).toHaveBeenCalledWith({ scenarioId: 'scenario_1' })
+    expect(result.current.sessionClosed).toBe(false)
   })
 })
