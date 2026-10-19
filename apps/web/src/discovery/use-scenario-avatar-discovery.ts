@@ -42,6 +42,8 @@ export type ScenarioAvatarDiscoveryState = {
 
 type ScenarioAvatarDiscoveryOptions = {
   initialSelectedScenarioId?: string | null
+  /** Receives every runtime event of the current session's stream. */
+  onRuntimeEvent?: (event: RuntimeEvent) => void
 }
 
 export function useScenarioAvatarDiscovery(
@@ -67,6 +69,7 @@ export function useScenarioAvatarDiscovery(
   const [scenarioListVersion, setScenarioListVersion] = useState(0)
 
   const scenarioSelectionRequestIdRef = useRef(0)
+  const onRuntimeEventRef = useLatestRef(options?.onRuntimeEvent)
 
   useScenarioList(scenarioListVersion, setScenarios, setScenarioStatus, setScenarioError)
   useAvatarAvailabilitySubscription(
@@ -77,6 +80,7 @@ export function useScenarioAvatarDiscovery(
     setAvatarError,
     setLastAvatarSyncAt,
     setClosedSessionId,
+    onRuntimeEventRef,
   )
   useEffect(() => {
     if (selectedScenarioId === null) {
@@ -98,10 +102,7 @@ export function useScenarioAvatarDiscovery(
   }, [scenarioStatus, scenarios, selectedScenarioId])
 
   useEffect(() => {
-    if (selectedScenarioId === null) {
-      return
-    }
-
+    if (selectedScenarioId === null) return
     scenarioSelectionRequestIdRef.current += 1
     const requestId = scenarioSelectionRequestIdRef.current
     void loadScenarioSessionAndAvatars(selectedScenarioId, requestId, {
@@ -116,7 +117,6 @@ export function useScenarioAvatarDiscovery(
 
   function selectScenario(scenarioId: string): void {
     scenarioSelectionRequestIdRef.current += 1
-
     const selectionState = createScenarioSelectionState(scenarioId)
     setSelectedScenarioId(selectionState.selectedScenarioId)
     setAvatarStatus(selectionState.avatarStatus)
@@ -210,6 +210,7 @@ function useAvatarAvailabilitySubscription(
   setAvatarError: (value: string | null) => void,
   setLastAvatarSyncAt: (value: string | null) => void,
   setClosedSessionId: (value: string) => void,
+  onRuntimeEventRef: { current: ((event: RuntimeEvent) => void) | undefined },
 ): void {
   useEffect(() => {
     if (selectedScenarioId === null || session === null) return
@@ -241,6 +242,7 @@ function useAvatarAvailabilitySubscription(
       },
       onEvent: (event) => {
         if (event.sessionId !== sessionId) return
+        onRuntimeEventRef.current?.(event)
         if (event.type === 'runtime.session_closed') setClosedSessionId(sessionId)
         if (shouldRefreshAvatarAvailabilityFromEvent(event)) {
           void refreshAvailableAvatars()
@@ -260,6 +262,7 @@ function useAvatarAvailabilitySubscription(
     setAvatarError,
     setLastAvatarSyncAt,
     setClosedSessionId,
+    onRuntimeEventRef,
   ])
 }
 
@@ -344,4 +347,10 @@ function areAvatarListsEqual(
   const nextIds = next.map((avatar) => avatar.avatarId).join('|')
 
   return currentIds === nextIds
+}
+
+function useLatestRef<T>(value: T): { current: T } {
+  const ref = useRef(value)
+  ref.current = value
+  return ref
 }

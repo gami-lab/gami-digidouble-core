@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
-import type { JSX } from 'react'
+import type { JSX, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AvailableAvatarSummary } from '@gami/shared'
 import type { ActiveChatRuntimeState } from '../chat/use-active-chat-runtime'
 import { StoryCard } from '../flow/StoryScreens'
 import { useVoiceConversation, type VoiceConversationState } from '../voice/use-voice-conversation'
-import { getConversationPresence } from './conversation-presence'
+import { IdleHint } from '../moments/IdleHint'
+import { pickIdleHint, useIdleHint } from '../moments/use-idle-hint'
+import { getConversationPresence, type ConversationPresence } from './conversation-presence'
 import { Portrait } from './Portrait'
 import { TextComposer } from './TextComposer'
 import { Transcript } from './Transcript'
@@ -14,12 +16,15 @@ type ConversationScreenProps = {
   avatar: Pick<AvailableAvatarSummary, 'name' | 'presentation'>
   chat: ActiveChatRuntimeState
   onSwitch: () => void
+  /** A staged runtime moment; while shown, no idle hint is counted. */
+  notice: ReactNode
 }
 
 export function ConversationScreen({
   avatar,
   chat,
   onSwitch,
+  notice,
 }: ConversationScreenProps): JSX.Element {
   const { t } = useTranslation()
   const voice = useVoiceConversation(chat)
@@ -49,6 +54,14 @@ export function ConversationScreen({
         </p>
       </div>
       {caption !== null ? <p className="conversation-caption">{caption}</p> : null}
+      {notice}
+      <ConversationIdleHint
+        avatar={avatar}
+        chat={chat}
+        voice={voice}
+        presence={presence}
+        paused={notice !== null}
+      />
       {chat.conversationError !== null ? (
         <p className="error" role="alert">
           {chat.conversationError}
@@ -152,4 +165,35 @@ function latestReply(chat: ActiveChatRuntimeState): string | null {
   }
   const reply = [...chat.messages].reverse().find((message) => message.role === 'avatar')
   return reply?.content ?? null
+}
+
+type ConversationIdleHintProps = {
+  avatar: Pick<AvailableAvatarSummary, 'name' | 'presentation'>
+  chat: ActiveChatRuntimeState
+  voice: VoiceConversationState
+  presence: ConversationPresence
+  paused: boolean
+}
+
+/** Offers an unused starter question when the visitor stays silent on their turn. */
+function ConversationIdleHint({
+  avatar,
+  chat,
+  voice,
+  presence,
+  paused,
+}: ConversationIdleHintProps): JSX.Element | null {
+  const idle = useIdleHint({
+    enabled: !paused && (presence === 'yourTurn' || presence === 'listening'),
+    activityKey: `${String(chat.messages.length)}|${chat.composerValue}|${String(voice.hearing)}`,
+  })
+  if (!idle) return null
+  const asked = chat.messages.filter((message) => message.role === 'user').map((m) => m.content)
+  return (
+    <IdleHint
+      avatarName={avatar.name}
+      question={pickIdleHint(avatar.presentation?.starterQuestions ?? [], asked)}
+      onAsk={chat.sendMessage}
+    />
+  )
 }

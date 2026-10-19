@@ -476,3 +476,48 @@ button:disabled {
   text-decoration: underline;
   cursor: pointer;
 }
+
+.moment,
+.idle-hint {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid var(--line-200);
+  border-radius: var(--radius-md);
+  background: var(--surface-000);
+  box-shadow: 0 8px 24px rgba(17, 38, 82, 0.08);
+}
+
+.moment-unlocked {
+  border-color: #9fd9bd;
+}
+
+.moment-suggested {
+  border-color: #a9bdf5;
+}
+
+.moment-body {
+  display: grid;
+  gap: 6px;
+}
+
+.moment-line,
+.idle-hint-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.moment-hook {
+  margin: 0;
+  color: var(--ink-500);
+}
+
+.idle-hint {
+  display: grid;
+  gap: 8px;
+}
+
+.idle-hint p {
+  margin: 0;
+}

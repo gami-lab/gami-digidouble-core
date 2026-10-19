@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type {
+  RuntimeEvent,
   AvailableAvatarSummary,
   ConversationSummary,
   PublicScenarioSummary,
@@ -226,6 +227,48 @@ describe('character cards and switching', () => {
     await screen.findByLabelText('Your message')
 
     await click('Talk to someone else')
+    await click('Talk to Elias')
+
+    await waitFor(() => {
+      expect(switchAvatar).toHaveBeenCalledWith('session_1', { avatarId: 'avatar_elias' })
+    })
+    expect(await screen.findByRole('heading', { name: 'Elias' })).toBeTruthy()
+  })
+})
+
+describe('staged runtime moments', () => {
+  it('stages a suggestion as an in-world nudge and switches only when the visitor accepts', async () => {
+    let onEvent: ((event: RuntimeEvent) => void) | undefined
+    vi.mocked(subscribeToRuntimeEvents).mockImplementation((_, handlers) => {
+      onEvent = handlers.onEvent
+      return { close: vi.fn() }
+    })
+    vi.mocked(switchAvatar).mockResolvedValue({
+      ...conversation,
+      conversationId: 'conversation_2',
+      avatarId: 'avatar_elias',
+    })
+    await reachCharacterChoice()
+    await click('Talk to Clara')
+    await screen.findByLabelText('Your message')
+
+    const suggestion: RuntimeEvent = {
+      eventId: 'event_suggest',
+      sessionId: 'session_1',
+      type: 'runtime.avatar_suggested',
+      occurredAt: '2026-10-19T00:00:01.000Z',
+      payload: { suggestedAvatarId: 'avatar_elias', reason: 'GM reasoning text' },
+    }
+    act(() => {
+      onEvent?.(suggestion)
+      onEvent?.(suggestion)
+    })
+
+    expect(await screen.findByText('Elias might have something to tell you.')).toBeTruthy()
+    expect(screen.getAllByText('Elias might have something to tell you.')).toHaveLength(1)
+    expect(document.body.textContent).not.toContain('GM reasoning text')
+    expect(switchAvatar).not.toHaveBeenCalled()
+
     await click('Talk to Elias')
 
     await waitFor(() => {

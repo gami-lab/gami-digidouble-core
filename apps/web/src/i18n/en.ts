@@ -34,6 +34,17 @@ const en = {
     showTranscript: 'Show the conversation',
     hideTranscript: 'Hide the conversation',
   },
+  moments: {
+    unlocked: '{{name}} has joined the story.',
+    suggested: '{{name}} might have something to tell you.',
+    talkTo: 'Talk to {{name}}',
+    later: 'Not now',
+  },
+  hint: {
+    title: 'Not sure what to say?',
+    ask: 'Ask: “{{question}}”',
+    generic: 'Say anything to {{name}}. A simple hello works too.',
+  },
   presence: {
     joining: 'Joining…',
     listening: 'Listening…',

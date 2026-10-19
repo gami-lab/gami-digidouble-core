@@ -53,6 +53,7 @@ function createChat(
     setComposerValue: vi.fn(),
     startChatWithAvatar: vi.fn(),
     sendCurrentMessage: vi.fn(),
+    sendMessage: vi.fn(),
     sendVoiceMessage: vi.fn(),
     endCurrentConversation: vi.fn(),
     playMessageAudio: vi.fn(),

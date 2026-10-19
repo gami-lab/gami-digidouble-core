@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ConversationSummary } from '@gami/shared'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import i18n from '../i18n/index'
@@ -41,6 +41,7 @@ function createChat(overrides: Partial<ActiveChatRuntimeState> = {}): ActiveChat
     setComposerValue: vi.fn(),
     startChatWithAvatar: vi.fn(),
     sendCurrentMessage: vi.fn(),
+    sendMessage: vi.fn(),
     sendVoiceMessage: vi.fn(),
     endCurrentConversation: vi.fn(),
     playMessageAudio: vi.fn(),
@@ -66,7 +67,7 @@ function mockVoice(overrides: Partial<VoiceConversationState> = {}): VoiceConver
 }
 
 function renderScreen(chat = createChat(), onSwitch = vi.fn()): void {
-  render(<ConversationScreen avatar={clara} chat={chat} onSwitch={onSwitch} />)
+  render(<ConversationScreen avatar={clara} chat={chat} onSwitch={onSwitch} notice={null} />)
 }
 
 beforeEach(async () => {
@@ -94,7 +95,7 @@ describe('voice-first conversation screen', () => {
   it('announces listening, thinking, and speaking in one polite status', () => {
     mockVoice({ enabled: true, phase: 'listening' })
     const { rerender } = render(
-      <ConversationScreen avatar={clara} chat={createChat()} onSwitch={vi.fn()} />,
+      <ConversationScreen avatar={clara} chat={createChat()} onSwitch={vi.fn()} notice={null} />,
     )
     const status = screen.getByRole('status')
     expect(status.getAttribute('aria-live')).toBe('polite')
@@ -106,13 +107,14 @@ describe('voice-first conversation screen', () => {
         avatar={clara}
         chat={createChat({ sendStatus: 'streaming' })}
         onSwitch={vi.fn()}
+        notice={null}
       />,
     )
     expect(screen.getByRole('status').textContent).toBe('Thinking…')
 
     mockVoice({ enabled: true, phase: 'speaking' })
     const speaking = createChat({ audio: { messageId: 'm2', status: 'playing', errorCode: null } })
-    rerender(<ConversationScreen avatar={clara} chat={speaking} onSwitch={vi.fn()} />)
+    rerender(<ConversationScreen avatar={clara} chat={speaking} onSwitch={vi.fn()} notice={null} />)
     expect(screen.getByRole('status').textContent).toBe('Speaking…')
   })
 
@@ -139,7 +141,6 @@ describe('voice-first conversation screen', () => {
     expect(screen.getByText('Hello')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Hide the conversation' })).toBeTruthy()
   })
-
 })
 
 describe('conversation fallbacks and actions', () => {
@@ -210,9 +211,100 @@ describe('conversation fallbacks and actions', () => {
   it('shows an initial when no portrait is authored', () => {
     mockVoice()
     render(
-      <ConversationScreen avatar={{ name: 'margot' }} chat={createChat()} onSwitch={vi.fn()} />,
+      <ConversationScreen
+        avatar={{ name: 'margot' }}
+        chat={createChat()}
+        onSwitch={vi.fn()}
+        notice={null}
+      />,
     )
 
     expect(screen.getByRole('img', { name: 'margot' }).textContent).toBe('M')
+  })
+})
+
+describe('idle hint', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  const withQuestions = {
+    name: 'Clara',
+    presentation: { starterQuestions: ['Hello', 'What did you see?'] },
+  }
+
+  it('offers an unused starter question after the visitor stays silent', () => {
+    vi.useFakeTimers()
+    mockVoice()
+    const chat = createChat()
+    render(
+      <ConversationScreen avatar={withQuestions} chat={chat} onSwitch={vi.fn()} notice={null} />,
+    )
+    expect(screen.queryByText('Not sure what to say?')).toBeNull()
+
+    act(() => {
+      vi.advanceTimersByTime(20_000)
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ask: “What did you see?”' }))
+    expect(chat.sendMessage).toHaveBeenCalledWith('What did you see?')
+  })
+
+  it('does not appear while the character is speaking or a moment is shown', () => {
+    vi.useFakeTimers()
+    mockVoice()
+    const speaking = createChat({ audio: { messageId: 'm2', status: 'playing', errorCode: null } })
+    const { rerender } = render(
+      <ConversationScreen
+        avatar={withQuestions}
+        chat={speaking}
+        onSwitch={vi.fn()}
+        notice={null}
+      />,
+    )
+    act(() => {
+      vi.advanceTimersByTime(60_000)
+    })
+    expect(screen.queryByText('Not sure what to say?')).toBeNull()
+
+    rerender(
+      <ConversationScreen
+        avatar={withQuestions}
+        chat={createChat()}
+        onSwitch={vi.fn()}
+        notice={<p>moment</p>}
+      />,
+    )
+    act(() => {
+      vi.advanceTimersByTime(60_000)
+    })
+    expect(screen.queryByText('Not sure what to say?')).toBeNull()
+  })
+
+  it('disappears on visitor input', () => {
+    vi.useFakeTimers()
+    mockVoice()
+    const { rerender } = render(
+      <ConversationScreen
+        avatar={withQuestions}
+        chat={createChat()}
+        onSwitch={vi.fn()}
+        notice={null}
+      />,
+    )
+    act(() => {
+      vi.advanceTimersByTime(20_000)
+    })
+    expect(screen.getByText('Not sure what to say?')).toBeTruthy()
+
+    rerender(
+      <ConversationScreen
+        avatar={withQuestions}
+        chat={createChat({ composerValue: 'W' })}
+        onSwitch={vi.fn()}
+        notice={null}
+      />,
+    )
+    expect(screen.queryByText('Not sure what to say?')).toBeNull()
   })
 })

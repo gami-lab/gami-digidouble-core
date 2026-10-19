@@ -34,6 +34,17 @@ const fr = {
     showTranscript: 'Afficher la conversation',
     hideTranscript: 'Masquer la conversation',
   },
+  moments: {
+    unlocked: '{{name}} rejoint l’histoire.',
+    suggested: '{{name}} aurait peut-être quelque chose à vous dire.',
+    talkTo: 'Parler à {{name}}',
+    later: 'Plus tard',
+  },
+  hint: {
+    title: 'Vous ne savez pas quoi dire ?',
+    ask: 'Demandez : « {{question}} »',
+    generic: 'Dites ce que vous voulez à {{name}}. Un simple bonjour suffit.',
+  },
   presence: {
     joining: 'Arrive…',
     listening: 'Écoute…',

@@ -1,4 +1,4 @@
-import type { JSX } from 'react'
+import type { JSX, ReactNode } from 'react'
 import type { PublicScenarioSummary } from '@gami/shared'
 import { ConversationScreen } from '../conversation/ConversationScreen'
 import type { ActiveChatRuntimeState } from '../chat/use-active-chat-runtime'
@@ -17,6 +17,8 @@ import {
 
 type FlowScreenProps = {
   flow: FlowState
+  /** A staged runtime moment, shown on character choice and in the conversation. */
+  notice: ReactNode
   dispatch: (event: FlowEvent) => void
   discovery: ScenarioAvatarDiscoveryState
   chat: ActiveChatRuntimeState
@@ -59,9 +61,10 @@ const SCENARIO_SCREENS: Record<ScenarioStep, (props: ScenarioScreenProps) => JSX
       />
     )
   },
-  characterChoice: ({ scenario, discovery, chat, dispatch }) => (
+  characterChoice: ({ scenario, discovery, chat, dispatch, notice }) => (
     <CharacterChoiceScreen
       scenario={scenario}
+      notice={notice}
       avatars={discovery.avatars}
       loading={discovery.avatarStatus === 'loading'}
       error={chat.conversationError ?? discovery.avatarError}
@@ -72,8 +75,9 @@ const SCENARIO_SCREENS: Record<ScenarioStep, (props: ScenarioScreenProps) => JSX
       onBack={back(dispatch)}
     />
   ),
-  conversation: ({ scenario, discovery, chat, dispatch }) => (
+  conversation: ({ scenario, discovery, chat, dispatch, notice }) => (
     <ConversationScreen
+      notice={notice}
       avatar={
         discovery.avatars.find((item) => item.avatarId === chat.activeAvatarId) ?? {
           name: scenario.name,

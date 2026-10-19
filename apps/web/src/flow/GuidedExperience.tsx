@@ -9,6 +9,7 @@ import {
   persistLocalWebRuntimeState,
   readLocalWebRuntimeState,
 } from '../runtime/local-runtime-state'
+import { useRuntimeMoments, type RuntimeMoments } from '../moments/use-runtime-moments'
 import { FlowScreen } from './FlowScreen'
 import { INITIAL_FLOW_STATE, flowReducer, type FlowEvent, type FlowState } from './flow-state'
 
@@ -17,13 +18,17 @@ type Dispatch = (event: FlowEvent) => void
 export function GuidedExperience({ userId }: { userId: string }): JSX.Element {
   const remembered = useMemo(() => readLocalWebRuntimeState(userId), [userId])
   const [flow, dispatch] = useReducer(flowReducer, INITIAL_FLOW_STATE)
+  const runtimeEventRef = useRef<RuntimeMoments['onRuntimeEvent'] | null>(null)
   const discovery = useScenarioAvatarDiscovery(userId, {
     initialSelectedScenarioId: remembered?.selectedScenarioId ?? null,
+    onRuntimeEvent: (event) => runtimeEventRef.current?.(event),
   })
   const chat = useActiveChatRuntime(discovery.session, {
     initialActiveAvatarId: remembered?.activeAvatarId ?? null,
     initialConversationId: remembered?.conversationId ?? null,
   })
+  const moments = useRuntimeMoments(discovery.session?.sessionId ?? null, discovery.avatars, chat)
+  runtimeEventRef.current = moments.onRuntimeEvent
   const endRequestedRef = useRef(false)
 
   useLoadedScenarios(discovery, remembered, dispatch)
@@ -45,6 +50,9 @@ export function GuidedExperience({ userId }: { userId: string }): JSX.Element {
       flow={flow}
       dispatch={dispatch}
       discovery={discovery}
+      notice={moments.render(() => {
+        dispatch({ type: 'conversationStarted' })
+      })}
       chat={{
         ...chat,
         endCurrentConversation: () => {

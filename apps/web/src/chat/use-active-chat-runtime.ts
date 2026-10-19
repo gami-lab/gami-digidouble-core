@@ -52,6 +52,8 @@ export type ActiveChatRuntimeState = {
   /** Opens a conversation (switching away from the current one); `firstMessage` is then sent. */
   startChatWithAvatar: (avatarId: string, firstMessage?: string) => void
   sendCurrentMessage: () => void
+  /** Sends `content` through the same path as typed text, leaving the composer untouched. */
+  sendMessage: (content: string) => void
   /** Sends one recorded utterance; the transcript replaces the pending bubble. */
   sendVoiceMessage: (audio: Blob, durationMs?: number) => void
   endCurrentConversation: () => void
@@ -211,6 +213,7 @@ export function useActiveChatRuntime(
     setComposerValue,
     startChatWithAvatar,
     sendCurrentMessage,
+    sendMessage: sendText,
     sendVoiceMessage,
     endCurrentConversation,
     playMessageAudio: messageAudio.playMessageAudio,

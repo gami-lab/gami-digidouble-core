@@ -72,6 +72,10 @@ These are easy to regress silently because they are policy, not type-level const
   character goes through `switch-avatar`; the presence state (listening/thinking/speaking) comes
   from one pure mapper and is announced in a polite live region; a denied or missing microphone
   leaves a working text mode.
+- Player moments: GM unlocks and suggestions become staged moments only for the current session,
+  once per event id, never while the character is thinking or speaking, never with GM reasons,
+  and a suggestion switches only on the visitor's action. The idle hint fires once per idle period,
+  only on the visitor's turn, and clears on input.
 - Scenario model selection: every slot in `SCENARIO_MODEL_SLOTS` round-trips through API create/
   update and Postgres read-back, and each runtime role honors its scenario slot before the default.
 - User persona: partial/empty persona handling, prompt injection only when persona data is present,
