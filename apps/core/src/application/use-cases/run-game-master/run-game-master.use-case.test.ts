@@ -580,7 +580,7 @@ describe('RunGameMasterUseCase — runtime event publication unlocks', () => {
 })
 
 describe('RunGameMasterUseCase — runtime event publication guidance', () => {
-  it('emits runtime.avatar_suggested when suggestedAvatarId is present', async () => {
+  it('emits runtime.avatar_suggested with the target only, never the GM reason', async () => {
     const useCase = createUseCase()
     listAvatarsByScenarioIdMock.mockResolvedValue([
       makeAvatar({ avatarId: 'avatar_1', name: 'Ava' }),
@@ -611,10 +611,7 @@ describe('RunGameMasterUseCase — runtime event publication guidance', () => {
     })
 
     const suggested = runtimeEvents().find((event) => event.type === 'runtime.avatar_suggested')
-    expect(suggested?.payload).toEqual({
-      suggestedAvatarId: 'avatar_2',
-      reason: 'Better context',
-    })
+    expect(suggested?.payload).toEqual({ suggestedAvatarId: 'avatar_2' })
   })
 })
 

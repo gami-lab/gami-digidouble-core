@@ -22,7 +22,7 @@ import {
   startConversation,
   switchAvatar,
 } from './api/conversations'
-import { upsertUserPersona } from './api/users'
+import { updateUserPersonaField } from './api/users'
 import { LOCAL_WEB_RUNTIME_STORAGE_KEY } from './runtime/local-runtime-state'
 
 vi.mock('./api/player-session', () => ({ getPlayer: vi.fn() }))
@@ -33,7 +33,7 @@ vi.mock('./api/sessions', () => ({
   startSession: vi.fn(),
 }))
 vi.mock('./api/runtime-events-stream', () => ({ subscribeToRuntimeEvents: vi.fn() }))
-vi.mock('./api/users', () => ({ upsertUserPersona: vi.fn() }))
+vi.mock('./api/users', () => ({ updateUserPersonaField: vi.fn() }))
 vi.mock('./api/conversations', () => ({
   startConversation: vi.fn(),
   sendMessageStream: vi.fn(),
@@ -122,7 +122,7 @@ beforeEach(async () => {
   vi.mocked(startSession).mockResolvedValue({ ...session, sessionId: 'session_2' })
   vi.mocked(getAvailableAvatarsForSession).mockResolvedValue([clara, elias])
   vi.mocked(subscribeToRuntimeEvents).mockReturnValue({ close: vi.fn() })
-  vi.mocked(upsertUserPersona).mockResolvedValue({
+  vi.mocked(updateUserPersonaField).mockResolvedValue({
     userId: 'player_1',
     persona: { name: 'Inspector Vega' },
     createdAt: '2026-10-19T00:00:00.000Z',
@@ -140,7 +140,7 @@ afterEach(() => {
 describe('guided player flow', () => {
   it('goes from landing to the first message, saving the in-world answer', async () => {
     await reachCharacterChoice()
-    expect(upsertUserPersona).toHaveBeenCalledWith({ name: 'Inspector Vega' })
+    expect(updateUserPersonaField).toHaveBeenCalledWith('name', 'Inspector Vega')
 
     await click('Talk to Clara')
     const composer = await screen.findByLabelText('Your message')
@@ -179,7 +179,7 @@ describe('guided player flow', () => {
     await click('Skip')
 
     expect(await screen.findByRole('heading', { name: 'Who do you want to talk to?' })).toBeTruthy()
-    expect(upsertUserPersona).not.toHaveBeenCalled()
+    expect(updateUserPersonaField).not.toHaveBeenCalled()
   })
 
   it('keeps Shift+Enter as a newline instead of sending', async () => {
@@ -189,6 +189,7 @@ describe('guided player flow', () => {
     fireEvent.change(composer, { target: { value: 'Line one' } })
 
     fireEvent.keyDown(composer, { key: 'Enter', shiftKey: true })
+    fireEvent.keyDown(composer, { key: 'Enter', isComposing: true })
 
     expect(sendMessageStream).not.toHaveBeenCalled()
   })
@@ -250,7 +251,53 @@ describe('character cards and switching', () => {
   })
 })
 
+describe('returning to the current character', () => {
+  it('goes back to the live conversation instead of opening a new one', async () => {
+    await reachCharacterChoice()
+    await click('Talk to Clara')
+    await screen.findByLabelText('Your message')
+
+    await click('Talk to someone else')
+    await click('What did you see last night?')
+
+    await waitFor(() => {
+      expect(sendMessageStream).toHaveBeenCalledWith(
+        'conversation_1',
+        { message: { content: 'What did you see last night?' } },
+        expect.anything(),
+        expect.anything(),
+      )
+    })
+    expect(switchAvatar).not.toHaveBeenCalled()
+    expect(startConversation).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('heading', { name: 'Clara' })).toBeTruthy()
+  })
+})
+
 describe('staged runtime moments', () => {
+  it('shows the outro when Core closes the session', async () => {
+    let onEvent: ((event: RuntimeEvent) => void) | undefined
+    vi.mocked(subscribeToRuntimeEvents).mockImplementation((_, handlers) => {
+      onEvent = handlers.onEvent
+      return { close: vi.fn() }
+    })
+    await reachCharacterChoice()
+    await click('Talk to Clara')
+    await screen.findByLabelText('Your message')
+
+    act(() => {
+      onEvent?.({
+        eventId: 'event_closed',
+        sessionId: 'session_1',
+        type: 'runtime.session_closed',
+        occurredAt: '2026-10-19T00:00:02.000Z',
+        payload: {},
+      })
+    })
+
+    expect(await screen.findByText('The storm is passing.')).toBeTruthy()
+  })
+
   it('stages a suggestion as an in-world nudge and switches only when the visitor accepts', async () => {
     let onEvent: ((event: RuntimeEvent) => void) | undefined
     vi.mocked(subscribeToRuntimeEvents).mockImplementation((_, handlers) => {

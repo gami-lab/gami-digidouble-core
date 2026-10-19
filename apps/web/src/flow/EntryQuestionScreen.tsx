@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { JSX } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { PublicScenarioSummary, ScenarioEntryQuestion } from '@gami/shared'
-import { upsertUserPersona } from '../api/users'
+import { updateUserPersonaField } from '../api/users'
 import { BackButton, StoryCard } from './StoryScreens'
 
 type EntryQuestionScreenProps = {
@@ -27,7 +27,7 @@ export function EntryQuestionScreen({
     if (trimmed.length === 0) return
     setStatus('saving')
     try {
-      await upsertUserPersona({ [question.personaField]: trimmed })
+      await updateUserPersonaField(question.personaField, trimmed)
       onDone()
     } catch {
       setStatus('error')

@@ -59,21 +59,22 @@ Run in order: `00 -> 01 -> 02 -> 03 -> 04 -> 05`.
 
 ## Definition Of Done For The Full EPIC
 
-- [ ] Scenario and avatar presentation has one typed shared contract stored in `uiHints`, validated
+- [x] Scenario and avatar presentation has one typed shared contract stored in `uiHints`, validated
       at the API boundary, and ignored by Core orchestration.
-- [ ] Admin can author cover, tagline, entry question, outro text, portrait, hook, and 2–3 starter
+- [x] Admin can author cover, tagline, entry question, outro text, portrait, hook, and 2–3 starter
       questions; they round-trip to the player.
-- [ ] The player follows landing → intro → in-world question → character choice → conversation →
+- [x] The player follows landing → intro → in-world question → character choice → conversation →
       outro, with behavior tests for each state and transition.
-- [ ] Character cards show portrait, one-line hook, and starter questions; a starter question sends
+- [x] Character cards show portrait, one-line hook, and starter questions; a starter question sends
       the first message.
-- [ ] Voice-first screen shows listening / thinking / speaking states with an optional transcript.
-- [ ] `runtime.avatar_suggested` and `runtime.avatar_unlocked` render as staged narrative moments.
-- [ ] An idle hint appears when the visitor stalls.
-- [ ] Enter sends; Shift+Enter inserts a newline.
-- [ ] No technical wording or debug views in `apps/web`; debug views stay in `apps/console`.
+- [x] Voice-first screen shows listening / thinking / speaking states with an optional transcript.
+- [x] `runtime.avatar_suggested` and `runtime.avatar_unlocked` render as staged narrative moments.
+- [x] An idle hint appears when the visitor stalls.
+- [x] Enter sends; Shift+Enter inserts a newline.
+- [x] No technical wording or debug views in `apps/web`; debug views stay in `apps/console`.
 - [ ] Five hallway tests are recorded; a first-time visitor reaches the first exchange in under
-      30 seconds without explanation.
-- [ ] `docs/PROJECT_STATUS.md`, `docs/API_CONTRACT.md`, `docs/DATA_MODEL.md`,
+      30 seconds without explanation. (Protocol and instrumentation are in
+      `hallway-tests-2026-10-19.md`; the human sessions are still to be run.)
+- [x] `docs/PROJECT_STATUS.md`, `docs/API_CONTRACT.md`, `docs/DATA_MODEL.md`,
       `docs/ARCHITECTURE.md`, `docs/TEST_STRATEGY.md`, `docs/TEST_COVERAGE_PLAN.md`, and
       `docs/EPICS.md` are synchronized.

@@ -3,8 +3,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createApiError, type AvatarSummary, type ScenarioSummary } from '@gami/shared'
-import { updateAvatar, updateScenario } from '../api/scenarios'
-import { AvatarEditForm } from './ScenarioAvatarForms'
+import { createAvatar, updateAvatar, updateScenario } from '../api/scenarios'
+import { AvatarCreateForm, AvatarEditForm } from './ScenarioAvatarForms'
 import { ScenarioEditForm } from './ScenarioEditForm'
 
 vi.mock('../api/scenarios', () => ({
@@ -199,5 +199,48 @@ describe('avatar player presentation', () => {
     await waitFor(() => {
       expect(onError).toHaveBeenCalledWith(expect.stringContaining('presentation is invalid'))
     })
+  })
+})
+
+describe('presentation on create', () => {
+  function renderCreate(): void {
+    render(
+      <AvatarCreateForm
+        scenarioId="scenario_1"
+        scenarioLanguage="en"
+        onCancel={vi.fn()}
+        onCreated={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'Elias' } })
+    fireEvent.change(screen.getByLabelText(/Persona prompt/), {
+      target: { value: 'You are Elias.' },
+    })
+  }
+
+  it('sends authored avatar presentation with the new avatar', async () => {
+    vi.mocked(createAvatar).mockResolvedValue(avatar)
+    renderCreate()
+    fireEvent.change(screen.getByLabelText('One-line hook'), { target: { value: 'The doctor' } })
+    submit(/Create avatar/)
+
+    await waitFor(() => {
+      expect(createAvatar).toHaveBeenCalledWith(
+        'scenario_1',
+        expect.objectContaining({ presentation: { hook: 'The doctor' } }),
+      )
+    })
+  })
+
+  it('omits presentation when nothing is authored', async () => {
+    vi.mocked(createAvatar).mockResolvedValue(avatar)
+    renderCreate()
+    submit(/Create avatar/)
+
+    await waitFor(() => {
+      expect(createAvatar).toHaveBeenCalledTimes(1)
+    })
+    expect(vi.mocked(createAvatar).mock.calls[0]?.[1]).not.toHaveProperty('presentation')
   })
 })

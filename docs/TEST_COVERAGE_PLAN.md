@@ -66,7 +66,8 @@ These are easy to regress silently because they are policy, not type-level const
   scenario default -> global default only (never Avatar role/entity/scenario overrides).
 - Player presentation: create/update/clear round-trips through admin, PostgreSQL, and the player
   projections (`PublicScenarioSummary`, `AvailableAvatarSummary`); replacing `config` keeps it,
-  invalid input is `400`, and orchestration output is identical with or without it. Admin forms
+  invalid input is `400`, the route schema and the shared guards accept and reject the same
+  fixtures, and orchestration output is identical with or without it. Admin forms
   must keep the shared limits and send `null` when every field is emptied.
 - Player conversation: starter questions use the same send path as typed text; switching
   character goes through `switch-avatar`; the presence state (listening/thinking/speaking) comes

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { PRESENTATION_LIMITS, isAvatarPresentation, isScenarioPresentation } from '@gami/shared'
 import type {
   ApiResponse,
   AvatarSummary,
@@ -248,5 +249,55 @@ describe('player projections', () => {
     expect(
       response.json<ApiResponse<GetAvailableAvatarsResponse>>().data?.avatars[0]?.presentation,
     ).toEqual(authored)
+  })
+})
+
+describe('presentation rules: route schema and shared guard agree', () => {
+  const long = (max: number): string => 'x'.repeat(max + 1)
+  const scenarioCases: unknown[] = [
+    {},
+    scenarioPresentation,
+    { cover: 'https://cdn.example.com/a.png' },
+    { cover: 'ftp://cdn.example.com/a.png' },
+    { cover: `https://${long(PRESENTATION_LIMITS.imageUrlMaxLength)}` },
+    { tagline: long(PRESENTATION_LIMITS.taglineMaxLength) },
+    { introText: ' ' },
+    { outroText: long(PRESENTATION_LIMITS.outroTextMaxLength) },
+    { entryQuestion: { prompt: 'Who?', personaField: 'roleInWorld' } },
+    { entryQuestion: { prompt: 'Who?' } },
+    { entryQuestion: { prompt: 'Who?', personaField: 'name', extra: true } },
+    { tagline: 'ok', unknown: 'x' },
+  ]
+  const avatarCases: unknown[] = [
+    {},
+    avatarPresentation,
+    { portrait: 'not a url' },
+    { hook: long(PRESENTATION_LIMITS.hookMaxLength) },
+    { starterQuestions: [] },
+    { starterQuestions: ['a', 'b', 'c'] },
+    { starterQuestions: ['a', 'b', 'c', 'd'] },
+    { starterQuestions: [long(PRESENTATION_LIMITS.starterQuestionMaxLength)] },
+    { starterQuestions: ['  '] },
+    { hook: 'ok', accentColor: '#fff' },
+  ]
+
+  it.each(scenarioCases)('scenario %#', async (presentation) => {
+    const response = await makeApp().inject({
+      method: 'POST',
+      url: '/v1/admin/scenarios',
+      headers: adminJson,
+      payload: { name: 'Parity', presentation },
+    })
+    expect(response.statusCode === 201).toBe(isScenarioPresentation(presentation))
+  })
+
+  it.each(avatarCases)('avatar %#', async (presentation) => {
+    const response = await makeApp().inject({
+      method: 'PATCH',
+      url: '/v1/admin/avatars/avatar_1',
+      headers: adminJson,
+      payload: { presentation },
+    })
+    expect(response.statusCode === 200).toBe(isAvatarPresentation(presentation))
   })
 })

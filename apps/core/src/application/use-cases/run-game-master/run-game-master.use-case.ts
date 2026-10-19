@@ -482,10 +482,7 @@ export class RunGameMasterUseCase {
       this.emitRuntimeEvent({
         ...baseFields,
         type: 'runtime.avatar_suggested',
-        payload: {
-          suggestedAvatarId: output.routing.avatarId,
-          ...(output.routing.reason !== undefined ? { reason: output.routing.reason } : {}),
-        },
+        payload: { suggestedAvatarId: output.routing.avatarId },
       })
     }
   }

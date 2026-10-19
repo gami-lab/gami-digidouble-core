@@ -234,3 +234,73 @@ the GM `reason` leak on a public stream, and the unchecked dual encoding of pres
 
 **Close with debt** once the code items above are fixed; the EPIC stays open in `EPICS.md` until
 the hallway tests are recorded.
+
+## Remediation Outcome
+
+### Changes Made
+
+- **Re-picking the current character** returns to the live conversation; a starter question picked
+  there is sent into it. No `switch-avatar` call, no new conversation
+  (`startChatWithAvatar` in `use-active-chat-runtime.ts`).
+- **Entry answer merges into the persona**: `updateUserPersonaField` reads `GET /v1/me/persona` and
+  sends the stored fields plus the answer, so earlier answers survive.
+- **GM reasoning removed from the public stream**: `runtime.avatar_suggested` now carries only
+  `{ suggestedAvatarId }`; the reason stays in the GM event log. Both player-visible payloads are
+  documented in `GAME_MASTER_CONTRACT.md`.
+- **Schema/guard parity**: one table of accept/reject fixtures per entity runs through the real
+  route (Fastify/AJV) and the shared guard and requires the same verdict.
+- **Missing tests added**: `runtime.session_closed` → outro, IME composition does not send,
+  re-picking the current character, persona merge (new and existing player), admin avatar create
+  with and without presentation.
+- README Definition of Done ticked except the hallway tests; `TEST_COVERAGE_PLAN.md` names the
+  parity invariant.
+
+### Findings Resolved
+
+- Re-picking the current character ends their conversation — resolved and tested.
+- Entry answer overwrites the stored persona — resolved and tested.
+- GM reasoning on the public events stream — resolved, tested, and documented.
+- Presentation rules encoded twice without a parity check — parity test added. The two encodings
+  remain (route schema for boundary errors, guard for domain and persisted reads), but they can no
+  longer drift unnoticed.
+- Missing behavior tests at the flow boundary — resolved.
+
+### Findings Deferred
+
+- **Human Definition of Done** — the five hallway tests need real first-time visitors. Protocol and
+  instrumentation are ready in `hallway-tests-2026-10-19.md`; 12.2 stays open in `EPICS.md` until
+  they are recorded.
+- **Old sessions stay active after "Start again"** — low impact; left for session cleanup work.
+
+### Build Gates
+
+- lint: PASS
+- typecheck: PASS
+- tests: PASS — Core 1,330; web 146; admin 138; evaluation 88; console 33; shared 24
+- stack-e2e (rebuilt Docker stack): PASS — presentation, runtime-events stream, scenarios, avatars
+  (32 tests)
+- coverage: Core 87.63% statements / 84.75% branches
+
+### Final Feature Confidence
+
+Proven by behavior tests: typed presentation validation and clearing; schema/guard parity; admin →
+PostgreSQL → player round trip; orchestration isolation; admin authoring on create and edit; every
+flow transition, resume, restart, error, and session-closed outro; starter questions through the
+normal send path; switching and returning to the current character; persona merge; presence
+states and announcements; text fallback without a microphone; staged moments without GM reasons,
+de-duplicated and deferred while busy; idle hint timing; Enter, Shift+Enter, and IME handling.
+
+### Final Grade
+
+**A for the engineering scope.** Every code finding is resolved or knowingly deferred at low
+severity, all gates pass, and the key behaviors are proven at their boundaries. The EPIC itself is
+not closed: its human outcome (first exchange under 30 s for four of five first-time visitors) has
+no evidence until the hallway tests are run.
+
+### Remaining Risks
+
+- Real visitors may still hesitate on wording or voice permission prompts; only the hallway tests
+  will show it.
+- Presentation rules still live in two encodings; the parity test catches drift but adding a field
+  still touches the type, guard, schema, and admin form.
+- Intro media waits for EPIC 12.3; the intro is image and text only.

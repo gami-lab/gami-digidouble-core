@@ -104,6 +104,10 @@ Reducer rules:
   `scenario.avatarAvailability.initialAvatarIds`; the runtime ignores inactive, duplicate,
   already-unlocked, or invalid unlock targets. `GET /v1/sessions/{sessionId}/available-avatars`
   remains the player-facing source of truth for what's actually unlocked.
+- Player-visible runtime events on `GET /v1/sessions/{sessionId}/events/stream` carry ids only:
+  `runtime.avatar_unlocked` → `{ unlockedAvatarIds }`, `runtime.avatar_suggested` →
+  `{ suggestedAvatarId }`. GM reasons stay in the GM event log for operators; the player stages
+  these events as narrative moments and never switches automatically.
 
 ## Model resolution
 

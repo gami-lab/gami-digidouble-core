@@ -136,6 +136,10 @@ export function useActiveChatRuntime(
     restoreSetters,
   )
   function startChatWithAvatar(avatarId: string, firstMessage?: string): void {
+    if (avatarId === activeAvatarId && conversation !== null) {
+      if (firstMessage !== undefined) sendText(firstMessage)
+      return
+    }
     messageAudio.stopMessageAudio()
     pendingFirstMessageRef.current = firstMessage?.trim() || null
     startChat(session, avatarId, conversation !== null, conversationRequestIdRef, threadSetters, {
