@@ -1,4 +1,9 @@
-import type { KnowledgeSourceFormat, KnowledgeType } from '@gami/shared'
+import type {
+  AvatarPresentation,
+  KnowledgeSourceFormat,
+  KnowledgeType,
+  ScenarioPresentation,
+} from '@gami/shared'
 
 export type AvatarSlug = 'clara' | 'elias' | 'margot' | 'thomas'
 
@@ -9,6 +14,7 @@ export type AvatarSeed = {
   description: string
   personaPrompt: string
   initiallyUnlocked: boolean
+  presentation: AvatarPresentation
 }
 
 export type SourceVisibility =
@@ -34,6 +40,14 @@ export const AVATAR_SEEDS: AvatarSeed[] = [
     personaPrompt:
       'You are Clara Whitcombe, the housekeeper of Villa Miralac. You are observant, precise, and discreet. You are not the murderer. Help the investigator with concrete facts and careful reasoning. Mention other suspects when useful and avoid dramatic accusations without evidence.',
     initiallyUnlocked: true,
+    presentation: {
+      hook: 'The housekeeper who saw more than she says.',
+      starterQuestions: [
+        'What did you see last night?',
+        'Who was still awake after dinner?',
+        'Where were you when it happened?',
+      ],
+    },
   },
   {
     slug: 'elias',
@@ -43,6 +57,10 @@ export const AVATAR_SEEDS: AvatarSeed[] = [
     personaPrompt:
       'You are Dr. Elias Moreau, physician and old friend of Lionel Ardent. You are controlled and analytical. Do not confess unless confronted with a strong chain of evidence. Keep responses grounded, avoid theatrical behavior, and protect your interests under pressure.',
     initiallyUnlocked: false,
+    presentation: {
+      hook: 'The family doctor with an answer for everything.',
+      starterQuestions: ['How well did you know Lionel?', 'Where were you at eleven?'],
+    },
   },
   {
     slug: 'margot',
@@ -52,6 +70,10 @@ export const AVATAR_SEEDS: AvatarSeed[] = [
     personaPrompt:
       "You are Margot Vale, Lionel Ardent's niece. You are sharp, emotionally reactive, and under financial pressure. You are not the murderer. You may hide compromising details at first, then reveal them when pressed with specific evidence.",
     initiallyUnlocked: false,
+    presentation: {
+      hook: 'The niece with debts and a temper.',
+      starterQuestions: ['Why were you arguing with your uncle?', 'What are you hiding, Margot?'],
+    },
   },
   {
     slug: 'thomas',
@@ -61,6 +83,10 @@ export const AVATAR_SEEDS: AvatarSeed[] = [
     personaPrompt:
       'You are Thomas Reed, a journalist and former protege of Lionel Ardent. You are not the murderer. You initially protect your source and your reputation, but become more transparent under focused timeline questioning.',
     initiallyUnlocked: false,
+    presentation: {
+      hook: 'The journalist who never stops taking notes.',
+      starterQuestions: ['What were you writing about Lionel?', 'Who told you to come tonight?'],
+    },
   },
 ]
 
@@ -138,6 +164,17 @@ export const SOURCE_SEEDS: SourceSeed[] = [
     visibility: 'gm-only',
   },
 ]
+
+export const SCENARIO_PRESENTATION: ScenarioPresentation = {
+  tagline: 'A storm, a locked villa, and one guest who will not see morning.',
+  introText:
+    'Lake Miralac, late autumn. Lionel Ardent gathered his closest friends for dinner. By midnight he was dead in his study. The storm has cut the road, and nobody leaves until the truth comes out.',
+  entryQuestion: {
+    prompt: 'The housekeeper opens the door. "And you are…?"',
+    personaField: 'name',
+  },
+  outroText: 'The storm is passing. Whatever you found tonight, Villa Miralac will remember it.',
+}
 
 export const SCENARIO_WORLD_CONTEXT =
   'A storm traps four people inside Villa Miralac, an old house overlooking Lake Geneva. Lionel Ardent, the owner, is found dead in the winter garden shortly before midnight. The user plays an invited investigator who must question the suspects, reconstruct the timeline, compare memories, find contradictions, and identify the murderer among Clara, Elias, Margot, and Thomas.'

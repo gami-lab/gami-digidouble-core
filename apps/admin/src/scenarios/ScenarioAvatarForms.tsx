@@ -8,6 +8,7 @@ import {
 } from '@gami/shared'
 import type {
   AvatarComputedTraits,
+  AvatarPresentation,
   AvatarStatus,
   AvatarSummary,
   VoiceConfiguration,
@@ -22,6 +23,8 @@ import {
   type ModelSelectionFormValue,
 } from './model-selection-form'
 import { VoiceSelect } from '../voice/VoiceSelect'
+import { AvatarPresentationFields } from './PresentationFields'
+import { toAvatarPresentationPayload } from './presentation-form'
 
 type AvatarCreateFormProps = {
   scenarioId: string
@@ -43,6 +46,7 @@ export function AvatarCreateForm({
   const [avatarStatus, setAvatarStatus] = useState<AvatarStatus>('draft')
   const [modelOverride, setModelOverride] = useState<ModelSelectionFormValue>(EMPTY_MODEL_SELECTION)
   const [voiceConfig, setVoiceConfig] = useState<VoiceConfiguration | null>(null)
+  const [presentation, setPresentation] = useState<AvatarPresentation>({})
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(event: SyntheticEvent): Promise<void> {
@@ -50,12 +54,14 @@ export function AvatarCreateForm({
     if (name.trim().length === 0 || personaPrompt.trim().length === 0) return
     setSaving(true)
     try {
+      const presentationPayload = toAvatarPresentationPayload(presentation)
       const avatar = await createAvatar(scenarioId, {
         name: name.trim(),
         personaPrompt: personaPrompt.trim(),
         status: avatarStatus,
         llmOverride: mapAvatarOverride(modelOverride),
         ...(voiceConfig !== null ? { voiceConfig } : {}),
+        ...(presentationPayload !== null ? { presentation: presentationPayload } : {}),
       })
       onCreated(avatar)
     } catch (error: unknown) {
@@ -85,6 +91,8 @@ export function AvatarCreateForm({
       language={scenarioLanguage}
       voiceConfig={voiceConfig}
       onVoiceConfigChange={setVoiceConfig}
+      presentation={presentation}
+      onPresentationChange={setPresentation}
     />
   )
 }
@@ -111,6 +119,7 @@ export function AvatarEditForm({
   const [voiceConfig, setVoiceConfig] = useState<VoiceConfiguration | null>(
     avatar.voiceConfig ?? null,
   )
+  const [presentation, setPresentation] = useState<AvatarPresentation>(avatar.presentation ?? {})
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(event: SyntheticEvent): Promise<void> {
@@ -124,6 +133,7 @@ export function AvatarEditForm({
         status: avatarStatus,
         llmOverride: mapAvatarOverride(modelOverride),
         voiceConfig,
+        presentation: toAvatarPresentationPayload(presentation),
       })
       onSaved(updated)
     } catch (error: unknown) {
@@ -154,6 +164,8 @@ export function AvatarEditForm({
         language={scenarioLanguage}
         voiceConfig={voiceConfig}
         onVoiceConfigChange={setVoiceConfig}
+        presentation={presentation}
+        onPresentationChange={setPresentation}
       />
       {avatar.computedTraits !== undefined ? (
         <AvatarComputedTraitsView computedTraits={avatar.computedTraits} />
@@ -210,6 +222,8 @@ type AvatarFormProps = {
   language: string | undefined
   voiceConfig: VoiceConfiguration | null
   onVoiceConfigChange: (value: VoiceConfiguration | null) => void
+  presentation: AvatarPresentation
+  onPresentationChange: (value: AvatarPresentation) => void
 }
 
 function AvatarForm({
@@ -230,6 +244,8 @@ function AvatarForm({
   language,
   voiceConfig,
   onVoiceConfigChange,
+  presentation,
+  onPresentationChange,
 }: AvatarFormProps): JSX.Element {
   const hasPartialModelOverride = hasPartialModelSelection(modelOverride)
   const submitDisabled =
@@ -256,6 +272,13 @@ function AvatarForm({
           language={language}
           voiceConfig={voiceConfig}
           onVoiceConfigChange={onVoiceConfigChange}
+        />
+        <AvatarPresentationFields
+          idPrefix={`${idPrefix}-av`}
+          avatarName={name}
+          value={presentation}
+          disabled={saving}
+          onChange={onPresentationChange}
         />
         {hasPartialModelOverride ? (
           <p className="admin-error">
@@ -379,7 +402,8 @@ function AvatarFormFields({
             {
               id: `${idPrefix}-avatar-model`,
               label: 'Avatar model override',
-              description: 'Leave on inherit to use the scenario default or global avatar runtime config.',
+              description:
+                'Leave on inherit to use the scenario default or global avatar runtime config.',
               value: modelOverride,
             },
           ]}

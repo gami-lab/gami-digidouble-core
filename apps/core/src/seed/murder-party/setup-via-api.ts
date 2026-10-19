@@ -15,6 +15,7 @@ import {
   type AvatarSlug,
   getScenarioBaseConfig,
   SCENARIO_OBJECTIVES,
+  SCENARIO_PRESENTATION,
   SCENARIO_SEED_SLUG,
   SCENARIO_WORLD_CONTEXT,
   SOURCE_SEEDS,
@@ -170,6 +171,7 @@ async function ensureScenario(client: ApiClient, options: CliOptions): Promise<S
       language: 'en',
       worldContext: SCENARIO_WORLD_CONTEXT,
       objectives: SCENARIO_OBJECTIVES,
+      presentation: SCENARIO_PRESENTATION,
       config: scenarioConfig,
     })
     return created.scenario
@@ -181,6 +183,7 @@ async function ensureScenario(client: ApiClient, options: CliOptions): Promise<S
     language: 'en',
     worldContext: SCENARIO_WORLD_CONTEXT,
     objectives: SCENARIO_OBJECTIVES,
+    presentation: SCENARIO_PRESENTATION,
     config: {
       ...existing.config,
       ...scenarioConfig,
@@ -213,6 +216,7 @@ async function ensureAvatars(
       personaPrompt: seed.personaPrompt,
       tone: seed.tone,
       description: seed.description,
+      presentation: seed.presentation,
       config: {
         seedSlug: seed.slug,
         initiallyUnlocked: seed.initiallyUnlocked,

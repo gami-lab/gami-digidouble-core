@@ -1,9 +1,16 @@
 import { useState } from 'react'
 import type { JSX, SyntheticEvent } from 'react'
-import type { ScenarioStatus, ScenarioSummary, VoiceConfiguration } from '@gami/shared'
+import type {
+  ScenarioPresentation,
+  ScenarioStatus,
+  ScenarioSummary,
+  VoiceConfiguration,
+} from '@gami/shared'
 import { formatApiError } from '../api/error'
 import { updateScenario } from '../api/scenarios'
 import { ScenarioFormFields } from './ScenarioFormFields'
+import { ScenarioPresentationFields } from './PresentationFields'
+import { toScenarioPresentationPayload } from './presentation-form'
 import {
   fromScenarioModelSelection,
   hasPartialScenarioModelSelection,
@@ -34,6 +41,9 @@ export function ScenarioEditForm({
   const [voiceConfig, setVoiceConfig] = useState<VoiceConfiguration | null>(
     scenario.voiceConfig ?? null,
   )
+  const [presentation, setPresentation] = useState<ScenarioPresentation>(
+    scenario.presentation ?? {},
+  )
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e: SyntheticEvent): Promise<void> {
@@ -50,6 +60,7 @@ export function ScenarioEditForm({
         objectives,
         modelSelection: modelSelection ?? null,
         voiceConfig,
+        presentation: toScenarioPresentationPayload(presentation),
       })
       onSaved(updated)
     } catch (error: unknown) {
@@ -82,6 +93,12 @@ export function ScenarioEditForm({
           onObjectivesChange={setObjectives}
           onModelSelectionChange={setModelSelectionForm}
           onVoiceConfigChange={setVoiceConfig}
+        />
+        <ScenarioPresentationFields
+          idPrefix="edit-sc"
+          value={presentation}
+          disabled={saving}
+          onChange={setPresentation}
         />
         {hasPartialModelSelectionState ? (
           <p className="admin-error">

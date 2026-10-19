@@ -217,4 +217,36 @@ describe('player projections', () => {
     expect(avatars?.[0]?.presentation).toEqual(avatarPresentation)
     expect(response.body).not.toContain('hidden')
   })
+
+  it('round-trips admin-authored starter questions and portrait to the player', async () => {
+    const app = makeApp()
+    const authored = {
+      portrait: 'https://cdn.example.com/new.png',
+      starterQuestions: ['Where were you?'],
+    }
+    await app.inject({
+      method: 'PATCH',
+      url: '/v1/admin/avatars/avatar_1',
+      headers: adminJson,
+      payload: { presentation: authored },
+    })
+    const started = await app.inject({
+      method: 'POST',
+      url: '/v1/sessions',
+      headers: playerHeaders(),
+      payload: { scenarioId: 'scenario_1' },
+    })
+    const sessionId =
+      started.json<ApiResponse<{ session: { sessionId: string } }>>().data?.session.sessionId ?? ''
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/v1/sessions/${sessionId}/available-avatars`,
+      headers: playerHeaders(),
+    })
+
+    expect(
+      response.json<ApiResponse<GetAvailableAvatarsResponse>>().data?.avatars[0]?.presentation,
+    ).toEqual(authored)
+  })
 })

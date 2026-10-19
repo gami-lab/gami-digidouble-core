@@ -4,6 +4,8 @@ import { ADMIN_SERVICE_KEY_HEADER } from '@gami/shared'
 import type {
   ApiResponse,
   AvatarSummary,
+  CreateAvatarRequest,
+  CreateScenarioRequest,
   CreateKnowledgeSourceResponse,
   CreateKnowledgeSourceRequest,
   DeleteKnowledgeSourceResponse,
@@ -15,14 +17,17 @@ import type {
   KnowledgeType,
   KnowledgeVisibilityPolicy,
   PrepareAvatarTraitsResponse,
+  ScenarioSummary,
   ListKnowledgeSourcesResponse,
   StartKnowledgeReindexResponse,
   TriggerIngestionResponse,
   UpdateKnowledgeSourceRequest,
   UpdateKnowledgeSourceResponse,
+  UpdateAvatarRequest,
+  UpdateScenarioRequest,
 } from '@gami/shared'
 
-export type { AvatarSummary }
+export type { AvatarSummary, ScenarioSummary }
 
 export type {
   IngestionJobDto,
@@ -33,22 +38,6 @@ export type {
 }
 
 export type ApiEnvelope<T> = ApiResponse<T>
-
-export type ScenarioAvatarAvailability = {
-  initialAvatarIds: string[]
-  unlockableAvatarIds?: string[]
-}
-
-export type ScenarioSummary = {
-  scenarioId: string
-  name: string
-  status: 'draft' | 'active' | 'archived'
-  language: string
-  objectives: string[]
-  worldContext: string
-  avatarAvailability: ScenarioAvatarAvailability
-  config: Record<string, unknown>
-}
 
 export type CliOptions = {
   baseUrl: string
@@ -133,29 +122,13 @@ export class ApiClient {
     return this.request('GET', '/v1/admin/scenarios')
   }
 
-  createScenario(input: {
-    name: string
-    status: 'draft' | 'active' | 'archived'
-    language: string
-    objectives?: string[]
-    worldContext?: string
-    avatarAvailability?: ScenarioAvatarAvailability
-    config: Record<string, unknown>
-  }): Promise<{ scenario: ScenarioSummary }> {
+  createScenario(input: CreateScenarioRequest): Promise<{ scenario: ScenarioSummary }> {
     return this.request('POST', '/v1/admin/scenarios', input, [201])
   }
 
   updateScenario(
     scenarioId: string,
-    input: Partial<{
-      name: string
-      status: 'draft' | 'active' | 'archived'
-      language?: string
-      objectives: string[]
-      worldContext: string
-      avatarAvailability: ScenarioAvatarAvailability
-      config: Record<string, unknown>
-    }>,
+    input: UpdateScenarioRequest,
   ): Promise<{ scenario: ScenarioSummary }> {
     return this.request('PATCH', `/v1/admin/scenarios/${scenarioId}`, input)
   }
@@ -164,31 +137,11 @@ export class ApiClient {
     return this.request('GET', `/v1/admin/scenarios/${scenarioId}/avatars`)
   }
 
-  createAvatar(
-    scenarioId: string,
-    input: {
-      name: string
-      personaPrompt: string
-      tone: string
-      description: string
-      status: 'draft' | 'active' | 'archived'
-      config: Record<string, unknown>
-    },
-  ): Promise<{ avatar: AvatarSummary }> {
+  createAvatar(scenarioId: string, input: CreateAvatarRequest): Promise<{ avatar: AvatarSummary }> {
     return this.request('POST', `/v1/admin/scenarios/${scenarioId}/avatars`, input, [201])
   }
 
-  updateAvatar(
-    avatarId: string,
-    input: Partial<{
-      name: string
-      personaPrompt: string
-      tone: string
-      description: string
-      status: 'draft' | 'active' | 'archived'
-      config: Record<string, unknown>
-    }>,
-  ): Promise<{ avatar: AvatarSummary }> {
+  updateAvatar(avatarId: string, input: UpdateAvatarRequest): Promise<{ avatar: AvatarSummary }> {
     return this.request('PATCH', `/v1/admin/avatars/${avatarId}`, input)
   }
 

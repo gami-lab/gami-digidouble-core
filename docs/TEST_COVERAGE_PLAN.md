@@ -64,6 +64,10 @@ These are easy to regress silently because they are policy, not type-level const
   selection, per-avatar source visibility, rerunnable recomputation, persistence
   of `computedTraits` without mutating authored avatar fields, and model resolution through
   scenario default -> global default only (never Avatar role/entity/scenario overrides).
+- Player presentation: create/update/clear round-trips through admin, PostgreSQL, and the player
+  projections (`PublicScenarioSummary`, `AvailableAvatarSummary`); replacing `config` keeps it,
+  invalid input is `400`, and orchestration output is identical with or without it. Admin forms
+  must keep the shared limits and send `null` when every field is emptied.
 - Scenario model selection: every slot in `SCENARIO_MODEL_SLOTS` round-trips through API create/
   update and Postgres read-back, and each runtime role honors its scenario slot before the default.
 - User persona: partial/empty persona handling, prompt injection only when persona data is present,

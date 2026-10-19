@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import type { JSX, SyntheticEvent } from 'react'
-import type { ScenarioStatus, VoiceConfiguration } from '@gami/shared'
+import type { ScenarioPresentation, ScenarioStatus, VoiceConfiguration } from '@gami/shared'
 import { formatApiError } from '../api/error'
 import { createScenario } from '../api/scenarios'
 import { Breadcrumbs } from '../shell/Breadcrumbs'
 import { ScenarioFormFields } from './ScenarioFormFields'
+import { ScenarioPresentationFields } from './PresentationFields'
+import { toScenarioPresentationPayload } from './presentation-form'
 import {
   EMPTY_SCENARIO_MODEL_SELECTION,
   hasPartialScenarioModelSelection,
@@ -26,6 +28,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
   const [objectives, setObjectives] = useState<string[]>([])
   const [modelSelectionForm, setModelSelectionForm] = useState(EMPTY_SCENARIO_MODEL_SELECTION)
   const [voiceConfig, setVoiceConfig] = useState<VoiceConfiguration | null>(null)
+  const [presentation, setPresentation] = useState<ScenarioPresentation>({})
   const [createState, setCreateState] = useState<CreateState>({ status: 'idle' })
 
   async function handleSubmit(e: SyntheticEvent): Promise<void> {
@@ -34,6 +37,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
     setCreateState({ status: 'saving' })
     try {
       const modelSelection = toScenarioModelSelection(modelSelectionForm)
+      const presentationPayload = toScenarioPresentationPayload(presentation)
       const scenario = await createScenario({
         name: name.trim(),
         status,
@@ -42,6 +46,7 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
         worldContext: worldContext.trim(),
         ...(modelSelection !== undefined ? { modelSelection } : {}),
         ...(voiceConfig !== null ? { voiceConfig } : {}),
+        ...(presentationPayload !== null ? { presentation: presentationPayload } : {}),
       })
       onCreated(scenario.scenarioId)
     } catch (error: unknown) {
@@ -58,7 +63,9 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
 
   return (
     <section className="admin-card">
-      <Breadcrumbs items={[{ label: 'Scenarios', to: { name: 'scenario-list' } }, { label: 'New scenario' }]} />
+      <Breadcrumbs
+        items={[{ label: 'Scenarios', to: { name: 'scenario-list' } }, { label: 'New scenario' }]}
+      />
       <h2>Create scenario</h2>
       {createState.status === 'error' ? <p className="admin-error">{createState.message}</p> : null}
       <form onSubmit={(e) => void handleSubmit(e)}>
@@ -79,6 +86,12 @@ export function ScenarioCreatePage({ onBack, onCreated }: ScenarioCreatePageProp
           onObjectivesChange={setObjectives}
           onModelSelectionChange={setModelSelectionForm}
           onVoiceConfigChange={setVoiceConfig}
+        />
+        <ScenarioPresentationFields
+          idPrefix="sc"
+          value={presentation}
+          disabled={isSaving}
+          onChange={setPresentation}
         />
         {hasPartialModelSelectionState ? (
           <p className="admin-error">
