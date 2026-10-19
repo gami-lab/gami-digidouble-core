@@ -14,6 +14,9 @@ details live in `DATA_MODEL.md`; GM-specific usage rules live in `GAME_MASTER_CO
   provenance; it is not memory. Static source/chunk metadata cannot carry `userId`, `sessionId`, or
   `conversationId`, and is never converted into a conversational-memory record — even though static
   retrieval may use conversational text (e.g. a working-memory summary) as its query.
+- **Scenario media:** images and videos are media assets, neither knowledge nor memory. The Game
+  Master sees the cue-able catalogue as static scenario input, and which assets a session already
+  saw is read from `event_log`, not stored in any memory layer.
 
 ## Layers and owners
 

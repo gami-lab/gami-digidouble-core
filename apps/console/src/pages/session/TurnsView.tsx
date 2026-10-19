@@ -154,6 +154,9 @@ function TurnItem({
           <Badge tone="error">memory failed</Badge>
         ) : null}
         {trimmed > 0 ? <Badge tone="warn">{trimmed} trimmed</Badge> : null}
+        {entry.media.some((event) => event.type === 'media.cue_emitted') ? (
+          <Badge tone="accent">media</Badge>
+        ) : null}
       </div>
     </div>
   )

@@ -40,6 +40,8 @@ export function readOptionalStringField<
     | 'routingReason'
     | 'switchedAvatarId'
     | 'mediaCueAssetId'
+    | 'cueId'
+    | 'reason'
     | 'correlationId'
     | 'injectedNote'
     | 'errorCode'
@@ -69,7 +71,9 @@ export function readOptionalNumberField<
     | 'retrievalLatencyMs'
     | 'otherOverheadMs'
     | 'avatarFirstTokenLatencyMs'
-    | 'speechToTextLatencyMs',
+    | 'speechToTextLatencyMs'
+    | 'cueToReportMs'
+    | 'clientLatencyMs',
 >(value: Record<string, unknown>, key: T): Partial<Record<T, number>> {
   const field = readOptionalNumber(value[key])
   return field !== undefined ? ({ [key]: field } as Partial<Record<T, number>>) : {}

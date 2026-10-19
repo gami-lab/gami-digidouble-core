@@ -91,6 +91,8 @@ The comment-policy guardrail is tested independently with ESLint's `RuleTester` 
 - streaming ordering, interruption, cleanup, exact-once persistence, and JSON-route compatibility
 - voice identity/idempotency, cancellation, provider failures, and text-route continuity
 - audio lookup/format/size identity, transient delivery, and text fallback
+- media: exactly-once cues across retries and GM replays, GM cue validation against the run's
+  catalogue, cue ordering behind speech, and playback reports once per outcome
 
 ### Knowledge
 
@@ -108,6 +110,8 @@ The comment-policy guardrail is tested independently with ESLint's `RuleTester` 
 - API/shared DTO ownership and mapper behavior
 - model/provider resolution and unsupported configuration
 - PostgreSQL schema/index contract and Redis coordination behavior
+- media storage and delivery: streamed uploads with signature and size checks, the open file
+  route's active-scenario rule and `Range`, and reference/usage validation
 - admin actions and inspection redaction
 - frontend consumers use canonical routes and do not duplicate Core business rules
 
@@ -115,7 +119,8 @@ The comment-policy guardrail is tested independently with ESLint's `RuleTester` 
 
 Use null/fake adapters by default. Gate real OpenAI/Anthropic/Mistral/xAI, Deepgram, Gradium,
 PostgreSQL, Redis, and stack checks on explicit environment configuration (for example
-`OPENAI_API_KEY`, `TEST_DATABASE_URL`, `VOICE_STACK_E2E=1`, `DEEPGRAM_LIVE_SMOKE=1`). Recognized
+`OPENAI_API_KEY`, `TEST_DATABASE_URL`, `VOICE_STACK_E2E=1`, `DEEPGRAM_LIVE_SMOKE=1`). Stack flows
+that need prepared Avatars (the switch media cue) run only with a real `LLM_PROVIDER`. Recognized
 transient provider outages (429/5xx/timeout/no-credits) may be dynamically skipped in local and
 nightly runs but must remain visible in output; invalid credentials and unexpected adapter/contract
 failures still block the job.

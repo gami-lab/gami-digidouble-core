@@ -1,6 +1,12 @@
 import type { IEventLogRepository, StoredEvent } from '../../ports/IEventLogRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
-import type { GmUnlockEvaluation } from '@gami/shared'
+import {
+  MEDIA_CUE_ORIGINS,
+  MEDIA_SESSION_EVENT_TYPES,
+  isMediaKind,
+  type GmUnlockEvaluation,
+  type MediaSessionEventPayload,
+} from '@gami/shared'
 import { DomainError } from '../../../domain/errors.js'
 import type {
   GmSessionEventPayload,
@@ -78,8 +84,11 @@ const MEMORY_CONSOLIDATION_TYPES = new Set([
 
 const MESSAGE_AUDIO_TYPES = new Set(['message_audio_synthesized', 'message_audio_failed'])
 
+const MEDIA_TYPES = new Set<string>(MEDIA_SESSION_EVENT_TYPES)
+
 const ALLOWED_EVENT_TYPES = new Set([
   ...MESSAGE_AUDIO_TYPES,
+  ...MEDIA_TYPES,
   'gm_triggered',
   'gm_error',
   'turn_completed',
@@ -89,8 +98,9 @@ const ALLOWED_EVENT_TYPES = new Set([
 
 function toSafeSessionEvent(event: StoredEvent): SessionEventRecord[] {
   if (!ALLOWED_EVENT_TYPES.has(event.type)) return []
-  // Work outside a turn (conversation close, avatar switch) has only a request id.
-  const correlationId = event.correlationId ?? event.requestId
+  // Work outside a turn (conversation close, avatar switch) has only a request id; a media cue of
+  // an explicit switch has neither and is grouped by its cue.
+  const correlationId = event.correlationId ?? event.requestId ?? mediaGroupId(event)
   if (correlationId === undefined || event.createdAt === undefined) return []
 
   const payload = resolvePayload(event)
@@ -113,7 +123,32 @@ function resolvePayload(event: StoredEvent): SessionEventRecord['payload'] | nul
     return toSafeMemoryConsolidationPayload(event.payload)
   }
   if (event.type === 'turn_completed') return toSafeTurnCompletedPayload(event.payload)
+  if (MEDIA_TYPES.has(event.type)) return toSafeMediaPayload(event.payload)
   return toSafePayload(event.payload)
+}
+
+function mediaGroupId(event: StoredEvent): string | undefined {
+  if (!MEDIA_TYPES.has(event.type)) return undefined
+  return readOptionalString(event.payload['cueId']) ?? readOptionalString(event.payload['assetId'])
+}
+
+function toSafeMediaPayload(payload: Record<string, unknown>): MediaSessionEventPayload | null {
+  const assetId = readOptionalString(payload['assetId'])
+  if (assetId === undefined) return null
+  const origin = payload['origin']
+  const display = payload['display']
+  return {
+    assetId,
+    ...readOptionalStringField(payload, 'cueId'),
+    ...((MEDIA_CUE_ORIGINS as readonly unknown[]).includes(origin)
+      ? { origin: origin as NonNullable<MediaSessionEventPayload['origin']> }
+      : {}),
+    ...(isMediaKind(payload['kind']) ? { kind: payload['kind'] } : {}),
+    ...(display === 'fullscreen' || display === 'overlay' ? { display } : {}),
+    ...readOptionalStringField(payload, 'reason'),
+    ...readOptionalNumberField(payload, 'cueToReportMs'),
+    ...readOptionalNumberField(payload, 'clientLatencyMs'),
+  }
 }
 
 function toSafePayload(payload: Record<string, unknown>): GmSessionEventPayload {

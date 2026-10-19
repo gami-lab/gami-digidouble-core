@@ -28,6 +28,7 @@ import {
 } from '../../ui/ui'
 import { AvatarContextView } from './AvatarContextView'
 import { GmRunView, gmSummary } from './GmRunView'
+import { MediaEventsView } from './MediaEventsView'
 import { ConsolidationView, MemoryRunView } from './MemoryRunView'
 import { avatarName } from './SessionHeader'
 import type { SessionData } from './use-session-data'
@@ -107,6 +108,8 @@ export function TurnDetail({ entry, data }: { entry: TurnEntry; data: SessionDat
         ) : null}
         <RetrievalView trace={trace} items={items} sourceNames={data.sourceNames} />
       </Section>
+
+      <MediaEventsView events={entry.media} />
 
       <Section title="Game Master after this turn" aside={gmSummary(entry.gm, turn.hasGm)}>
         {entry.gm === null ? (
@@ -197,6 +200,7 @@ export function BackgroundDetail({
           <MemoryRunView run={run} />
         </Section>
       ))}
+      <MediaEventsView events={entry.media} />
       {entry.consolidation.map((step) => (
         <Section
           key={step.createdAt}

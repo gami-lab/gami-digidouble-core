@@ -1,3 +1,4 @@
+import type { MediaCueDisplay, MediaCueOrigin, MediaKind } from './media-contract-types.js'
 import type { ConversationEndReason, SessionMemoryLayers } from './lifecycle-types.js'
 import type {
   SharedGmWorkingMemory,
@@ -224,6 +225,29 @@ export type MessageAudioEventPayload = {
   errorCode?: string
 }
 
+export const MEDIA_SESSION_EVENT_TYPES = [
+  'media.cue_emitted',
+  'media.cue_skipped',
+  'media.playback_started',
+  'media.playback_completed',
+  'media.playback_skipped',
+  'media.playback_failed',
+] as const
+
+export type MediaSessionEventType = (typeof MEDIA_SESSION_EVENT_TYPES)[number]
+
+/** Bounded media cue and playback diagnostics; never a URL or a description. */
+export type MediaSessionEventPayload = {
+  cueId?: string
+  assetId: string
+  origin?: MediaCueOrigin
+  kind?: MediaKind
+  display?: MediaCueDisplay
+  reason?: string
+  cueToReportMs?: number
+  clientLatencyMs?: number
+}
+
 export type SessionEventRecord = {
   type:
     | 'gm_triggered'
@@ -236,6 +260,7 @@ export type SessionEventRecord = {
     | 'episodic_memory_generation_failed'
     | 'message_audio_synthesized'
     | 'message_audio_failed'
+    | MediaSessionEventType
   /** The turn's request id, or the event's own request id for work outside a turn. */
   correlationId: string
   createdAt: string
@@ -245,6 +270,7 @@ export type SessionEventRecord = {
     | MemoryRefreshEventPayload
     | MemoryConsolidationEventPayload
     | MessageAudioEventPayload
+    | MediaSessionEventPayload
 }
 
 export type AdminSessionEventsResponse = {

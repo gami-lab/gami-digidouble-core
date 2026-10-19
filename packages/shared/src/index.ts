@@ -185,6 +185,7 @@ export {
   parseMessageStreamEvent,
 } from './conversation-stream-contract-types.js'
 export { parseSseDataFrame, processSseFrames } from './sse.js'
+export { MEDIA_SESSION_EVENT_TYPES } from './runtime-inspector-types.js'
 export type { RuntimeEvent, RuntimeState, GetRuntimeStateResponse } from './runtime-types.js'
 export type {
   SharedMemoryFactRecord,
@@ -282,6 +283,8 @@ export type {
   GmSessionEventPayload,
   MemoryRefreshEventPayload,
   MemoryConsolidationEventPayload,
+  MediaSessionEventPayload,
+  MediaSessionEventType,
   MessageAudioEventPayload,
   TurnCompletedEventPayload,
   SessionEventRecord,

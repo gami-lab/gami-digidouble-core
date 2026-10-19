@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Message, SessionEventRecord, TurnCompletedEventPayload } from '@gami/shared'
-import { buildSessionTimeline } from './session-timeline'
+import { backgroundLabel, buildSessionTimeline } from './session-timeline'
 
 function message(id: string, role: Message['role'], createdAt: string): Message {
   return { messageId: id, conversationId: 'conv_1', role, content: id, createdAt }
@@ -157,5 +157,45 @@ describe('buildSessionTimeline audio', () => {
     )
 
     expect(entry?.kind === 'turn' && entry.audio?.payload.latencyMs).toBe(900)
+  })
+})
+
+describe('buildSessionTimeline media', () => {
+  function mediaEvent(
+    type: SessionEventRecord['type'],
+    correlationId: string,
+    createdAt: string,
+    cueToReportMs?: number,
+  ): SessionEventRecord {
+    return {
+      type,
+      correlationId,
+      createdAt,
+      payload: {
+        cueId: 'cue_1',
+        assetId: 'media_1',
+        origin: 'game_master',
+        ...(cueToReportMs !== undefined ? { cueToReportMs } : {}),
+      },
+    }
+  }
+
+  it('attaches a GM cue to its turn and a switch cue to its own entry', () => {
+    const timeline = buildSessionTimeline(
+      [
+        turnEvent('turn_1', '2026-10-19T10:00:01.000Z', 1),
+        mediaEvent('media.cue_emitted', 'turn_1', '2026-10-19T10:00:03.000Z'),
+        mediaEvent('media.playback_started', 'turn_1', '2026-10-19T10:00:04.000Z', 1000),
+        mediaEvent('media.cue_emitted', 'cue_switch', '2026-10-19T10:01:00.000Z'),
+      ],
+      {},
+    )
+
+    expect(timeline[0]?.media.map((event) => event.type)).toEqual([
+      'media.cue_emitted',
+      'media.playback_started',
+    ])
+    expect(timeline[1]).toMatchObject({ kind: 'background', id: 'cue_switch' })
+    expect(timeline[1]?.kind === 'background' && backgroundLabel(timeline[1])).toBe('Media cue')
   })
 })

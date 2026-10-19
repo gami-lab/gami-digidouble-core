@@ -1,6 +1,6 @@
 # Project status
 
-Last reviewed: 2026-10-18
+Last reviewed: 2026-10-19
 
 ## Snapshot
 
@@ -25,6 +25,10 @@ shipped platform includes:
   secret-free browser bundles
 - typed player presentation (cover, tagline, intro, entry question, outro; portrait, hook, starter
   questions) authored in admin, stored in `uiHints`, and ignored by orchestration
+- scenario media: image/video assets (upload or URL) on a storage port with an open `Range` file
+  route, presentation media slots, Avatar unlock/switch triggers, validated Game Master media cues,
+  exactly-once `runtime.media_cue` events, player playback with voice pause, and recorded
+  cue-to-playback timing
 
 See `EPICS.md` for the delivery ledger behind each capability and the open backlog. Contract-level
 detail for a specific area belongs in its owning document (`GAME_MASTER_CONTRACT.md`,
@@ -65,10 +69,11 @@ detail for a specific area belongs in its owning document (`GAME_MASTER_CONTRACT
 - `apps/web` — the guided public player: landing → intro → one in-world question → character cards
   with starter questions → voice-first conversation (portrait, one announced listening / thinking /
   speaking state, optional transcript, text fallback) → outro, with GM unlocks and suggestions
-  staged as narrative moments and an idle hint. Core-issued player identity, SSE runtime updates,
+  staged as narrative moments, an idle hint, intro/outro media, the Avatar idle loop, and media
+  cues played as fullscreen video or image overlay. Core-issued player identity, SSE runtime updates,
   autoplayed reply audio streamed as PCM with text fallback, and a hands-free voice loop.
-- `apps/admin` — the scenario-builder authoring app (scenarios, avatars, knowledge, model
-  selection), behind the admin sign-in.
+- `apps/admin` — the scenario-builder authoring app (scenarios, avatars, knowledge, media library
+  with slot and trigger pickers, model selection), behind the admin sign-in.
 - `tools/conversation-evaluation` — an external, authenticated CLI for scripted-conversation
   evaluation: semantic judging through an LLM judge, runtime latency/token metrics, per-model
   comparison reports, and a local dependency-free report viewer. It reuses shared API contracts and
@@ -86,14 +91,10 @@ that touches persistence, retrieval, or provider adapters.
 ## Current limitations
 
 - The guided public player (`EPICS.md` 12.2) is implemented but not yet validated with the five
-  first-time-visitor hallway tests; intro media waits for 12.3.
-- Multimedia (`EPICS.md` 12.3) is in progress: the shared media contract, presentation media
-  references, the media asset store (upload/URL, filesystem storage, open file route with `Range`)
-  exist, with the admin media library, slot pickers, Avatar media triggers, and a manifest-driven
-  media seed (`seed:media`, AVA placeholder manifest), and exactly-once `runtime.media_cue` events
-  for unlock and switch triggers and for validated Game Master `mediaCue` decisions, played by the
-  player (intro/outro/idle slots, fullscreen video and image cues with voice/TTS pause) with
-  playback timing recorded per cue. End-to-end verification on AVA and the doc sync remain.
+  first-time-visitor hallway tests.
+- Media playback has no captions, and uploaded media lives on one filesystem volume (no object
+  store, no transcoding or duration probing in Core). The deployed AVA scenario still needs its real
+  intro film uploaded (`EPICS.md` 12.3 follow-ups).
 - Evaluation measures factual recall only, not discovery pacing, persona, or GM decisions (`EPICS.md` 12.4).
 - The voice chain runs in series and has no end-to-end latency metric (`EPICS.md` 12.5).
 - No video avatar support (`EPICS.md` 12.6).

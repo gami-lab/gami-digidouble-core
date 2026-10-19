@@ -78,23 +78,24 @@ Run in order: `00 -> 01 -> 02 -> 03 -> 04 -> 05 -> 06`.
 
 ## Definition Of Done For The Full EPIC
 
-- [ ] Scenario-scoped image and video assets exist, by upload or URL, with kind, poster, duration,
+- [x] Scenario-scoped image and video assets exist, by upload or URL, with kind, poster, duration,
       and description; one shared contract owner.
-- [ ] Uploaded files are stored behind `IMediaStorage` and served with `Range` support from an
+- [x] Uploaded files are stored behind `IMediaStorage` and served with `Range` support from an
       open route that only exposes assets of active scenarios.
-- [ ] Presentation `cover`/`portrait` and the intro/outro/idle slots reference media assets.
-- [ ] Unlock and switch triggers fire exactly once per runtime event and are recorded in `event_log`.
-- [ ] GM `mediaCue` is validated against the scenario catalogue; invalid or unknown cues are ignored
+- [x] Presentation `cover`/`portrait` and the intro/outro/idle slots reference media assets.
+- [x] Unlock and switch triggers fire exactly once per runtime event and are recorded in `event_log`.
+- [x] GM `mediaCue` is validated against the scenario catalogue; invalid or unknown cues are ignored
       without affecting the turn, the GM state, or other GM decisions.
-- [ ] `runtime.media_cue` reaches the player in order on the session events stream.
-- [ ] The player shows full-screen video and image overlays with skip; the voice loop and TTS pause
+- [x] `runtime.media_cue` reaches the player in order on the session events stream.
+- [x] The player shows full-screen video and image overlays with skip; the voice loop and TTS pause
       during playback and resume afterwards.
-- [ ] Cue → playback timing is recorded per cue.
-- [ ] The `media` knowledge format is removed; no dual media path remains.
-- [ ] The AVA intro video plays at session start, and a GM cue shows an image during a live
-      conversation.
-- [ ] Every new endpoint has a stack-e2e file (auth, validation, not-found).
-- [ ] `docs/PROJECT_STATUS.md`, `docs/API_CONTRACT.md`, `docs/DATA_MODEL.md`,
+- [x] Cue → playback timing is recorded per cue.
+- [x] The `media` knowledge format is removed; no dual media path remains.
+- [x] The AVA intro video plays at session start, and a GM cue shows an image during a live
+      conversation (verified on the local stack with placeholder AVA media; see
+      `verification-2026-10-19.md`).
+- [x] Every new endpoint has a stack-e2e file (auth, validation, not-found).
+- [x] `docs/PROJECT_STATUS.md`, `docs/API_CONTRACT.md`, `docs/DATA_MODEL.md`,
       `docs/GAME_MASTER_CONTRACT.md`, `docs/ARCHITECTURE.md`, `docs/TECH_STACK.md`,
       `docs/MEMORY_SYSTEM_SPEC.md` (knowledge vs media), `docs/TEST_STRATEGY.md`,
       `docs/TEST_COVERAGE_PLAN.md`, and `docs/EPICS.md` are synchronized.

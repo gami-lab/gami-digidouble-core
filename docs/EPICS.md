@@ -272,11 +272,26 @@ HMAC token, `userId` comes only from it, and another player's session or convers
 limits, and per-tier CORS bound abuse. The shared `x-api-key` and `VITE_API_KEY` are gone, CI scans
 the built bundles for secrets, and nginx sends CSP and framing headers.
 
+#### `12.3 Multimedia: Media Assets, Slots, and Cues` ✅ Done
+
+Scenario-scoped image and video assets (upload streamed to a filesystem volume behind
+`IMediaStorage`, or URL) replace the retired `media` knowledge type; an open file route serves
+uploads of active scenarios with `Range`. Presentation cover/portrait and intro, outro, and idle
+slots reference assets, Avatars carry `onUnlock`/`onSwitchTo` media triggers, and the admin library
+uploads (browser-read duration and poster), describes, and assigns them. Unlock and switch triggers
+and validated Game Master `mediaCue` decisions (from a bounded, once-per-session catalogue) emit an
+exactly-once `runtime.media_cue`; the player plays videos full screen and images as an overlay
+after the character's speech, pauses the voice loop meanwhile, and reports playback so cue-to-play
+timing is recorded per cue. Verified live: intro video at session start, a GM-cued image, and an
+unlock video (`docs/implementation-prompts/epic-12-3-multimedia/verification-2026-10-19.md`).
+Follow-ups: upload the real AVA intro film on the deployed stack; captions; an object-store
+storage adapter when one volume is no longer enough.
+
 ## Open Backlog
 
 Reviewed 2026-10-18 against the code, the evaluation reports, and the live AVA scenario. Order of
-work: 12.4 and the 12.5 end-to-end metric first; then 12.3, 12.2 and per-sentence speech;
-12.6 last, because it needs per-sentence audio (12.5) and the player media layer (12.3).
+work: 12.4 and the 12.5 end-to-end metric first; then 12.2 and per-sentence speech; 12.6 last,
+because it needs per-sentence audio (12.5); the player media layer (12.3) has shipped.
 
 ### `12.2 Public Experience UI`
 
@@ -288,8 +303,7 @@ character cards, starter questions, a voice-first screen with one announced pres
 optional transcript, staged unlock/suggestion moments, an idle hint, and Enter-to-send. It logs the
 time to first exchange to the browser console. Remaining: the five hallway tests in
 `implementation-prompts/epic-12-2-public-experience-ui/hallway-tests-2026-10-19.md`, and any fixes
-they reveal. Intro media waits for 12.3; the intro is image and text until then. Absorbs the
-player-facing scope of 6.3.
+they reveal. Intro media shipped with 12.3. Absorbs the player-facing scope of 6.3.
 
 **Purpose**  
 Turn the demo player into a guided experience a first-time visitor understands without help.
@@ -301,7 +315,7 @@ which Core orchestration ignores.
 
 **Includes**
 
-- flow: landing → intro media (12.3) → one in-world question → character choice → conversation → outro
+- flow: landing → intro (with 12.3 media) → one in-world question → character choice → conversation → outro
 - character cards: portrait, one-line hook, two or three starter questions
 - voice-first screen with listening / thinking / speaking states and optional transcript
 - GM suggestions and unlocks presented as narrative moments
@@ -324,47 +338,6 @@ which Core orchestration ignores.
 **User increment**
 
 - the public player feels like an experience instead of a test console
-
-### `12.3 Multimedia: Media Assets, Slots, and Cues`
-
-**Current state**  
-A `media` knowledge source becomes one chunk holding a description and `mediaUri`; there is no
-file storage. Media can be retrieved into Avatar/GM context, but the GM output has no media field,
-no runtime event exists, and the player renders nothing.
-
-**Purpose**  
-Let scenarios show images and video, triggered deterministically or by the Game Master.
-
-**Description**  
-Add scenario-scoped media assets with fixed slots and validated GM cues in Core, delivered over the
-existing runtime-event stream, and rendered by the player.
-
-**Includes**
-
-- media assets (image, video): upload or URL, type, poster, duration, description
-- slots: scenario intro / outro, avatar portrait / idle loop
-- deterministic triggers: session start, avatar unlock, avatar switch
-- GM `mediaCue` output validated against the scenario media catalogue
-- `runtime.media_cue` SSE event, recorded in `event_log`
-- player: full-screen video, image overlay, skip; voice loop and TTS pause during playback
-- admin media library and slot/trigger assignment
-
-**Definition of done**
-
-- the AVA intro video plays at session start
-- a GM cue shows an image during a live conversation
-- invalid or unknown cues are ignored without affecting the turn
-
-**What can be tested**
-
-1. slot triggers fire exactly once per event
-2. GM cue parsing rejects unknown asset ids
-3. SSE delivers the cue to the player in order
-4. cue → playback timing is recorded
-
-**User increment**
-
-- conversations can cut to prepared images and film, the basis for the Koulechov research question
 
 ### `12.4 Discovery Quality & Measurement`
 

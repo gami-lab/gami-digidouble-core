@@ -717,6 +717,66 @@ describe('ListSessionEventsUseCase — memory consolidation mapping', () => {
   })
 })
 
+describe('ListSessionEventsUseCase — media mapping', () => {
+  it('maps cue and playback events to bounded payloads grouped by run or cue', async () => {
+    const { useCase } = createUseCase({
+      events: [
+        makeEvent({
+          type: 'media.cue_emitted',
+          correlationId: 'corr_gm',
+          payload: {
+            cueId: 'cue_1',
+            assetId: 'media_1',
+            origin: 'game_master',
+            kind: 'image',
+            display: 'overlay',
+            url: 'https://cdn.example.com/secret.png',
+            description: 'unbounded description',
+          },
+        }),
+        withoutCorrelation({
+          type: 'media.playback_started',
+          payload: {
+            cueId: 'cue_2',
+            assetId: 'media_2',
+            origin: 'avatar_switched',
+            cueToReportMs: 820,
+            clientLatencyMs: 40,
+          },
+        }),
+        withoutCorrelation({ type: 'media.cue_skipped', payload: { origin: 'x' } }),
+      ],
+    })
+
+    const output = await useCase.execute({ sessionId: 'session_1' })
+
+    expect(output.events.map((event) => [event.type, event.correlationId, event.payload])).toEqual([
+      [
+        'media.cue_emitted',
+        'corr_gm',
+        {
+          cueId: 'cue_1',
+          assetId: 'media_1',
+          origin: 'game_master',
+          kind: 'image',
+          display: 'overlay',
+        },
+      ],
+      [
+        'media.playback_started',
+        'cue_2',
+        {
+          cueId: 'cue_2',
+          assetId: 'media_2',
+          origin: 'avatar_switched',
+          cueToReportMs: 820,
+          clientLatencyMs: 40,
+        },
+      ],
+    ])
+  })
+})
+
 describe('ListSessionEventsUseCase — limits and errors', () => {
   it('uses default limit and clamps oversized limits', async () => {
     const { useCase, findBySessionIdMock } = createUseCase()

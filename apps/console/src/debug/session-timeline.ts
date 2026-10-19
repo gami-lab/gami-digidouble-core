@@ -1,5 +1,8 @@
+import { MEDIA_SESSION_EVENT_TYPES } from '@gami/shared'
 import type {
   GmSessionEventPayload,
+  MediaSessionEventPayload,
+  MediaSessionEventType,
   MemoryConsolidationEventPayload,
   MemoryRefreshEventPayload,
   Message,
@@ -37,6 +40,13 @@ export type AudioRun = {
   payload: MessageAudioEventPayload
 }
 
+/** A media cue Core emitted (or skipped) and the player's playback reports for it. */
+export type MediaEvent = {
+  type: MediaSessionEventType
+  createdAt: string
+  payload: MediaSessionEventPayload
+}
+
 export type TurnEntry = {
   kind: 'turn'
   id: string
@@ -47,6 +57,7 @@ export type TurnEntry = {
   gm: GmRun | null
   memory: MemoryRun[]
   audio: AudioRun | null
+  media: MediaEvent[]
 }
 
 /** Work not caused by a turn: GM replays, conversation-close and avatar-switch memory work. */
@@ -58,6 +69,7 @@ export type BackgroundEntry = {
   gm: GmRun | null
   memory: MemoryRun[]
   consolidation: ConsolidationStep[]
+  media: MediaEvent[]
 }
 
 export type TimelineEntry = TurnEntry | BackgroundEntry
@@ -92,6 +104,7 @@ export function buildSessionTimeline(
       gm: null,
       memory: [],
       audio: null,
+      media: [],
     })
   }
   attachAudio(ordered, [...turns.values()])
@@ -109,6 +122,7 @@ export function buildSessionTimeline(
         gm: null,
         memory: [],
         consolidation: [],
+        media: [],
       }
       background.set(event.correlationId, entry)
     }
@@ -144,11 +158,16 @@ function mergeAdjacentBackgroundWork(timeline: TimelineEntry[]): TimelineEntry[]
     ) {
       previous.memory.push(...entry.memory)
       previous.consolidation.push(...entry.consolidation)
+      previous.media.push(...entry.media)
       continue
     }
     merged.push(entry)
   }
   return merged
+}
+
+function isMediaEventType(type: SessionEventRecord['type']): type is MediaSessionEventType {
+  return (MEDIA_SESSION_EVENT_TYPES as readonly string[]).includes(type)
 }
 
 function isAudioEvent(event: SessionEventRecord): boolean {
@@ -186,6 +205,14 @@ function applyFollowUpEvent(entry: TurnEntry | BackgroundEntry, event: SessionEv
       applyMemoryEvent(entry.memory, event)
       return
     default:
+      if (isMediaEventType(event.type)) {
+        entry.media.push({
+          type: event.type,
+          createdAt: event.createdAt,
+          payload: event.payload as MediaSessionEventPayload,
+        })
+        return
+      }
       if (entry.kind === 'background') entry.consolidation.push(toConsolidationStep(event))
   }
 }
@@ -272,6 +299,9 @@ function readConversationId(event: SessionEventRecord): string | null {
 }
 
 export function backgroundLabel(entry: BackgroundEntry): string {
+  if (entry.gm === null && entry.memory.length === 0 && entry.media.length > 0) {
+    return 'Media cue'
+  }
   if (entry.gm !== null) {
     if (entry.id.startsWith('admin_gm_replay')) return 'GM replay (operator)'
     return entry.gm.payload.turnIndex === 0 ? 'GM: conversation opening' : 'GM run'
