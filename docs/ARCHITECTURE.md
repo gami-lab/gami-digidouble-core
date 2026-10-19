@@ -64,6 +64,11 @@ do not import Core domain or infrastructure code.
   route handlers or prompt text. GM context consumes an explicit unrestricted retrieval channel
   (Director omniscience) separate from the Avatar-filtered channel, with no fallback between them.
 - **Scenario:** experience configuration, enabled Avatars, language, objectives, and model selection.
+- **Media:** scenario-scoped image/video assets (`MediaAsset`), their admin library, reference
+  validation for presentation slots, the player projection (`PublicMediaAsset`), and the open file
+  route. Files sit behind the `IMediaStorage` port (filesystem adapter on a Docker volume in Phase A;
+  an object store can replace it). Media is authored content, not knowledge: it is never chunked,
+  embedded, or retrieved.
 - **Operations:** health, inspection, metrics, replay, memory actions, reindex controls, and safe
   event views. Distinct from Observability: Observability emits signals, Operations acts on them.
 - **Observability:** request/turn/provider traces and structured metrics, enforced at the LLM
@@ -186,7 +191,8 @@ context projection.
 
 ## Port rules
 
-- LLM, embedding, speech-to-text, text-to-speech, cache, repositories, and observability are ports.
+- LLM, embedding, speech-to-text, text-to-speech, media storage, cache, repositories, and
+  observability are ports.
   Business code depends on these ports only, never on provider SDKs directly.
 - Provider names, credentials, raw payloads, and SDK types stop at Infrastructure.
 - Runtime LLM provider/model choice is role-based (`avatar`, `gameMaster`, `memory`), resolved by

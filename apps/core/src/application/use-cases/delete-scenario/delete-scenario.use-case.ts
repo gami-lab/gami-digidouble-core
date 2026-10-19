@@ -1,6 +1,8 @@
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
+import type { IMediaAssetRepository } from '../../ports/IMediaAssetRepository.js'
+import type { IMediaStorage } from '../../ports/IMediaStorage.js'
 import { DomainError } from '../../../domain/errors.js'
 import type { DeleteScenarioInput, DeleteScenarioOutput } from './delete-scenario.types.js'
 
@@ -9,6 +11,8 @@ export class DeleteScenarioUseCase {
     private readonly scenarioRepository: IScenarioRepository,
     private readonly avatarRepository: IAvatarRepository,
     private readonly sessionRepository: ISessionRepository,
+    private readonly mediaAssetRepository: IMediaAssetRepository,
+    private readonly mediaStorage: IMediaStorage,
   ) {}
 
   async execute(input: DeleteScenarioInput): Promise<DeleteScenarioOutput> {
@@ -30,7 +34,13 @@ export class DeleteScenarioUseCase {
       )
     }
 
+    const assets = await this.mediaAssetRepository.listByScenario(input.scenarioId)
     await this.scenarioRepository.delete(input.scenarioId)
+    await Promise.all(
+      assets.flatMap((asset) =>
+        asset.storageKey !== null ? [this.mediaStorage.delete(asset.storageKey)] : [],
+      ),
+    )
     return { scenarioId: input.scenarioId, deleted: true }
   }
 }

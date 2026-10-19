@@ -133,12 +133,18 @@ export {
   isScenarioPresentation,
 } from './presentation-contract-types.js'
 export type {
+  CreateUrlMediaAssetRequest,
+  DeleteMediaAssetResponse,
+  ListMediaAssetsResponse,
+  MediaAssetResponse,
   MediaAssetSummary,
   MediaKind,
   MediaMimeType,
   MediaRef,
   MediaSource,
   PublicMediaAsset,
+  UpdateMediaAssetRequest,
+  UploadMediaAssetQuery,
 } from './media-contract-types.js'
 export {
   MEDIA_KINDS,

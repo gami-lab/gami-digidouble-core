@@ -30,6 +30,10 @@ hash-admin-password`) with a Redis-backed session cookie (`ADMIN_SESSION_SECRET`
   `RATE_LIMIT_<POLICY>=<max>/<seconds>`; `TRUST_PROXY_HOPS` makes the client IP the key behind
   Coolify/Traefik. CORS origins: `PLAYER_ORIGINS`, `ADMIN_ORIGINS`.
 - PostgreSQL with pgvector; Redis for cache, coordination, and runtime idempotency.
+- Uploaded media files live on a filesystem directory behind `IMediaStorage` (`MEDIA_STORAGE_DIR`,
+  default `data/media`; the `media_data` Docker volume at `/data/media` in Coolify). No object store
+  or media processing (transcoding, thumbnails, duration probing) in Phase A; upload limits and
+  allowed MIME types are shared constants, not configuration.
 - Docker Compose for local infra and Coolify deployment.
 
 ## Core boundaries

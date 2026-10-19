@@ -75,9 +75,12 @@ export interface Config {
   langfuseSecretKey: string | undefined
   langfuseHost: string | undefined
   knowledgeSourceAllowedRoots: string[]
+  /** Directory (a mounted volume in deployment) holding uploaded media files. */
+  mediaStorageDir: string
 }
 
 export const DEFAULT_EMBEDDING_PROVIDER = 'openai'
+export const DEFAULT_MEDIA_STORAGE_DIR = 'data/media'
 export const DEFAULT_EMBEDDING_MODEL = 'text-embedding-3-small'
 // Use the model's native 1536 dimensions to preserve semantic resolution.
 // A matching fresh schema and staged reindex are required before promotion.
@@ -181,6 +184,7 @@ export function loadConfig(): Config {
     langfuseSecretKey: process.env['LANGFUSE_SECRET_KEY'],
     langfuseHost: process.env['LANGFUSE_BASE_URL'],
     knowledgeSourceAllowedRoots: parseList(process.env['KNOWLEDGE_SOURCE_ALLOWED_ROOTS']),
+    mediaStorageDir: process.env['MEDIA_STORAGE_DIR'] ?? DEFAULT_MEDIA_STORAGE_DIR,
   }
 }
 

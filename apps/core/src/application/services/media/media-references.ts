@@ -4,6 +4,9 @@ import {
   presentationMediaReferences,
   readPresentation,
 } from '../../../domain/presentation/presentation.js'
+import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
+import type { MediaAsset } from '../../../domain/media/media-asset.types.js'
+import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import type { IMediaAssetRepository } from '../../ports/IMediaAssetRepository.js'
 
 export type MediaReference = {
@@ -57,4 +60,35 @@ export async function assertPresentationMedia(
     scenarioId,
     presentationMediaReferences(kind, presentation),
   )
+}
+
+/**
+ * Where an asset is used within its scenario: presentation slots of the scenario and its avatars,
+ * and posters of other assets. Each entry is a short operator-facing label.
+ */
+export function findMediaUsages(
+  assetId: MediaRef,
+  scenario: Scenario,
+  avatars: readonly AvatarConfig[],
+  assets: readonly MediaAsset[],
+): string[] {
+  const usages = presentationMediaReferences(
+    'scenario',
+    readPresentation('scenario', scenario.config),
+  )
+    .filter((reference) => reference.assetId === assetId)
+    .map((reference) => `scenario ${reference.slot}`)
+  for (const avatar of avatars) {
+    usages.push(
+      ...presentationMediaReferences('avatar', readPresentation('avatar', avatar.config))
+        .filter((reference) => reference.assetId === assetId)
+        .map((reference) => `${avatar.name} ${reference.slot}`),
+    )
+  }
+  usages.push(
+    ...assets
+      .filter((asset) => asset.posterAssetId === assetId)
+      .map((asset) => `poster of ${asset.assetId}`),
+  )
+  return usages
 }

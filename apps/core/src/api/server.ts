@@ -24,6 +24,7 @@ import type { ISpeechToTextAdapter } from '../application/ports/ISpeechToTextAda
 import type { IUtteranceIdempotencyStore } from '../application/ports/IUtteranceIdempotencyStore.js'
 import type { IModelConfigRepository } from '../application/ports/IModelConfigRepository.js'
 import type { IMediaAssetRepository } from '../application/ports/IMediaAssetRepository.js'
+import type { IMediaStorage } from '../application/ports/IMediaStorage.js'
 import type { ModelConfig } from '../domain/model-config/index.js'
 import type { TypedRetrievalService } from '../application/services/knowledge/typed-retrieval.service.js'
 import type { RunGameMasterUseCase } from '../application/use-cases/run-game-master/run-game-master.use-case.js'
@@ -77,6 +78,9 @@ import { InMemoryKnowledgeCorpusRepository } from '../infrastructure/db/in-memor
 import { InMemoryIngestionJobRepository } from '../infrastructure/db/in-memory-ingestion-job.repository.js'
 import { InMemoryModelConfigRepository } from '../infrastructure/db/in-memory-model-config.repository.js'
 import { InMemoryMediaAssetRepository } from '../infrastructure/db/in-memory-media-asset.repository.js'
+import { InMemoryMediaStorage } from '../infrastructure/media/in-memory-media-storage.js'
+import { adminMediaRoute } from './routes/admin-media.js'
+import { mediaFileRoute } from './routes/media-file.js'
 import { InMemoryKnowledgeSourceContentLoader } from '../infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
 import { UnconfiguredEmbeddingAdapter } from '../infrastructure/knowledge/unconfigured-embedding.adapter.js'
 import { InMemoryUtteranceIdempotencyStore } from '../application/voice/in-memory-utterance-idempotency.store.js'
@@ -112,6 +116,7 @@ export interface ServerAdapters {
   utteranceIdempotencyStore?: IUtteranceIdempotencyStore
   modelConfigRepository?: IModelConfigRepository
   mediaAssetRepository?: IMediaAssetRepository
+  mediaStorage?: IMediaStorage
   llmAdapterRegistry?: LlmAdapterRegistry
   modelConfigFallback?: ModelConfig
   typedRetrievalService?: TypedRetrievalService
@@ -269,10 +274,9 @@ function registerPublicRoutes(
   scope.register(scenarioCatalogueRoute, {
     prefix: '/scenarios',
     mediaAssetRepository: adapters.mediaAssetRepository,
-    ...(adapters.scenarioRepository !== undefined
-      ? { scenarioRepository: adapters.scenarioRepository }
-      : {}),
+    scenarioRepository: adapters.scenarioRepository,
   })
+  scope.register(mediaFileRoute, { prefix: '/media', ...adapters })
 }
 
 function registerAdminRoutes(
@@ -302,6 +306,7 @@ function registerAdminRoutes(
     config,
     textToSpeechProviders: withDefault(adapters.textToSpeechProviders, new TextToSpeechProviders()),
   })
+  scope.register(adminMediaRoute, adapters)
   scope.register(scenariosRoute, {
     prefix: '/scenarios',
     ...buildScenariosRouteOptions(config, adapters),
@@ -371,6 +376,9 @@ function resolveServerAdapters(
     | 'sessionRepository'
     | 'conversationRepository'
     | 'mediaAssetRepository'
+    | 'mediaStorage'
+    | 'scenarioRepository'
+    | 'avatarRepository'
   >
 > &
   ServerAdapters {
@@ -384,7 +392,13 @@ function resolveServerAdapters(
     userRepository: adapters.userRepository ?? new InMemoryUserRepository(),
     sessionRepository: adapters.sessionRepository ?? new InMemorySessionRepository(),
     conversationRepository: adapters.conversationRepository ?? new InMemoryConversationRepository(),
-    mediaAssetRepository: adapters.mediaAssetRepository ?? new InMemoryMediaAssetRepository(),
+    mediaAssetRepository: withDefault(
+      adapters.mediaAssetRepository,
+      new InMemoryMediaAssetRepository(),
+    ),
+    mediaStorage: withDefault(adapters.mediaStorage, new InMemoryMediaStorage()),
+    scenarioRepository: withDefault(adapters.scenarioRepository, new InMemoryScenarioRepository()),
+    avatarRepository: withDefault(adapters.avatarRepository, new InMemoryAvatarRepository()),
     ...(adapters.speechToTextAdapter !== undefined &&
     adapters.utteranceIdempotencyStore === undefined
       ? { utteranceIdempotencyStore: new InMemoryUtteranceIdempotencyStore() }
@@ -400,12 +414,9 @@ function buildScenariosRouteOptions(
   return {
     config,
     mediaAssetRepository: adapters.mediaAssetRepository,
-    ...(adapters.scenarioRepository !== undefined
-      ? { scenarioRepository: adapters.scenarioRepository }
-      : {}),
-    ...(adapters.avatarRepository !== undefined
-      ? { avatarRepository: adapters.avatarRepository }
-      : {}),
+    mediaStorage: adapters.mediaStorage,
+    scenarioRepository: adapters.scenarioRepository,
+    avatarRepository: adapters.avatarRepository,
     sessionRepository: adapters.sessionRepository,
     knowledgeSourceRepository: withDefault(
       adapters.knowledgeSourceRepository,
@@ -437,9 +448,7 @@ function buildAvatarsRouteOptions(
   return {
     config,
     mediaAssetRepository: adapters.mediaAssetRepository,
-    ...(adapters.avatarRepository !== undefined
-      ? { avatarRepository: adapters.avatarRepository }
-      : {}),
+    avatarRepository: adapters.avatarRepository,
     sessionRepository: adapters.sessionRepository,
     textToSpeechProviders: withDefault(adapters.textToSpeechProviders, new TextToSpeechProviders()),
   }

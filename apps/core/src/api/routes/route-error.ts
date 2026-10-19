@@ -18,7 +18,9 @@ export function handleRouteError(error: unknown): {
   if (error instanceof DomainError) {
     const code = error.code as string
     if (code === 'NOT_FOUND') return { statusCode: 404, body: fail('NOT_FOUND', error.message) }
-    if (code === 'CONFLICT') return { statusCode: 409, body: fail('CONFLICT', error.message) }
+    if (code === 'CONFLICT') {
+      return { statusCode: 409, body: fail('CONFLICT', error.message, error.details) }
+    }
     if (code === 'INVALID_INPUT' || code === 'VALIDATION_ERROR') {
       return { statusCode: 400, body: fail('VALIDATION_ERROR', error.message) }
     }

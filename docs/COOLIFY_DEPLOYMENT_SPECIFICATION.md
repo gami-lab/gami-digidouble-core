@@ -77,6 +77,10 @@ compose volume key is `postgres_data_canonical` — changing/recreating that key
 fresh volume). Preserve the old volume as a rollback backup until the new stack is verified; never
 attach both volumes to the same service.
 
+Uploaded media files live on the separate `media_data` volume (`MEDIA_STORAGE_DIR=/data/media`).
+A fresh database leaves the old files unreferenced and unreachable; recreate `media_data` with the
+database volume to reclaim the space, then re-upload media through the admin library.
+
 ## Release checklist
 
 1. Deploy the compose file and verify database, Redis, `app /health`, web `/`, and admin `/admin`.
@@ -86,7 +90,7 @@ attach both volumes to the same service.
    (or `:local` against a local stack) with the target API URL and `ADMIN_SERVICE_KEY` — it creates or updates the
    Scenario plus Avatars with their structured prompts, and is safe to rerun (it does not read or
    rewrite historical content).
-4. Register `world`, `avatar_knowledge`, and `media` sources with explicit visibility, and wait for
+4. Register `world` and `avatar_knowledge` sources with explicit visibility, and wait for
    each ingestion job to complete. Core initializes the empty active corpus automatically on the
    first startup.
 5. Run the Avatar-trait preparation step and confirm every active Avatar has `computedTraits` before

@@ -46,6 +46,10 @@ These are easy to regress silently because they are policy, not type-level const
   conflicting fingerprints). An unconfigured voice provider must leave the text route unaffected.
   Utterance keys always carry a Redis TTL, set in the same command as the write.
 - Built `web`, `admin`, and `console` bundles contain no secret name or secret-shaped value.
+- Media: the open file route serves only uploads of active scenarios (anything else is `404`) and
+  honours single `Range` requests; uploads stream to storage, are checked against their leading
+  bytes and per-kind size limit, and leave no file behind on failure; presentation refs must name
+  an asset of the same scenario whose kind fits the slot; a referenced asset cannot be deleted.
 - Player identity comes only from a Core-signed token; another player's session, conversation,
   history, runtime state, events stream, or audio is indistinguishable from a missing one (`404`).
 - Session unlock state is fixed at session start and changes only through Game Master unlocks; the

@@ -31,3 +31,6 @@ coverage/
 
 # Local conversation evaluation reports
 tools/conversation-evaluation/reports/
+
+# Uploaded media in local development (MEDIA_STORAGE_DIR default)
+data/

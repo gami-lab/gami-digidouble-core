@@ -27,5 +27,7 @@ export { PostgresKnowledgeChunkRepository } from './repositories/postgres-knowle
 export { PostgresKnowledgeCorpusRepository } from './repositories/postgres-knowledge-corpus.repository.js'
 export { PostgresIngestionJobRepository } from './repositories/postgres-ingestion-job.repository.js'
 export { PostgresModelConfigRepository } from './repositories/postgres-model-config.repository.js'
+export { PostgresMediaAssetRepository } from './repositories/postgres-media-asset.repository.js'
+export { InMemoryMediaAssetRepository } from './in-memory-media-asset.repository.js'
 export { InMemoryConversationRepository } from './in-memory-conversation.repository.js'
 export { getDbClient, closeDbClient } from './client.js'

@@ -55,6 +55,34 @@ CREATE TABLE IF NOT EXISTS avatars (
   CHECK (status <> 'active' OR computed_traits IS NOT NULL)
 );
 
+-- ── Media assets ─────────────────────────────────────────────────────────────
+-- Uploaded files live in the media storage volume under `storage_key`; URL assets keep only `url`.
+
+CREATE TABLE IF NOT EXISTS media_assets (
+  id               UUID        PRIMARY KEY,
+  scenario_id      UUID        NOT NULL REFERENCES scenarios(id) ON DELETE CASCADE,
+  kind             TEXT        NOT NULL,
+  source           TEXT        NOT NULL,
+  storage_key      TEXT,
+  url              TEXT,
+  mime_type        TEXT        NOT NULL,
+  byte_size        BIGINT,
+  poster_asset_id  UUID        REFERENCES media_assets(id) ON DELETE SET NULL,
+  duration_ms      INTEGER,
+  description      TEXT        NOT NULL,
+  cueable          BOOLEAN     NOT NULL DEFAULT FALSE,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (kind IN ('image', 'video')),
+  CHECK (source IN ('upload', 'url')),
+  CHECK ((source = 'upload') = (storage_key IS NOT NULL)),
+  CHECK ((source = 'url') = (url IS NOT NULL)),
+  CHECK (duration_ms IS NULL OR duration_ms >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_media_assets_scenario
+  ON media_assets(scenario_id, created_at);
+
 -- ── Knowledge ────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS knowledge_sources (

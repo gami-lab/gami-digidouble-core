@@ -52,4 +52,5 @@ export const TEST_CONFIG: Config = {
   langfuseSecretKey: undefined,
   langfuseHost: undefined,
   knowledgeSourceAllowedRoots: [],
+  mediaStorageDir: '/tmp/gami-media-test',
 }

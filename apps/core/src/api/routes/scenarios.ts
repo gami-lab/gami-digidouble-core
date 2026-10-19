@@ -20,6 +20,7 @@ import type { IModelConfigRepository } from '../../application/ports/IModelConfi
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
 import type { IMediaAssetRepository } from '../../application/ports/IMediaAssetRepository.js'
+import type { IMediaStorage } from '../../application/ports/IMediaStorage.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { CreateAvatarUseCase } from '../../application/use-cases/create-avatar/create-avatar.use-case.js'
 import type { CreateAvatarOutput } from '../../application/use-cases/create-avatar/create-avatar.types.js'
@@ -73,6 +74,7 @@ export type ScenariosRouteOptions = {
   sessionRepository?: ISessionRepository
   knowledgeSourceRepository?: IKnowledgeSourceRepository
   mediaAssetRepository: IMediaAssetRepository
+  mediaStorage: IMediaStorage
   llmAdapter: ILlmAdapter
   observabilityAdapter?: IObservabilityAdapter
   modelConfigRepository?: IModelConfigRepository
@@ -227,6 +229,8 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
     scenarioRepository,
     avatarRepository,
     sessionRepository,
+    options.mediaAssetRepository,
+    options.mediaStorage,
   )
   const updateScenarioUseCase = new UpdateScenarioUseCase(
     scenarioRepository,

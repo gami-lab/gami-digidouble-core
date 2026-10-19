@@ -74,6 +74,14 @@ Every route declares one tier: `public` (player), `admin` (authoring, operators,
 
 - `GET /health`
 - `POST /v1/auth/player`
+- `GET /v1/media/{assetId}` — the file of an uploaded media asset (`<img>`/`<video>` cannot send a
+  bearer header). Serves only uploads of `active` scenarios; an unknown id, an inactive scenario,
+  a URL asset (players load its URL directly), or a missing file all return `404 NOT_FOUND`.
+  Responds with the stored `Content-Type`, `Content-Length`, `Accept-Ranges: bytes`,
+  `ETag: "{assetId}"` (`If-None-Match` returns `304`), `Cache-Control: public, max-age=3600`, and
+  `X-Content-Type-Options: nosniff`. A single `Range: bytes=` range returns `206` with
+  `Content-Range`; a range outside the file returns `416`; multi-range or malformed headers serve
+  the whole file.
 - `POST /v1/admin/auth/login` — `AdminLoginRequest` (`password`); sets the admin session cookie.
   A wrong password returns `401 UNAUTHORIZED` with no hint about what was wrong.
 
@@ -150,6 +158,20 @@ All admin routes use `/v1/admin/*` and accept only an admin session cookie or th
 - `POST /v1/admin/scenarios/{scenarioId}/avatars`
 - `GET /v1/admin/scenarios/{scenarioId}/avatars`
 - `PATCH|DELETE /v1/admin/avatars/{avatarId}`
+
+### Media
+
+- `GET /v1/admin/scenarios/{scenarioId}/media` — `ListMediaAssetsResponse` (`MediaAssetSummary[]`).
+- `POST /v1/admin/scenarios/{scenarioId}/media` — `CreateUrlMediaAssetRequest` (`url`,
+  `mimeType`, `description`, optional `cueable`, `posterAssetId`, `durationMs`) → `201`
+  `MediaAssetResponse`. The kind follows from `mimeType`.
+- `POST /v1/admin/scenarios/{scenarioId}/media/upload` — the raw file as the body with its MIME
+  type as `Content-Type`; metadata in the query (`UploadMediaAssetQuery`: `description`, optional
+  `cueable=true|false`, `posterAssetId`, `durationMs`) → `201 MediaAssetResponse`. The body is
+  streamed to storage, never buffered whole.
+- `PATCH /v1/admin/media/{assetId}` — `UpdateMediaAssetRequest`; `null` clears `posterAssetId` or
+  `durationMs`.
+- `DELETE /v1/admin/media/{assetId}` — `DeleteMediaAssetResponse`; also deletes the stored file.
 
 ### Knowledge
 
@@ -235,6 +257,14 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   and `null` clears it; omitting it keeps the stored value, including when `config` is replaced.
   Unknown keys, blank text, over-limit text, more than three starter questions, or `uiHints`
   inside `config` return `400 VALIDATION_ERROR`.
+- Media assets (`media-contract-types.ts`): allowed types are `image/jpeg`, `image/png`,
+  `image/webp`, `video/mp4`, and `video/webm`; uploads are limited by `MEDIA_LIMITS.maxUploadBytes`
+  per kind (10 MiB images, 200 MiB videos). An unsupported type, a declared or streamed size over
+  the limit, content whose leading bytes do not match its type, a blank or over-long description,
+  or an unknown query/body field returns `400 VALIDATION_ERROR`. `posterAssetId` must name another
+  image asset of the same scenario. `durationMs` is the video length, or how long an image overlay
+  stays up; Core never probes files. Deleting an asset that a presentation slot or another
+  asset's poster still references returns `409 CONFLICT` with `details.usages`.
 - Presentation media slots hold a `MediaRef` (asset id). Scenario: `cover` (image), `introMedia`
   and `outroMedia` (image or video). Avatar: `portrait` (image), `idleLoop` (video). A ref that is
   not an asset id, names an asset of another scenario or a missing asset, or has a kind the slot

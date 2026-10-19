@@ -68,6 +68,39 @@ export type PublicMediaAsset = {
   description: string
 }
 
+/** `POST /v1/admin/scenarios/{scenarioId}/media`: an asset hosted elsewhere. */
+export type CreateUrlMediaAssetRequest = {
+  url: string
+  mimeType: MediaMimeType
+  description: string
+  cueable?: boolean
+  posterAssetId?: MediaRef
+  durationMs?: number
+}
+
+/**
+ * Query of `POST /v1/admin/scenarios/{scenarioId}/media/upload`; the body is the raw file and its
+ * `Content-Type` is the asset MIME type.
+ */
+export type UploadMediaAssetQuery = {
+  description: string
+  cueable?: 'true' | 'false'
+  posterAssetId?: MediaRef
+  durationMs?: string
+}
+
+/** `PATCH /v1/admin/media/{assetId}`; `null` clears the poster or duration. */
+export type UpdateMediaAssetRequest = {
+  description?: string
+  cueable?: boolean
+  posterAssetId?: MediaRef | null
+  durationMs?: number | null
+}
+
+export type ListMediaAssetsResponse = { assets: MediaAssetSummary[] }
+export type MediaAssetResponse = { asset: MediaAssetSummary }
+export type DeleteMediaAssetResponse = { assetId: MediaRef; deleted: true }
+
 export function isMediaRef(value: unknown): value is MediaRef {
   return typeof value === 'string' && new RegExp(MEDIA_REF_PATTERN).test(value)
 }

@@ -20,6 +20,7 @@ function isMissingEnvFileError(error: unknown): boolean {
 
 import { loadConfig } from './config.js'
 import type { Config } from './config.js'
+import { FilesystemMediaStorage } from './infrastructure/media/filesystem-media-storage.js'
 import { createServer } from './api/server.js'
 import type { IDependencyProbe } from './application/ports/IDependencyProbe.js'
 import { RunGameMasterUseCase } from './application/use-cases/run-game-master/run-game-master.use-case.js'
@@ -57,6 +58,7 @@ import {
   PostgresKnowledgeCorpusRepository,
   PostgresIngestionJobRepository,
   PostgresModelConfigRepository,
+  PostgresMediaAssetRepository,
 } from './infrastructure/db/index.js'
 import { FileUrlKnowledgeSourceContentLoader } from './infrastructure/knowledge/file-url-knowledge-source-content-loader.js'
 import { createEmbeddingAdapter } from './infrastructure/knowledge/openai-embedding.adapter.js'
@@ -81,7 +83,7 @@ async function main(): Promise<void> {
   )
   const sql = getDbClient(config.databaseUrl)
   const redisClient = getRedisClient(config.redisUrl)
-  const repositories = buildCoreRepositories(sql)
+  const repositories = buildCoreRepositories(sql, config.mediaStorageDir)
   const knowledgeAdapters = buildKnowledgeAdapters(sql, config, observability)
   await buildKnowledgeReindexService(knowledgeAdapters, repositories, config).ensureActiveCorpus()
   const typedRetrievalService = new TypedRetrievalService(
@@ -177,7 +179,7 @@ async function main(): Promise<void> {
   }
 }
 
-function buildCoreRepositories(sql: ReturnType<typeof getDbClient>) {
+function buildCoreRepositories(sql: ReturnType<typeof getDbClient>, mediaStorageDir: string) {
   return {
     scenarioRepository: new PostgresScenarioRepository(sql),
     gmStateRepository: new PostgresGmStateRepository(sql),
@@ -190,6 +192,8 @@ function buildCoreRepositories(sql: ReturnType<typeof getDbClient>) {
     conversationWorkingMemoryRepository: new PostgresConversationWorkingMemoryRepository(sql),
     conversationMemoryRepository: new PostgresConversationMemoryRepository(sql),
     modelConfigRepository: new PostgresModelConfigRepository(sql),
+    mediaAssetRepository: new PostgresMediaAssetRepository(sql),
+    mediaStorage: new FilesystemMediaStorage(mediaStorageDir),
   }
 }
 

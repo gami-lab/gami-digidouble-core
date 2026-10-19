@@ -60,6 +60,7 @@ services:
       - /app/node_modules
       - /app/apps/core/node_modules
       - /app/packages/shared/node_modules
+      - media_data:/data/media
     depends_on:
       postgres:
         condition: service_healthy
@@ -69,3 +70,4 @@ services:
 volumes:
   postgres_data_canonical:
   redis_data:
+  media_data:

@@ -11,6 +11,15 @@
       "port": 3000
     },
     {
+      "name": "core-stack",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "PORT=3100 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/gami_core_stack REDIS_URL=redis://localhost:6379 ADMIN_SERVICE_KEY=e2e-stack-secret-0123456789abcdef0123 PLAYER_TOKEN_SECRET=e2e-player-token-secret-0123456789abcdef ADMIN_ORIGINS=http://admin.e2e.test MEDIA_STORAGE_DIR=/tmp/gami-media-stack RATE_LIMIT_PLAYER_TOKEN=10000/60 RATE_LIMIT_SESSION_START=10000/60 RATE_LIMIT_MESSAGE=10000/60 LLM_PROVIDER=null npx --prefix apps/core tsx apps/core/src/index.ts"
+      ],
+      "port": 3100
+    },
+    {
       "name": "admin-ui",
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "cd apps/admin && npm run dev"],

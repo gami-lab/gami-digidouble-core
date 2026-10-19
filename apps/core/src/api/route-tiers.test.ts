@@ -5,7 +5,12 @@ import { TEST_CONFIG } from './routes/test-config.js'
 import { enforceRouteTiers, registerTierScope } from './route-tiers.js'
 import { playerHeaders, serviceKeyHeaders } from './routes/test-auth.js'
 
-const OPEN_ROUTES = ['GET /health', 'POST /v1/auth/player', 'POST /v1/admin/auth/login']
+const OPEN_ROUTES = [
+  'GET /health',
+  'POST /v1/auth/player',
+  'GET /v1/media/:assetId',
+  'POST /v1/admin/auth/login',
+]
 const PLAYER_ROUTE_PATTERN = /^\/v1\/(sessions|conversations|me|scenarios\/?$)/
 /** Path params the player ownership hook resolves; a new kind of id must extend that hook first. */
 const OWNED_PATH_PARAMS = ['sessionId', 'conversationId', 'messageId']

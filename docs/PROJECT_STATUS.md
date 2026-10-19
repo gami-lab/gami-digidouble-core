@@ -87,8 +87,9 @@ that touches persistence, retrieval, or provider adapters.
 
 - The guided public player (`EPICS.md` 12.2) is implemented but not yet validated with the five
   first-time-visitor hallway tests; intro media waits for 12.3.
-- Multimedia (`EPICS.md` 12.3) is in progress: the shared media contract and presentation media
-  references exist; storage, upload, triggers, GM cues, and playback are not yet shipped.
+- Multimedia (`EPICS.md` 12.3) is in progress: the shared media contract, presentation media
+  references, the media asset store (upload/URL, filesystem storage, open file route with `Range`)
+  exist; the admin library, triggers, GM cues, and playback are not yet shipped.
 - Evaluation measures factual recall only, not discovery pacing, persona, or GM decisions (`EPICS.md` 12.4).
 - The voice chain runs in series and has no end-to-end latency metric (`EPICS.md` 12.5).
 - No video avatar support (`EPICS.md` 12.6).
