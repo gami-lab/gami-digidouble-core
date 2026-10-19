@@ -1,4 +1,4 @@
-import type { ScenarioModelSelection, VoiceConfiguration } from '@gami/shared'
+import type { ScenarioModelSelection, ScenarioPresentation, VoiceConfiguration } from '@gami/shared'
 
 export type ScenarioStatus = 'draft' | 'active' | 'archived'
 
@@ -28,8 +28,8 @@ export interface ScenarioConfig {
   goals?: string[]
   /** Scenario runtime defaults for adapters and clients. */
   runtimeDefaults?: Record<string, unknown>
-  /** Optional UI-only hints; ignored by Core orchestration. */
-  uiHints?: Record<string, unknown>
+  /** Player presentation; ignored by Core orchestration. */
+  uiHints?: ScenarioPresentation
 }
 
 export interface ScenarioAvatarAvailabilityConfig {

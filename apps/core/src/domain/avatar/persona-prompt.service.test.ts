@@ -60,6 +60,17 @@ describe('assemblePersonaPrompt', () => {
     )
   })
 
+  it('ignores player presentation stored in uiHints', () => {
+    const plain = makeAvatarConfig()
+    const presented = makeAvatarConfig({
+      config: { ...plain.config, uiHints: { hook: 'PRESENTATION_HOOK', starterQuestions: ['Q?'] } },
+    })
+
+    expect(assemblePersonaPrompt(presented, { sections: sections() })).toBe(
+      assemblePersonaPrompt(plain, { sections: sections() }),
+    )
+  })
+
   it('renders the canonical section order and Scenario language', () => {
     const prompt = assemblePersonaPrompt(makeAvatarConfig(), {
       sections: sections({

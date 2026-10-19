@@ -11,6 +11,10 @@ import type {
 } from './entity-types.js'
 import type { VoiceConfiguration, VoiceConfigurationUpdate } from './voice-contract-types.js'
 import type {
+  ScenarioPresentation,
+  ScenarioPresentationUpdate,
+} from './presentation-contract-types.js'
+import type {
   GetAvailableAvatarsResponse,
   GetHistoryResponse as ConversationHistoryResponse,
   SendMessageResponse,
@@ -42,6 +46,7 @@ export type CreateScenarioRequest = {
   avatarAvailability?: ScenarioAvatarAvailability
   modelSelection?: ScenarioModelSelection
   voiceConfig?: VoiceConfiguration
+  presentation?: ScenarioPresentation
   config?: Record<string, unknown>
 }
 
@@ -58,6 +63,7 @@ export type UpdateScenarioRequest = {
   avatarAvailability?: ScenarioAvatarAvailability
   modelSelection?: ScenarioModelSelection | null
   voiceConfig?: VoiceConfigurationUpdate
+  presentation?: ScenarioPresentationUpdate
   config?: Record<string, unknown>
 }
 

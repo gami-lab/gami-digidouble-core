@@ -14,6 +14,11 @@
 import type { ModelSelectionOverride, ScenarioModelSelection } from './model-catalog.js'
 import type { AvatarRequestOptions } from './web-contract-types.js'
 import type { VoiceConfiguration, VoiceConfigurationUpdate } from './voice-contract-types.js'
+import type {
+  AvatarPresentation,
+  AvatarPresentationUpdate,
+  ScenarioPresentation,
+} from './presentation-contract-types.js'
 export type { ScenarioModelSelection } from './model-catalog.js'
 
 export type AvatarStatus = 'draft' | 'active' | 'archived'
@@ -31,6 +36,7 @@ type AvatarAuthoredFields = {
 type AvatarMutationOptionalFields = {
   llmOverride?: AvatarLlmOverride | null
   voiceConfig?: VoiceConfiguration
+  presentation?: AvatarPresentation
   config?: Record<string, unknown>
   status?: AvatarStatus
 }
@@ -57,6 +63,7 @@ export type AvatarSummary = AvatarAuthoredFields & {
   status: AvatarStatus
   llmOverride?: AvatarLlmOverride
   voiceConfig?: VoiceConfiguration
+  presentation?: AvatarPresentation
   /** Stable public route key when present in avatar config. */
   availabilityKey?: string
   /** Derived trait structure is present once the Avatar is servable. */
@@ -70,8 +77,12 @@ export type CreateAvatarRequest = Pick<AvatarAuthoredFields, 'name' | 'personaPr
   Pick<AvatarAuthoredFields, 'tone' | 'description' | 'adjustments'> &
   AvatarMutationOptionalFields
 
-export type UpdateAvatarRequest = Omit<Partial<CreateAvatarRequest>, 'voiceConfig'> & {
+export type UpdateAvatarRequest = Omit<
+  Partial<CreateAvatarRequest>,
+  'voiceConfig' | 'presentation'
+> & {
   voiceConfig?: VoiceConfigurationUpdate
+  presentation?: AvatarPresentationUpdate
 }
 
 export type ScenarioStatus = 'draft' | 'active' | 'archived'
@@ -94,13 +105,17 @@ export type ScenarioSummary = {
   avatarAvailability: ScenarioAvatarAvailability
   modelSelection?: ScenarioModelSelection
   voiceConfig?: VoiceConfiguration
+  presentation?: ScenarioPresentation
   config: Record<string, unknown>
   createdAt: string
   updatedAt: string
 }
 
 /** Player catalogue projection; authoring fields (`worldContext`, `config`, ...) stay admin-only. */
-export type PublicScenarioSummary = Pick<ScenarioSummary, 'scenarioId' | 'name' | 'language'>
+export type PublicScenarioSummary = Pick<
+  ScenarioSummary,
+  'scenarioId' | 'name' | 'language' | 'presentation'
+>
 
 export type SessionSummary = {
   sessionId: string

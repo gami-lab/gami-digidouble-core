@@ -13,7 +13,8 @@ token>`, admin routes the admin session cookie or `x-admin-service-key`, open ro
 - Public payloads are projections, never database rows. Unknown fields are rejected at input boundaries.
 - Player-facing projections (`AvailableAvatarSummary`) are explicit field picks and never carry
   authoring internals: `personaPrompt`, `adjustments`, raw `config`, `computedTraits`, model or
-  voice configuration stay on admin projections.
+  voice configuration stay on admin projections. The typed `presentation` is the only
+  config-derived field that reaches the player.
 - Authentication runs before the request body is read, so an unauthenticated request gets `401`
   even when its body is malformed or oversized.
 - Errors use stable `ErrorCode` categories: `UNAUTHORIZED`, `VALIDATION_ERROR`, `FORBIDDEN`,
@@ -107,8 +108,9 @@ the scenario afterwards stay locked for existing sessions.
 ### Scenario catalogue
 
 - `GET /v1/scenarios` — active scenarios only, as `PublicScenarioSummary`
-  (`scenarioId`, `name`, `language`). Avatars reach the player through
-  `GET /v1/sessions/{sessionId}/available-avatars`.
+  (`scenarioId`, `name`, `language`, `presentation`). Avatars reach the player through
+  `GET /v1/sessions/{sessionId}/available-avatars` (`AvailableAvatarSummary` includes the Avatar
+  `presentation`).
 
 ### User persona
 
@@ -220,6 +222,11 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   without an API key are skipped. The voice is the Avatar's, else the Scenario's, for that provider,
   else the provider's default voice for the Scenario language. With no provider, audio returns
   `502 PROVIDER_ERROR`; with no usable voice, `409 CONFLICT` (`no_voice_available`).
+- Scenario and Avatar `presentation` (canonical owner `presentation-contract-types.ts`, limits in
+  `PRESENTATION_LIMITS`) is a top-level create/update field. An update replaces the whole object
+  and `null` clears it; omitting it keeps the stored value, including when `config` is replaced.
+  Unknown keys, blank text, over-limit text, more than three starter questions, non-`http(s)`
+  images, or `uiHints` inside `config` return `400 VALIDATION_ERROR`.
 - Provider credentials and provider-native options are not public fields; a client may only pick a
   shared `format` (default `audio/wav`).
 

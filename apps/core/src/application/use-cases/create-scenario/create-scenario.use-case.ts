@@ -3,6 +3,7 @@ import { DomainError } from '../../../domain/errors.js'
 import type { CreateScenarioInput, CreateScenarioOutput } from './create-scenario.types.js'
 import { normalizeVoiceConfigurationMutation } from '../../../domain/voice/voice-configuration.js'
 import { toScenarioSummary } from '../shared/scenario-summary.js'
+import { applyPresentationMutation } from '../../../domain/presentation/presentation.js'
 import { normalizeScenarioLanguage } from '../../../domain/scenario/scenario-language.js'
 
 const ALLOWED_SCENARIO_STATUSES: ReadonlySet<CreateScenarioOutput['scenario']['status']> = new Set([
@@ -42,6 +43,10 @@ function buildCreateParams(input: CreateScenarioInput): CreateScenarioParams {
   }
 
   const voiceConfig = normalizeVoiceConfigurationMutation(input.config, input.voiceConfig, false)
+  const config =
+    input.config !== undefined || input.presentation !== undefined
+      ? applyPresentationMutation('scenario', input.config, {}, input.presentation)
+      : undefined
   return {
     name,
     status,
@@ -51,6 +56,6 @@ function buildCreateParams(input: CreateScenarioInput): CreateScenarioParams {
     avatarAvailability: input.avatarAvailability ?? { initialAvatarIds: [] },
     ...(input.modelSelection !== undefined ? { modelSelection: input.modelSelection } : {}),
     ...(voiceConfig !== undefined ? { voiceConfig } : {}),
-    ...(input.config !== undefined ? { config: input.config } : {}),
+    ...(config !== undefined ? { config } : {}),
   }
 }

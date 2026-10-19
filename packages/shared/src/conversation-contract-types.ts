@@ -48,7 +48,7 @@ export type GetHistoryResponse = {
  */
 export type AvailableAvatarSummary = Pick<
   AvatarSummary,
-  'avatarId' | 'scenarioId' | 'name' | 'status' | 'tone' | 'description'
+  'avatarId' | 'scenarioId' | 'name' | 'status' | 'tone' | 'description' | 'presentation'
 >
 
 export type GetAvailableAvatarsResponse = {

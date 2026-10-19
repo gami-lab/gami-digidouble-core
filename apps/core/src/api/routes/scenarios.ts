@@ -55,6 +55,11 @@ import {
   voiceConfigurationUpdateBodySchema,
 } from './voice-configuration-schema.js'
 import {
+  avatarPresentationBodySchema,
+  scenarioPresentationBodySchema,
+  scenarioPresentationUpdateBodySchema,
+} from './presentation-schema.js'
+import {
   mapCreateScenarioResponse,
   mapGetScenarioResponse,
   mapUpdateScenarioResponse,
@@ -134,6 +139,7 @@ const createScenarioBodySchema = {
     avatarAvailability: avatarAvailabilityBodySchema,
     modelSelection: scenarioModelSelectionBodySchema,
     voiceConfig: voiceConfigurationBodySchema,
+    presentation: scenarioPresentationBodySchema,
     config: { type: 'object' },
   },
   additionalProperties: false,
@@ -152,6 +158,7 @@ const updateScenarioBodySchema = {
     avatarAvailability: avatarAvailabilityBodySchema,
     modelSelection: { anyOf: [{ type: 'null' }, scenarioModelSelectionBodySchema] },
     voiceConfig: voiceConfigurationUpdateBodySchema,
+    presentation: scenarioPresentationUpdateBodySchema,
     config: { type: 'object' },
   },
   additionalProperties: false,
@@ -192,6 +199,7 @@ const createAvatarBodySchema = {
       ],
     },
     voiceConfig: voiceConfigurationBodySchema,
+    presentation: avatarPresentationBodySchema,
     config: { type: 'object' },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
   },

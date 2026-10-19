@@ -1,5 +1,6 @@
 import type { AvatarSummary, AvailableAvatarSummary } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
+import { readPresentation, withoutPresentation } from '../../../domain/presentation/presentation.js'
 
 function readAvailabilityKey(config: Record<string, unknown>): string | undefined {
   const availabilityKey = config['availabilityKey']
@@ -11,6 +12,7 @@ function readAvailabilityKey(config: Record<string, unknown>): string | undefine
 
 export function toAvatarSummary(avatar: AvatarConfig): AvatarSummary {
   const availabilityKey = readAvailabilityKey(avatar.config)
+  const presentation = readPresentation('avatar', avatar.config)
 
   return {
     avatarId: avatar.avatarId,
@@ -23,9 +25,10 @@ export function toAvatarSummary(avatar: AvatarConfig): AvatarSummary {
     ...(avatar.adjustments !== undefined ? { adjustments: avatar.adjustments } : {}),
     ...(avatar.llmOverride !== undefined ? { llmOverride: avatar.llmOverride } : {}),
     ...(avatar.voiceConfig !== undefined ? { voiceConfig: avatar.voiceConfig } : {}),
+    ...(presentation !== undefined ? { presentation } : {}),
     ...(availabilityKey !== undefined ? { availabilityKey } : {}),
     ...(avatar.computedTraits !== undefined ? { computedTraits: avatar.computedTraits } : {}),
-    config: avatar.config,
+    config: withoutPresentation(avatar.config),
     createdAt: avatar.createdAt,
     updatedAt: avatar.updatedAt,
   }
@@ -33,6 +36,7 @@ export function toAvatarSummary(avatar: AvatarConfig): AvatarSummary {
 
 /** Public player projection; deliberately excludes admin-only Avatar fields. */
 export function toAvailableAvatarSummary(avatar: AvatarConfig): AvailableAvatarSummary {
+  const presentation = readPresentation('avatar', avatar.config)
   return {
     avatarId: avatar.avatarId,
     scenarioId: avatar.scenarioId,
@@ -40,5 +44,6 @@ export function toAvailableAvatarSummary(avatar: AvatarConfig): AvailableAvatarS
     status: avatar.status,
     ...(avatar.tone !== undefined ? { tone: avatar.tone } : {}),
     ...(avatar.description !== undefined ? { description: avatar.description } : {}),
+    ...(presentation !== undefined ? { presentation } : {}),
   }
 }

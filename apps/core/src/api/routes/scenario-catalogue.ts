@@ -35,5 +35,6 @@ function toPublicScenario(scenario: ScenarioSummary): PublicScenarioSummary {
     scenarioId: scenario.scenarioId,
     name: scenario.name,
     ...(scenario.language !== undefined ? { language: scenario.language } : {}),
+    ...(scenario.presentation !== undefined ? { presentation: scenario.presentation } : {}),
   }
 }

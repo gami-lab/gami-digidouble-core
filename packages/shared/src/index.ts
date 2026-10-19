@@ -113,6 +113,21 @@ export {
   isVoiceConfiguration,
 } from './voice-contract-types.js'
 export type {
+  AvatarPresentation,
+  AvatarPresentationUpdate,
+  EntryQuestionPersonaField,
+  ScenarioEntryQuestion,
+  ScenarioPresentation,
+  ScenarioPresentationUpdate,
+} from './presentation-contract-types.js'
+export {
+  ENTRY_QUESTION_PERSONA_FIELDS,
+  PRESENTATION_IMAGE_URL_PATTERN,
+  PRESENTATION_LIMITS,
+  isAvatarPresentation,
+  isScenarioPresentation,
+} from './presentation-contract-types.js'
+export type {
   MessageStreamEventBase,
   MessageStreamStartedEvent,
   MessageStreamDeltaEvent,

@@ -136,6 +136,14 @@ rather than a silent corruption risk:
   provider, and selections without `voiceId` use the provider's default voice for the scenario
   language. Model overrides (`avatar.config.llmOverride`, `session.model_override`) follow the
   same pattern: reserved JSONB keys projected into typed fields, not new top-level columns.
+- Player presentation (`ScenarioPresentation`, `AvatarPresentation` in
+  `packages/shared/src/presentation-contract-types.ts`) lives under the reserved `config.uiHints`
+  key and is projected as the typed `presentation` field; admin projections return `config`
+  without `uiHints`. Scenario: `cover`, `tagline`, `introText`, `entryQuestion { prompt,
+personaField: name | roleInWorld }`, `outroText`. Avatar: `portrait`, `hook`, up to three
+  `starterQuestions`. Images are `http(s)` URLs for now. Core orchestration (Avatar prompt
+  assembly, Game Master, retrieval) never reads it; stored values that no longer match the
+  contract are ignored on read.
 
 ## Gotchas
 

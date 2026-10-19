@@ -18,6 +18,7 @@ import {
 } from './model-selection-validation.js'
 import { normalizeAvatarLlmOverride } from './model-selection-mappers.js'
 import { voiceConfigurationUpdateBodySchema } from './voice-configuration-schema.js'
+import { avatarPresentationUpdateBodySchema } from './presentation-schema.js'
 
 export type AvatarsRouteOptions = {
   config: Config
@@ -61,6 +62,7 @@ const patchAvatarBodySchema = {
       ],
     },
     voiceConfig: voiceConfigurationUpdateBodySchema,
+    presentation: avatarPresentationUpdateBodySchema,
     config: { type: 'object' },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
   },
@@ -132,28 +134,11 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
 }
 
 function buildUpdateAvatarInput(avatarId: string, body: UpdateAvatarRequest): UpdateAvatarInput {
-  const {
-    name,
-    personaPrompt,
-    tone,
-    description,
-    adjustments,
-    llmOverride,
-    voiceConfig,
-    config,
-    status,
-  } = body
+  const { llmOverride, ...fields } = body
   const normalizedLlmOverride = normalizeAvatarLlmOverride(llmOverride)
   return {
     avatarId,
-    ...(name !== undefined ? { name } : {}),
-    ...(personaPrompt !== undefined ? { personaPrompt } : {}),
-    ...(tone !== undefined ? { tone } : {}),
-    ...(description !== undefined ? { description } : {}),
-    ...(adjustments !== undefined ? { adjustments } : {}),
+    ...fields,
     ...(normalizedLlmOverride !== undefined ? { llmOverride: normalizedLlmOverride } : {}),
-    ...(voiceConfig !== undefined ? { voiceConfig } : {}),
-    ...(config !== undefined ? { config } : {}),
-    ...(status !== undefined ? { status } : {}),
   }
 }

@@ -3,10 +3,11 @@ import { DomainError } from '../../../domain/errors.js'
 import type { UpdateAvatarInput, UpdateAvatarOutput } from './update-avatar.types.js'
 import { toAvatarSummary } from '../shared/avatar-summary.js'
 import { normalizeVoiceConfigurationMutation } from '../../../domain/voice/voice-configuration.js'
+import { applyPresentationMutation } from '../../../domain/presentation/presentation.js'
 
 function buildUpdates(input: UpdateAvatarInput): UpdateAvatarParams {
-  const { name, personaPrompt, tone, description, adjustments, llmOverride, config, status } = input
-  const voiceConfig = normalizeVoiceConfigurationMutation(config, input.voiceConfig, true)
+  const { name, personaPrompt, tone, description, adjustments, llmOverride, status } = input
+  const voiceConfig = normalizeVoiceConfigurationMutation(input.config, input.voiceConfig, true)
   return {
     ...(name !== undefined ? { name } : {}),
     ...(personaPrompt !== undefined ? { personaPrompt } : {}),
@@ -14,7 +15,6 @@ function buildUpdates(input: UpdateAvatarInput): UpdateAvatarParams {
     ...(description !== undefined ? { description } : {}),
     ...(adjustments !== undefined ? { adjustments } : {}),
     ...(llmOverride !== undefined ? { llmOverride } : {}),
-    ...(config !== undefined ? { config } : {}),
     ...(voiceConfig !== undefined ? { voiceConfig } : {}),
     ...(status !== undefined ? { status } : {}),
   }
@@ -26,7 +26,11 @@ export class UpdateAvatarUseCase {
   async execute(input: UpdateAvatarInput): Promise<UpdateAvatarOutput> {
     const updates = buildUpdates(input)
 
-    if (Object.keys(updates).length === 0) {
+    if (
+      Object.keys(updates).length === 0 &&
+      input.config === undefined &&
+      input.presentation === undefined
+    ) {
       throw new DomainError('INVALID_INPUT', 'At least one field must be provided for update')
     }
 
@@ -36,6 +40,14 @@ export class UpdateAvatarUseCase {
       throw new DomainError(
         'VALIDATION_ERROR',
         'An Avatar must be prepared before it can be active.',
+      )
+    }
+    if (input.config !== undefined || input.presentation !== undefined) {
+      updates.config = applyPresentationMutation(
+        'avatar',
+        input.config,
+        existing.config,
+        input.presentation,
       )
     }
     const avatar = await this.avatarRepository.update(input.avatarId, updates)

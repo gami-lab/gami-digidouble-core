@@ -3,6 +3,7 @@ import { DomainError } from '../../../domain/errors.js'
 import type { UpdateScenarioInput, UpdateScenarioOutput } from './update-scenario.types.js'
 import { normalizeVoiceConfigurationMutation } from '../../../domain/voice/voice-configuration.js'
 import { normalizeScenarioLanguage } from '../../../domain/scenario/scenario-language.js'
+import { applyPresentationMutation } from '../../../domain/presentation/presentation.js'
 
 export class UpdateScenarioUseCase {
   constructor(private readonly scenarioRepository: IScenarioRepository) {}
@@ -10,7 +11,7 @@ export class UpdateScenarioUseCase {
   async execute(input: UpdateScenarioInput): Promise<UpdateScenarioOutput> {
     const updates = buildUpdates(input)
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates).length === 0 && input.presentation === undefined) {
       throw new DomainError('INVALID_INPUT', 'At least one field must be provided for update')
     }
 
@@ -20,6 +21,14 @@ export class UpdateScenarioUseCase {
     const nextLanguage = updates.language ?? existing.language
     if (nextStatus === 'active' && nextLanguage === undefined) {
       throw new DomainError('VALIDATION_ERROR', 'Active Scenarios require a canonical language.')
+    }
+    if (input.config !== undefined || input.presentation !== undefined) {
+      updates.config = applyPresentationMutation(
+        'scenario',
+        input.config,
+        existing.config,
+        input.presentation,
+      )
     }
     const scenario = await this.scenarioRepository.update(input.scenarioId, updates)
     return { scenario }

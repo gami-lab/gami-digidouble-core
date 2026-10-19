@@ -1,5 +1,5 @@
 import type { ScenarioSummary } from '@gami/shared'
-import type { ScenarioModelSelection, VoiceConfiguration } from '@gami/shared'
+import type { ScenarioModelSelection, ScenarioPresentation, VoiceConfiguration } from '@gami/shared'
 import type {
   ScenarioAvatarAvailabilityConfig,
   ScenarioStatus,
@@ -14,6 +14,7 @@ export interface CreateScenarioInput {
   avatarAvailability?: ScenarioAvatarAvailabilityConfig
   modelSelection?: ScenarioModelSelection
   voiceConfig?: VoiceConfiguration
+  presentation?: ScenarioPresentation
   config?: Record<string, unknown>
 }
 

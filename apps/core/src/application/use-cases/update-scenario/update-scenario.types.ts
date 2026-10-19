@@ -1,5 +1,9 @@
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
-import type { ScenarioModelSelection, VoiceConfigurationUpdate } from '@gami/shared'
+import type {
+  ScenarioModelSelection,
+  ScenarioPresentationUpdate,
+  VoiceConfigurationUpdate,
+} from '@gami/shared'
 import type {
   ScenarioAvatarAvailabilityConfig,
   ScenarioStatus,
@@ -15,6 +19,7 @@ export type UpdateScenarioInput = {
   avatarAvailability?: ScenarioAvatarAvailabilityConfig
   modelSelection?: ScenarioModelSelection | null
   voiceConfig?: VoiceConfigurationUpdate
+  presentation?: ScenarioPresentationUpdate
   config?: Record<string, unknown>
 }
 
