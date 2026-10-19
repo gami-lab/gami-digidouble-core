@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import type { RuntimeEvent } from '@gami/shared'
 import {
   createRuntimeMomentsState,
+  currentMediaMoment,
   dismissMoment,
+  finishMedia,
+  markMediaStarted,
   receiveRuntimeEvent,
   visibleMoment,
   type MomentDisplayContext,
@@ -95,5 +98,52 @@ describe('runtime moments', () => {
         event({ eventId: 'e2', type: 'runtime.avatar_suggested', payload: {} }),
       ]).queue,
     ).toEqual([])
+  })
+})
+
+describe('runtime media cues', () => {
+  function cueEvent(cueId: string, eventId = `event_${cueId}`): RuntimeEvent {
+    return event({
+      eventId,
+      type: 'runtime.media_cue',
+      payload: {
+        cueId,
+        origin: 'game_master',
+        display: 'overlay',
+        asset: {
+          assetId: 'media_1',
+          kind: 'image',
+          url: '/v1/media/media_1',
+          description: 'A map',
+        },
+      },
+    })
+  }
+
+  it('queues cues in arrival order and ignores repeats of the same cue', () => {
+    const state = receive([cueEvent('cue_a'), cueEvent('cue_b'), cueEvent('cue_a', 'event_again')])
+
+    expect(state.media.map((moment) => moment.cue.cueId)).toEqual(['cue_a', 'cue_b'])
+  })
+
+  it('ignores malformed cues and cues of another session', () => {
+    const state = receive([
+      event({ type: 'runtime.media_cue', payload: { cueId: 'cue_x' } }),
+      { ...cueEvent('cue_y'), sessionId: 'session_2' },
+    ])
+
+    expect(state.media).toEqual([])
+  })
+
+  it('waits while the character is busy, then keeps a started cue until it ends', () => {
+    let state = receive([cueEvent('cue_a'), cueEvent('cue_b')])
+    expect(currentMediaMoment(state, { busy: true })).toBeNull()
+    expect(currentMediaMoment(state, { busy: false })?.cue.cueId).toBe('cue_a')
+
+    state = markMediaStarted(state, 'cue_a')
+    expect(currentMediaMoment(state, { busy: true })?.cue.cueId).toBe('cue_a')
+
+    state = finishMedia(state, 'cue_a')
+    expect(currentMediaMoment(state, { busy: false })?.cue.cueId).toBe('cue_b')
   })
 })

@@ -59,7 +59,11 @@ These are easy to regress silently because they are policy, not type-level const
   cues: the catalogue is shown only when cue-able, not-yet-cued assets exist; the parser keeps a
   valid cue and drops a malformed one without touching other decisions; normalization drops ids
   outside the run's catalogue; an accepted cue emits once (also under replay) and a rejected one
-  emits nothing and leaves the GM state reduction unchanged.
+  emits nothing and leaves the GM state reduction unchanged. Playback: the report route
+  (auth, validation, cue scoped to the owned session, once per outcome, route and stack tests);
+  the player queues cues behind speech, de-duplicates by `cueId`, reports `started` once even when
+  `playing` repeats, dismisses an overlay on send, pauses and resumes the voice loop, offers
+  tap-to-play, and plays intro/outro slots with text and cover fallbacks.
 - Player identity comes only from a Core-signed token; another player's session, conversation,
   history, runtime state, events stream, or audio is indistinguishable from a missing one (`404`).
 - Session unlock state is fixed at session start and changes only through Game Master unlocks; the

@@ -80,7 +80,7 @@ import { InMemoryModelConfigRepository } from '../infrastructure/db/in-memory-mo
 import { InMemoryMediaAssetRepository } from '../infrastructure/db/in-memory-media-asset.repository.js'
 import { InMemoryMediaStorage } from '../infrastructure/media/in-memory-media-storage.js'
 import { adminMediaRoute } from './routes/admin-media.js'
-import { mediaFileRoute } from './routes/media-file.js'
+import { playerMediaRoutes } from './routes/player-media.js'
 import { InMemoryKnowledgeSourceContentLoader } from '../infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
 import { UnconfiguredEmbeddingAdapter } from '../infrastructure/knowledge/unconfigured-embedding.adapter.js'
 import { InMemoryUtteranceIdempotencyStore } from '../application/voice/in-memory-utterance-idempotency.store.js'
@@ -276,7 +276,7 @@ function registerPublicRoutes(
     mediaAssetRepository: adapters.mediaAssetRepository,
     scenarioRepository: adapters.scenarioRepository,
   })
-  scope.register(mediaFileRoute, { prefix: '/media', ...adapters })
+  scope.register(playerMediaRoutes, adapters)
 }
 
 function registerAdminRoutes(

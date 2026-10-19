@@ -7,6 +7,7 @@ const base: PresenceInputs = {
   sendStatus: 'idle',
   audioStatus: 'idle',
   voicePhase: 'off',
+  watching: false,
 }
 
 describe('conversation presence', () => {
@@ -18,6 +19,7 @@ describe('conversation presence', () => {
     ['reply streaming (text)', { sendStatus: 'streaming' }, 'thinking'],
     ['reply streaming (voice)', { sendStatus: 'streaming', voicePhase: 'waiting' }, 'thinking'],
     ['microphone listening', { voicePhase: 'listening' }, 'listening'],
+    ['scenario media on screen', { watching: true, voicePhase: 'watching' }, 'watching'],
     ['idle text mode', {}, 'yourTurn'],
     ['audio finished', { audioStatus: 'stopped' }, 'yourTurn'],
     ['audio failed', { audioStatus: 'failed' }, 'yourTurn'],

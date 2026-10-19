@@ -80,6 +80,7 @@ const llm = { complete: completeMock, stream: streamMock }
 const eventLogRepository = {
   append: appendEventMock,
   appendOnce: vi.fn(),
+  findById: vi.fn(),
   findBySessionId: vi.fn(),
 }
 const userRepository = { findById: findUserByIdMock, upsert: vi.fn() }

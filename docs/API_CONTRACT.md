@@ -61,7 +61,7 @@ Every route declares one tier: `public` (player), `admin` (authoring, operators,
 - Rate limits return `429 RATE_LIMITED` with `Retry-After` (seconds). Player routes are limited per
   player, `open` routes per client IP. Policies: `playerToken` (`POST /v1/auth/player`),
   `adminLogin`, `sessionStart` (`POST /v1/sessions`), `message` (JSON and SSE turns), `voice`
-  (both voice routes), `audio` (message audio). If the limiter is unavailable the request proceeds
+  (both voice routes), `audio` (message audio), `mediaPlayback` (playback reports). If the limiter is unavailable the request proceeds
   (fail-open) and a warning is logged.
 - Every JSON route has a body limit: 4 KB on `open` routes, 32 KB on player routes, 1 MB on admin
   routes, and ~15 MB on knowledge create/upload/update. Voice audio is bounded at 10 MB. An
@@ -114,6 +114,12 @@ the scenario afterwards stay locked for existing sessions.
 ### Runtime
 
 - `GET /v1/sessions/{sessionId}/runtime-state`
+- `POST /v1/sessions/{sessionId}/media-cues/{cueId}/playback` — `ReportMediaPlaybackRequest`
+  (`outcome`: `started | completed | skipped | failed`, optional `clientLatencyMs` 0–3,600,000) →
+  `ReportMediaPlaybackResponse` (`recorded`). The cue must have been emitted to that session;
+  otherwise `404 NOT_FOUND`, like a foreign session. Each outcome is recorded once per cue, so a
+  repeated report returns `recorded: false`. Intro/outro slot playback is not reported: it has no
+  cue, so it is excluded from timing.
 - `GET /v1/sessions/{sessionId}/events/stream` — `RuntimeEvent` frames. `runtime.media_cue`
   carries `MediaCuePayload` (`cueId`, `asset: PublicMediaAsset`, `origin`:
   `avatar_unlocked | avatar_switched | game_master`, `display`: `fullscreen` for videos, `overlay`

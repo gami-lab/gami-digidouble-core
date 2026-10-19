@@ -525,3 +525,59 @@ button:disabled {
 .story-card [tabindex='-1']:focus {
   outline: none;
 }
+
+.presence-watching {
+  background: #ece6ff;
+  color: #4b2fb3;
+}
+
+.media-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+.media-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.media-controls {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  gap: 8px;
+}
+
+.media-tap-to-play {
+  position: absolute;
+}
+
+.media-overlay {
+  position: fixed;
+  inset: auto 16px 16px;
+  z-index: 40;
+  margin: 0 auto;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-000);
+  box-shadow: var(--shadow-soft);
+}
+
+.media-image {
+  width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}

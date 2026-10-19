@@ -55,6 +55,7 @@ services:
       RATE_LIMIT_MESSAGE: 10000/60
       RATE_LIMIT_VOICE: 10000/60
       RATE_LIMIT_AUDIO: 10000/60
+      RATE_LIMIT_MEDIA_PLAYBACK: 10000/60
       # LLM provider — defaults to null (always-on tests); override to exercise real providers
       LLM_PROVIDER: ${LLM_PROVIDER:-null}
       # Production embedding provider — requires OPENAI_API_KEY to start the app

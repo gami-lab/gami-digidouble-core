@@ -77,7 +77,8 @@ function mockVoice(overrides: Partial<VoiceConversationState> = {}): VoiceConver
 }
 
 function renderScreen(chat = createChat(), onSwitch = vi.fn()): void {
-  render(<ConversationScreen avatar={clara} chat={chat} onSwitch={onSwitch} notice={null} />)
+  render(<ConversationScreen avatar={clara} chat={chat} onSwitch={onSwitch} notice={null}
+        watching={null} />)
 }
 
 beforeEach(async () => {
@@ -105,7 +106,8 @@ describe('voice-first conversation screen', () => {
   it('announces listening, thinking, and speaking in one polite status', () => {
     mockVoice({ enabled: true, phase: 'listening' })
     const { rerender } = render(
-      <ConversationScreen avatar={clara} chat={createChat()} onSwitch={vi.fn()} notice={null} />,
+      <ConversationScreen avatar={clara} chat={createChat()} onSwitch={vi.fn()} notice={null}
+        watching={null} />,
     )
     const status = screen.getByRole('status')
     expect(status.getAttribute('aria-live')).toBe('polite')
@@ -118,13 +120,15 @@ describe('voice-first conversation screen', () => {
         chat={createChat({ sendStatus: 'streaming' })}
         onSwitch={vi.fn()}
         notice={null}
+        watching={null}
       />,
     )
     expect(screen.getByRole('status').textContent).toBe('Thinking…')
 
     mockVoice({ enabled: true, phase: 'speaking' })
     const speaking = createChat({ audio: { messageId: 'm2', status: 'playing', errorCode: null } })
-    rerender(<ConversationScreen avatar={clara} chat={speaking} onSwitch={vi.fn()} notice={null} />)
+    rerender(<ConversationScreen avatar={clara} chat={speaking} onSwitch={vi.fn()} notice={null}
+        watching={null} />)
     expect(screen.getByRole('status').textContent).toBe('Speaking…')
   })
 
@@ -226,6 +230,7 @@ describe('conversation fallbacks and actions', () => {
         chat={createChat()}
         onSwitch={vi.fn()}
         notice={null}
+        watching={null}
       />,
     )
 
@@ -248,7 +253,8 @@ describe('idle hint', () => {
     mockVoice()
     const chat = createChat()
     render(
-      <ConversationScreen avatar={withQuestions} chat={chat} onSwitch={vi.fn()} notice={null} />,
+      <ConversationScreen avatar={withQuestions} chat={chat} onSwitch={vi.fn()} notice={null}
+        watching={null} />,
     )
     expect(screen.queryByText('Not sure what to say?')).toBeNull()
 
@@ -270,6 +276,7 @@ describe('idle hint', () => {
         chat={speaking}
         onSwitch={vi.fn()}
         notice={null}
+        watching={null}
       />,
     )
     act(() => {
@@ -283,6 +290,7 @@ describe('idle hint', () => {
         chat={createChat()}
         onSwitch={vi.fn()}
         notice={<p>moment</p>}
+        watching={null}
       />,
     )
     act(() => {
@@ -300,6 +308,7 @@ describe('idle hint', () => {
         chat={createChat()}
         onSwitch={vi.fn()}
         notice={null}
+        watching={null}
       />,
     )
     act(() => {
@@ -313,6 +322,7 @@ describe('idle hint', () => {
         chat={createChat({ composerValue: 'W' })}
         onSwitch={vi.fn()}
         notice={null}
+        watching={null}
       />,
     )
     expect(screen.queryByText('Not sure what to say?')).toBeNull()

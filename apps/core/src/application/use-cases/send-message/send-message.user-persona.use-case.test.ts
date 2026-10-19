@@ -62,6 +62,7 @@ const llm = { complete: completeMock }
 const eventLogRepository = {
   append: appendEventMock,
   appendOnce: vi.fn(),
+  findById: vi.fn(),
   findBySessionId: vi.fn(),
 }
 const userRepository = { findById: findUserByIdMock, upsert: vi.fn() }

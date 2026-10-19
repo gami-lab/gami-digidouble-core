@@ -50,7 +50,15 @@ const fr = {
     listening: 'Écoute…',
     thinking: 'Réfléchit…',
     speaking: 'Parle…',
+    watching: 'Regarde avec vous…',
     yourTurn: 'À vous',
+  },
+  media: {
+    skip: 'Passer',
+    close: 'Fermer',
+    mute: 'Couper le son',
+    unmute: 'Activer le son',
+    tapToPlay: 'Touchez pour lancer',
   },
   outro: {
     title: 'Fin',

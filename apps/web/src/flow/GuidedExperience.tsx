@@ -51,21 +51,25 @@ export function GuidedExperience({ userId }: { userId: string }): JSX.Element {
   }, [userId, discovery.selectedScenarioId, chat.activeAvatarId, chat.conversation?.conversationId])
 
   return (
-    <FlowScreen
-      flow={flow}
-      dispatch={dispatch}
-      discovery={discovery}
-      notice={moments.render(() => {
-        dispatch({ type: 'conversationStarted' })
-      })}
-      chat={{
-        ...chat,
-        endCurrentConversation: () => {
-          endRequestedRef.current = true
-          chat.endCurrentConversation()
-        },
-      }}
-    />
+    <>
+      {moments.renderMedia()}
+      <FlowScreen
+        flow={flow}
+        dispatch={dispatch}
+        discovery={discovery}
+        watching={moments.watching}
+        notice={moments.render(() => {
+          dispatch({ type: 'conversationStarted' })
+        })}
+        chat={{
+          ...chat,
+          endCurrentConversation: () => {
+            endRequestedRef.current = true
+            chat.endCurrentConversation()
+          },
+        }}
+      />
+    </>
   )
 }
 

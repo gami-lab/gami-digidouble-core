@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { JSX, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { AvailableAvatarSummary } from '@gami/shared'
+import type { AvailableAvatarSummary, MediaCueDisplay } from '@gami/shared'
 import type { ActiveChatRuntimeState } from '../chat/use-active-chat-runtime'
 import { StoryCard } from '../flow/StoryScreens'
 import { useVoiceConversation, type VoiceConversationState } from '../voice/use-voice-conversation'
@@ -18,6 +18,8 @@ type ConversationScreenProps = {
   onSwitch: () => void
   /** A staged runtime moment; while shown, no idle hint is counted. */
   notice: ReactNode
+  /** Scenario media on screen: the microphone pauses, and a fullscreen video blocks typing. */
+  watching: MediaCueDisplay | null
 }
 
 export function ConversationScreen({
@@ -25,9 +27,10 @@ export function ConversationScreen({
   chat,
   onSwitch,
   notice,
+  watching,
 }: ConversationScreenProps): JSX.Element {
   const { t } = useTranslation()
-  const voice = useVoiceConversation(chat)
+  const voice = useVoiceConversation(chat, watching !== null)
   const voiceAvailable = voice.supported && voice.error === null
   const [showTranscript, setShowTranscript] = useState(!voice.supported)
   useStopVoiceWithoutConversation(chat, voice)
@@ -41,6 +44,7 @@ export function ConversationScreen({
     sendStatus: chat.sendStatus,
     audioStatus: chat.audio.status,
     voicePhase: voice.phase,
+    watching: watching !== null,
   })
   const caption = showTranscript ? null : latestReply(chat)
 
@@ -60,7 +64,7 @@ export function ConversationScreen({
         chat={chat}
         voice={voice}
         presence={presence}
-        paused={notice !== null}
+        paused={notice !== null || watching !== null}
       />
       {chat.conversationError !== null ? (
         <p className="error" role="alert">
@@ -69,7 +73,7 @@ export function ConversationScreen({
       ) : null}
       {voiceAvailable ? <MicButton voice={voice} disabled={chat.conversation === null} /> : null}
       <VoiceHint voice={voice} />
-      <TextComposer chat={chat} voice={voice} />
+      <TextComposer chat={chat} voice={voice} disabled={watching === 'fullscreen'} />
       <button
         type="button"
         className="button-link"

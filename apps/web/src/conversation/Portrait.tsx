@@ -7,9 +7,27 @@ type PortraitProps = {
   size: 'card' | 'stage'
 }
 
-/** The authored portrait, or the character's initial when none is authored. */
+/**
+ * On the conversation stage, the authored idle loop (muted, looping); otherwise the portrait, or
+ * the character's initial when none is authored.
+ */
 export function Portrait({ avatar, size }: PortraitProps): JSX.Element {
   const portrait = avatar.presentation?.portrait
+  const idleLoop = avatar.presentation?.idleLoop
+  if (size === 'stage' && idleLoop !== undefined) {
+    return (
+      <video
+        className={`portrait portrait-${size}`}
+        src={resolveMediaUrl(idleLoop.url)}
+        {...(portrait !== undefined ? { poster: resolveMediaUrl(portrait.url) } : {})}
+        aria-label={avatar.name}
+        autoPlay
+        muted
+        loop
+        playsInline
+      />
+    )
+  }
   if (portrait !== undefined) {
     return (
       <img

@@ -64,6 +64,7 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
 function createUseCase(eventLog?: {
   append: ReturnType<typeof vi.fn>
   appendOnce: ReturnType<typeof vi.fn>
+  findById: ReturnType<typeof vi.fn>
   findBySessionId: ReturnType<typeof vi.fn>
 }): RunGameMasterUseCase {
   return new RunGameMasterUseCase(
@@ -106,7 +107,7 @@ beforeEach(() => {
 })
 
 function eventLogMocks() {
-  return { append: vi.fn(), appendOnce: vi.fn(), findBySessionId: vi.fn() }
+  return { append: vi.fn(), appendOnce: vi.fn(), findById: vi.fn(), findBySessionId: vi.fn() }
 }
 
 describe('RunGameMasterUseCase — defensive error paths', () => {

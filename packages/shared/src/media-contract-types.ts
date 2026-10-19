@@ -141,6 +141,18 @@ export type MediaCuePayload = {
   display: MediaCueDisplay
 }
 
+export const MEDIA_PLAYBACK_OUTCOMES = ['started', 'completed', 'skipped', 'failed'] as const
+export type MediaPlaybackOutcome = (typeof MEDIA_PLAYBACK_OUTCOMES)[number]
+
+/** `POST /v1/sessions/{sessionId}/media-cues/{cueId}/playback` */
+export type ReportMediaPlaybackRequest = {
+  outcome: MediaPlaybackOutcome
+  /** Player-measured time from receiving the cue to this outcome. */
+  clientLatencyMs?: number
+}
+
+export type ReportMediaPlaybackResponse = { recorded: boolean }
+
 export function isMediaCuePayload(value: unknown): value is MediaCuePayload {
   if (typeof value !== 'object' || value === null) return false
   const payload = value as Record<string, unknown>

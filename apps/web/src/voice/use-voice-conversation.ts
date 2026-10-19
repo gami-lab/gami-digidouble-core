@@ -58,7 +58,10 @@ export function isVoiceCaptureSupported(): boolean {
  * while the reply streams and plays, then listens again.
  */
 // eslint-disable-next-line max-lines-per-function -- hook owns the hands-free voice loop whose effects share refs
-export function useVoiceConversation(chat: ActiveChatRuntimeState): VoiceConversationState {
+export function useVoiceConversation(
+  chat: ActiveChatRuntimeState,
+  watching: boolean,
+): VoiceConversationState {
   const [supported] = useState(isVoiceCaptureSupported)
   const [enabled, setEnabled] = useState(false)
   const [captureReady, setCaptureReady] = useState(false)
@@ -69,7 +72,12 @@ export function useVoiceConversation(chat: ActiveChatRuntimeState): VoiceConvers
   const chatRef = useRef(chat)
   chatRef.current = chat
 
-  const phase = getVoiceLoopPhase(enabled && captureReady, chat.sendStatus, chat.audio.status)
+  const phase = getVoiceLoopPhase(
+    enabled && captureReady,
+    chat.sendStatus,
+    chat.audio.status,
+    watching,
+  )
 
   const finishRecording = useCallback((submit: boolean): void => {
     const recording = recordingRef.current

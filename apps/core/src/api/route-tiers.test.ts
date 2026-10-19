@@ -14,6 +14,13 @@ const OPEN_ROUTES = [
 const PLAYER_ROUTE_PATTERN = /^\/v1\/(sessions|conversations|me|scenarios\/?$)/
 /** Path params the player ownership hook resolves; a new kind of id must extend that hook first. */
 const OWNED_PATH_PARAMS = ['sessionId', 'conversationId', 'messageId']
+/** Ids a use case resolves only inside the ownership-checked session of the same path. */
+const SESSION_SCOPED_PATH_PARAMS = ['cueId']
+
+function isOwnershipChecked(route: string, param: string): boolean {
+  if (OWNED_PATH_PARAMS.includes(param)) return true
+  return SESSION_SCOPED_PATH_PARAMS.includes(param) && route.includes(':sessionId')
+}
 
 async function listRegisteredRoutes(): Promise<{ route: string; tier: unknown }[]> {
   const app = createServer(TEST_CONFIG)
@@ -96,7 +103,7 @@ describe('route tier matrix', () => {
       .flatMap(({ route }) =>
         [...route.matchAll(/:(\w+)/g)]
           .map((match) => match[1] ?? '')
-          .filter((param) => !OWNED_PATH_PARAMS.includes(param))
+          .filter((param) => !isOwnershipChecked(route, param))
           .map((param) => `${route} :${param}`),
       )
     expect(uncovered).toEqual([])

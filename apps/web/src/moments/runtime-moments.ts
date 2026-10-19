@@ -1,4 +1,4 @@
-import type { RuntimeEvent } from '@gami/shared'
+import { isMediaCuePayload, type MediaCuePayload, type RuntimeEvent } from '@gami/shared'
 
 export type RuntimeMoment = {
   momentId: string
@@ -6,9 +6,18 @@ export type RuntimeMoment = {
   avatarId: string
 }
 
+/** A media cue waiting or playing; `receivedAt` measures the player-side latency. */
+export type MediaMoment = {
+  cue: MediaCuePayload
+  receivedAt: number
+  started: boolean
+}
+
 export type RuntimeMomentsState = {
   sessionId: string | null
   queue: RuntimeMoment[]
+  /** Media cues in arrival order; the head plays first. */
+  media: MediaMoment[]
   seenEventIds: ReadonlySet<string>
 }
 
@@ -21,7 +30,7 @@ export type MomentDisplayContext = {
 }
 
 export function createRuntimeMomentsState(sessionId: string | null): RuntimeMomentsState {
-  return { sessionId, queue: [], seenEventIds: new Set() }
+  return { sessionId, queue: [], media: [], seenEventIds: new Set() }
 }
 
 /** Queues narrative moments from GM events of this session; duplicates and other events are ignored. */
@@ -30,6 +39,7 @@ export function receiveRuntimeEvent(
   event: RuntimeEvent,
 ): RuntimeMomentsState {
   if (event.sessionId !== state.sessionId || state.seenEventIds.has(event.eventId)) return state
+  if (event.type === 'runtime.media_cue') return receiveMediaCue(state, event, Date.now())
   const moments = toMoments(event)
   if (moments.length === 0) return state
   const queued = new Set(state.queue.map((moment) => `${moment.kind}:${moment.avatarId}`))
@@ -41,6 +51,47 @@ export function receiveRuntimeEvent(
     ],
     seenEventIds: new Set([...state.seenEventIds, event.eventId]),
   }
+}
+
+/** Cues are de-duplicated by `cueId`, whatever event carried them. */
+function receiveMediaCue(
+  state: RuntimeMomentsState,
+  event: RuntimeEvent,
+  receivedAt: number,
+): RuntimeMomentsState {
+  const cue = event.payload
+  if (!isMediaCuePayload(cue) || state.seenEventIds.has(cue.cueId)) return state
+  return {
+    ...state,
+    media: [...state.media, { cue, receivedAt, started: false }],
+    seenEventIds: new Set([...state.seenEventIds, event.eventId, cue.cueId]),
+  }
+}
+
+/**
+ * The cue to play now. A cue never starts while the character thinks or speaks; once started it
+ * stays until it ends, whatever happens in the conversation.
+ */
+export function currentMediaMoment(
+  state: RuntimeMomentsState,
+  context: Pick<MomentDisplayContext, 'busy'>,
+): MediaMoment | null {
+  const head = state.media[0]
+  if (head === undefined) return null
+  return head.started || !context.busy ? head : null
+}
+
+export function markMediaStarted(state: RuntimeMomentsState, cueId: string): RuntimeMomentsState {
+  return {
+    ...state,
+    media: state.media.map((moment) =>
+      moment.cue.cueId === cueId ? { ...moment, started: true } : moment,
+    ),
+  }
+}
+
+export function finishMedia(state: RuntimeMomentsState, cueId: string): RuntimeMomentsState {
+  return { ...state, media: state.media.filter((moment) => moment.cue.cueId !== cueId) }
 }
 
 export function dismissMoment(state: RuntimeMomentsState, momentId: string): RuntimeMomentsState {

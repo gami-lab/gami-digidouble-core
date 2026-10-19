@@ -50,7 +50,15 @@ const en = {
     listening: 'Listening…',
     thinking: 'Thinking…',
     speaking: 'Speaking…',
+    watching: 'Watching with you…',
     yourTurn: 'Your turn',
+  },
+  media: {
+    skip: 'Skip',
+    close: 'Close',
+    mute: 'Mute',
+    unmute: 'Unmute',
+    tapToPlay: 'Tap to play',
   },
   outro: {
     title: 'The end',

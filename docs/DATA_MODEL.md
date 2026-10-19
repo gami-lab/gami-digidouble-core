@@ -45,7 +45,10 @@ Redis holds only expiring coordination state:
 descriptions): `media.cue_emitted` is written under the deterministic id `evt_media_cue_{cueId}`
 (`ON CONFLICT DO NOTHING`), which is what makes a cue exactly-once across retries and GM replays;
 the runtime event is published only when that insert wins. `media.cue_skipped` (`origin`,
-`assetId`, `reason`) records a trigger whose asset no longer resolves.
+`assetId`, `reason`) records a trigger whose asset no longer resolves. Player reports add
+`media.playback_started|completed|skipped|failed` (`cueId`, `assetId`, `origin`, server-measured
+`cueToReportMs` from the cue's own entry, optional `clientLatencyMs`), written once per cue and
+outcome under `evt_media_playback_{cueId}_{outcome}`.
 
 ## Media files
 

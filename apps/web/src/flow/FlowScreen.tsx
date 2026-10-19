@@ -1,5 +1,5 @@
 import type { JSX, ReactNode } from 'react'
-import type { PublicScenarioSummary } from '@gami/shared'
+import type { MediaCueDisplay, PublicScenarioSummary } from '@gami/shared'
 import { ConversationScreen } from '../conversation/ConversationScreen'
 import type { ActiveChatRuntimeState } from '../chat/use-active-chat-runtime'
 import type { ScenarioAvatarDiscoveryState } from '../discovery/use-scenario-avatar-discovery'
@@ -19,6 +19,8 @@ type FlowScreenProps = {
   flow: FlowState
   /** A staged runtime moment, shown on character choice and in the conversation. */
   notice: ReactNode
+  /** How a playing media cue is displayed, if one is playing. */
+  watching: MediaCueDisplay | null
   dispatch: (event: FlowEvent) => void
   discovery: ScenarioAvatarDiscoveryState
   chat: ActiveChatRuntimeState
@@ -75,9 +77,10 @@ const SCENARIO_SCREENS: Record<ScenarioStep, (props: ScenarioScreenProps) => JSX
       onBack={back(dispatch)}
     />
   ),
-  conversation: ({ scenario, discovery, chat, dispatch, notice }) => (
+  conversation: ({ scenario, discovery, chat, dispatch, notice, watching }) => (
     <ConversationScreen
       notice={notice}
+      watching={watching}
       avatar={
         discovery.avatars.find((item) => item.avatarId === chat.activeAvatarId) ?? {
           name: scenario.name,

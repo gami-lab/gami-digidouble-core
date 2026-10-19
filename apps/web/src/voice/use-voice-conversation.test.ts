@@ -3,7 +3,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActiveChatRuntimeState } from '../chat/use-active-chat-runtime'
-import { useVoiceConversation } from './use-voice-conversation'
+import { useVoiceConversation, type VoiceConversationState } from './use-voice-conversation'
 
 let micLevel = 0
 const recorders: FakeMediaRecorder[] = []
@@ -65,10 +65,13 @@ function speakFor(level: number, ms: number): void {
   })
 }
 
+type HookProps = { current: ActiveChatRuntimeState; watching?: boolean }
+
 async function startListening(chat: ActiveChatRuntimeState) {
-  const hook = renderHook(({ current }) => useVoiceConversation(current), {
-    initialProps: { current: chat },
-  })
+  const hook = renderHook<VoiceConversationState, HookProps>(
+    ({ current, watching = false }: HookProps) => useVoiceConversation(current, watching),
+    { initialProps: { current: chat } },
+  )
   await act(async () => {
     hook.result.current.start()
     await Promise.resolve()
@@ -76,6 +79,7 @@ async function startListening(chat: ActiveChatRuntimeState) {
   return hook
 }
 
+// eslint-disable-next-line max-lines-per-function -- retained fixture or orchestration setup is clearer together
 describe('useVoiceConversation', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -110,6 +114,21 @@ describe('useVoiceConversation', () => {
     const [audio, durationMs] = vi.mocked(chat.sendVoiceMessage).mock.calls[0] ?? []
     expect(audio?.type).toBe('audio/webm;codecs=opus')
     expect(durationMs).toBeGreaterThanOrEqual(1800)
+  })
+
+  it('stops recording while scenario media plays, then listens again', async () => {
+    const chat = fakeChat()
+    const hook = await startListening(chat)
+
+    hook.rerender({ current: chat, watching: true })
+    expect(hook.result.current.phase).toBe('watching')
+    expect(recorders[0]?.state).toBe('inactive')
+    speakFor(0.2, 600)
+    expect(chat.sendVoiceMessage).not.toHaveBeenCalled()
+
+    hook.rerender({ current: chat, watching: false })
+    expect(hook.result.current.phase).toBe('listening')
+    expect(recorders[1]?.state).toBe('recording')
   })
 
   it('stops recording while the reply streams and plays, then listens again', async () => {
@@ -178,7 +197,7 @@ describe('useVoiceConversation', () => {
 
   it('reports unsupported browsers without asking for the microphone', () => {
     vi.stubGlobal('MediaRecorder', undefined)
-    const { result } = renderHook(() => useVoiceConversation(fakeChat()))
+    const { result } = renderHook(() => useVoiceConversation(fakeChat(), false))
 
     act(() => {
       result.current.start()

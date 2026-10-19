@@ -107,6 +107,7 @@ function createUseCase(params?: { session?: Session | null; events?: StoredEvent
   const eventLogRepository: IEventLogRepository = {
     append: vi.fn(),
     appendOnce: vi.fn(),
+    findById: vi.fn(),
     findBySessionId: findBySessionIdMock,
   }
 

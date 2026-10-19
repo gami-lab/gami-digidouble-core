@@ -5,6 +5,7 @@ export const RATE_LIMIT_POLICY_NAMES = [
   'message',
   'voice',
   'audio',
+  'mediaPlayback',
 ] as const
 
 export type RateLimitPolicyName = (typeof RATE_LIMIT_POLICY_NAMES)[number]
@@ -21,4 +22,5 @@ export const DEFAULT_RATE_LIMIT_POLICIES: RateLimitPolicies = {
   message: { max: 30, windowSeconds: 60 },
   voice: { max: 20, windowSeconds: 60 },
   audio: { max: 60, windowSeconds: 60 },
+  mediaPlayback: { max: 60, windowSeconds: 60 },
 }

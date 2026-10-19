@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { JSX, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { PublicMediaAsset, PublicScenarioSummary } from '@gami/shared'
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher'
 import { resolveMediaUrl } from '../media/media-url'
+import { FullscreenVideo } from '../media/FullscreenVideo'
 
 type StoryCardProps = {
   titleId: string
@@ -120,11 +121,44 @@ export function LandingScreen({ scenario, onNext, onBack }: StoryStepProps): JSX
   )
 }
 
+/**
+ * A slot video plays first, full screen with skip; afterwards the step shows its text, or moves on
+ * at once when it has none (`onTextless`). A slot image replaces the cover.
+ */
+function useSlotVideo(
+  media: PublicMediaAsset | undefined,
+  onTextless: (() => void) | null,
+): JSX.Element | null {
+  const [done, setDone] = useState(media?.kind !== 'video')
+  if (done || media === undefined) return null
+  return (
+    <FullscreenVideo
+      asset={media}
+      onEnd={() => {
+        if (onTextless !== null) onTextless()
+        else setDone(true)
+      }}
+    />
+  )
+}
+
+function slotCover(
+  media: PublicMediaAsset | undefined,
+  cover: PublicMediaAsset | undefined,
+): PublicMediaAsset | undefined {
+  return media?.kind === 'image' ? media : cover
+}
+
 export function IntroScreen({ scenario, onNext, onBack }: StoryStepProps): JSX.Element {
   const { t } = useTranslation()
   const presentation = scenario.presentation
+  const video = useSlotVideo(
+    presentation?.introMedia,
+    presentation?.introText === undefined ? onNext : null,
+  )
+  if (video !== null) return video
   return (
-    <StoryCard titleId="intro-title" cover={presentation?.cover}>
+    <StoryCard titleId="intro-title" cover={slotCover(presentation?.introMedia, presentation?.cover)}>
       <h1 id="intro-title">{scenario.name}</h1>
       <p className="story-text">{presentation?.introText ?? t('intro.fallback')}</p>
       <div className="story-actions">
@@ -140,8 +174,10 @@ export function IntroScreen({ scenario, onNext, onBack }: StoryStepProps): JSX.E
 export function OutroScreen({ scenario, onNext }: StoryStepProps): JSX.Element {
   const { t } = useTranslation()
   const presentation = scenario.presentation
+  const video = useSlotVideo(presentation?.outroMedia, null)
+  if (video !== null) return video
   return (
-    <StoryCard titleId="outro-title" cover={presentation?.cover}>
+    <StoryCard titleId="outro-title" cover={slotCover(presentation?.outroMedia, presentation?.cover)}>
       <h1 id="outro-title">{t('outro.title')}</h1>
       <p className="story-text">{presentation?.outroText ?? t('outro.fallback')}</p>
       <div className="story-actions">

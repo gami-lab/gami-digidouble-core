@@ -5,6 +5,8 @@ export interface IEventLogRepository {
    * id already exists; the id makes the write idempotent across retries and replays.
    */
   appendOnce(eventId: string, event: StoredEvent): Promise<boolean>
+  /** An event written with `appendOnce` under that id, or `null`. */
+  findById(eventId: string): Promise<StoredEvent | null>
   /** Newest first; `type` narrows to one event type. */
   findBySessionId(
     sessionId: string,

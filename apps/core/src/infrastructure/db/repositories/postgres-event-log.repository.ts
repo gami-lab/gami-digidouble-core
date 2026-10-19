@@ -40,6 +40,15 @@ export class PostgresEventLogRepository implements IEventLogRepository {
     return (await this.insert(eventId, event)) > 0
   }
 
+  async findById(eventId: string): Promise<StoredEvent | null> {
+    const [row] = await this.sql<EventLogRow[]>`
+      SELECT id, session_id, type, severity, correlation_id, request_id, payload, created_at
+      FROM event_log
+      WHERE id = ${eventId}
+    `
+    return row === undefined ? null : rowToStoredEvent(row)
+  }
+
   private async insert(id: string, event: StoredEvent): Promise<number> {
     const sessionId =
       event.sessionId !== undefined ? stripPrefix('session_', event.sessionId) : null

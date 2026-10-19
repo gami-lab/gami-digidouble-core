@@ -11,6 +11,12 @@ describe('getVoiceLoopPhase', () => {
     [true, 'idle', 'stopped', 'listening'],
     [true, 'idle', 'failed', 'listening'],
   ] as const)('enabled=%s send=%s audio=%s → %s', (enabled, send, audio, phase) => {
-    expect(getVoiceLoopPhase(enabled, send, audio)).toBe(phase)
+    expect(getVoiceLoopPhase(enabled, send, audio, false)).toBe(phase)
+  })
+
+  it('stops listening while scenario media plays and resumes afterwards', () => {
+    expect(getVoiceLoopPhase(true, 'idle', 'idle', true)).toBe('watching')
+    expect(getVoiceLoopPhase(false, 'idle', 'idle', true)).toBe('off')
+    expect(getVoiceLoopPhase(true, 'idle', 'idle', false)).toBe('listening')
   })
 })

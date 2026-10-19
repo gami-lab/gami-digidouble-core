@@ -7,9 +7,11 @@ import type { VoiceConversationState } from '../voice/use-voice-conversation'
 export function TextComposer({
   chat,
   voice,
+  disabled = false,
 }: {
   chat: ActiveChatRuntimeState
   voice: VoiceConversationState
+  disabled?: boolean
 }): JSX.Element {
   const { t } = useTranslation()
   const hasText = chat.composerValue.trim().length > 0
@@ -35,11 +37,12 @@ export function TextComposer({
             }
           }}
           rows={2}
+          disabled={disabled}
           placeholder={t('chat.message.placeholder')}
         />
       </label>
       {chat.sendError !== null ? <p className="error">{chat.sendError}</p> : null}
-      <button type="submit" className="button-secondary" disabled={!chat.canSend}>
+      <button type="submit" className="button-secondary" disabled={disabled || !chat.canSend}>
         {chat.sendStatus === 'streaming' ? t('chat.sending') : t('chat.send')}
       </button>
     </form>
