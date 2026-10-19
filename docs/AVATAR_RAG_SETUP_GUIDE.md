@@ -92,7 +92,7 @@ Knowledge, Media Knowledge — and also show the owning scenario and Avatar visi
 
 ```bash
 # 1. Register the source (scope to one Avatar with visibleToAvatarIds, or omit for shared)
-curl -X POST "$BASE_URL/v1/admin/knowledge-sources" -H "x-api-key: $API_KEY" \
+curl -X POST "$BASE_URL/v1/admin/knowledge-sources" -H "x-admin-service-key: $SERVICE_KEY" \
   -H "Content-Type: application/json" -d '{
     "scenarioId": "scenario_id", "name": "Theo notes",
     "knowledgeType": "avatar_knowledge", "format": "markdown",
@@ -100,10 +100,10 @@ curl -X POST "$BASE_URL/v1/admin/knowledge-sources" -H "x-api-key: $API_KEY" \
   }'
 
 # 2. Trigger ingestion (registering a source does not ingest it)
-curl -X POST "$BASE_URL/v1/admin/knowledge-sources/$SOURCE_ID/ingest" -H "x-api-key: $API_KEY"
+curl -X POST "$BASE_URL/v1/admin/knowledge-sources/$SOURCE_ID/ingest" -H "x-admin-service-key: $SERVICE_KEY"
 
 # 3. Verify retrieval before trusting chat quality
-curl -X POST "$BASE_URL/v1/admin/knowledge/retrieval" -H "x-api-key: $API_KEY" \
+curl -X POST "$BASE_URL/v1/admin/knowledge/retrieval" -H "x-admin-service-key: $SERVICE_KEY" \
   -H "Content-Type: application/json" -d '{
     "scenarioId": "scenario_id", "query": "what does Theo know about the timeline?",
     "activeAvatarId": "avatar_id", "limitPerType": 3

@@ -163,3 +163,39 @@ describe('Stack E2E — cross-player ownership', () => {
     expect(message.status).toBe(404)
   })
 })
+
+describe('Stack E2E — operator-issued player tokens', () => {
+  it('rejects a request without the service key (401)', async () => {
+    const response = await fetch(`${APP_URL}/v1/admin/player-tokens`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ userId: 'stack_operator_player' }),
+    })
+
+    expect(response.status).toBe(401)
+  })
+
+  it('rejects an invalid body (400)', async () => {
+    const response = await postJson('/v1/admin/player-tokens', SERVICE_HEADERS, { userId: '' })
+
+    expect(response.status).toBe(400)
+  })
+
+  it('issues a token that acts as the named player (201)', async () => {
+    const userId = `stack_operator_${crypto.randomUUID()}`
+    const response = await postJson<PlayerTokenResponse>(
+      '/v1/admin/player-tokens',
+      SERVICE_HEADERS,
+      {
+        userId,
+      },
+    )
+
+    expect(response.status).toBe(201)
+    expect(response.body.data?.userId).toBe(userId)
+    const sessions = await fetch(`${APP_URL}/v1/sessions`, {
+      headers: { authorization: `Bearer ${response.body.data?.token ?? ''}` },
+    })
+    expect(sessions.status).toBe(200)
+  })
+})

@@ -28,13 +28,26 @@ you add a new service, Coolify's "Domains for X" field only appears after redepl
 
 ## Configuration
 
-Keep API secrets server-side. Browser `VITE_*` values are build-time and client-visible; treat
-`VITE_API_KEY` as public exposure of the chosen Phase A API key. This deployment deliberately
-derives `VITE_API_KEY` from `API_KEY_SECRET` in the compose file so Coolify only needs one
-configured secret, at the cost of that key being visible in the browser bundle.
+Keep secrets server-side. Browser `VITE_*` values are build-time and public; the web and admin
+builds take only `VITE_API_URL`. CI scans the built bundles for secrets
+(`pnpm check:bundle-secrets`).
 
-Required: `API_KEY_SECRET`, `OPENAI_API_KEY` (default embedding provider), plus database/Redis
-connection values (managed internally by compose). Optional depending on enabled capabilities:
+Operator environment for EPIC 12.1 (set before deploying):
+
+| Variable                                                                | Notes                                                    |
+| ----------------------------------------------------------------------- | -------------------------------------------------------- |
+| `ADMIN_PASSWORD_HASH`                                                   | output of `pnpm --filter @gami/core hash-admin-password` |
+| `ADMIN_SESSION_SECRET`, `ADMIN_SERVICE_KEY`, `PLAYER_TOKEN_SECRET`      | random, at least 32 characters each                      |
+| `ADMIN_ORIGINS`                                                         | admin app origin, e.g. `https://app.example.com`         |
+| `PLAYER_ORIGINS`                                                        | player web origin(s)                                     |
+| `TRUST_PROXY_HOPS`                                                      | `1` behind Coolify's Traefik (compose default)           |
+| `ADMIN_SESSION_TTL_SECONDS`, `PLAYER_TOKEN_TTL_SECONDS`, `RATE_LIMIT_*` | optional overrides                                       |
+
+Remove `API_KEY_SECRET` and `CORS_ORIGIN`; Core no longer reads them. The seed script and the
+evaluation tool take `ADMIN_SERVICE_KEY`.
+
+Also required: `OPENAI_API_KEY` (default embedding provider), plus database/Redis connection values
+(managed internally by compose). Optional depending on enabled capabilities:
 `RATE_LIMIT_*`, `LLM_PROVIDER`, the `EMBEDDING_*` variables, `DEEPGRAM_*` (voice transcription —
 omit to keep voice safely unavailable), other model provider keys, and `LANGFUSE_*`. See compose
 files and `.env.example` for the exact current variable list.
@@ -67,9 +80,10 @@ attach both volumes to the same service.
 ## Release checklist
 
 1. Deploy the compose file and verify database, Redis, `app /health`, web `/`, and admin `/admin`.
-2. Confirm CORS and API-key behavior from both browser apps (see the CORS gotcha above).
+2. Sign in to the admin app, open the web player, and confirm both work from their origins (see
+   CORS above); a player token must get `403` on `/v1/admin/*`.
 3. Seed/update the Scenario and Avatars with canonical content: run `pnpm seed:murder-party:api:prod`
-   (or `:local` against a local stack) with the target API URL/key — it creates or updates the
+   (or `:local` against a local stack) with the target API URL and `ADMIN_SERVICE_KEY` — it creates or updates the
    Scenario plus Avatars with their structured prompts, and is safe to rerun (it does not read or
    rewrite historical content).
 4. Register `world`, `avatar_knowledge`, and `media` sources with explicit visibility, and wait for

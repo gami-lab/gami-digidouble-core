@@ -8,10 +8,14 @@ invariants are in [docs/API_CONTRACT.md](docs/API_CONTRACT.md); exact fields are
 
 ```bash
 export BASE_URL=http://localhost:3000
-export API_KEY=your-api-key
+export SERVICE_KEY=your-admin-service-key   # authoring and operator tools only
+export PLAYER_TOKEN=$(curl -s -X POST "$BASE_URL/v1/auth/player" | jq -r .data.token)
 ```
 
-All `/v1` routes require `x-api-key: $API_KEY`. Responses use:
+Player routes (`/v1/sessions`, `/v1/conversations`, `/v1/me`, `GET /v1/scenarios`) require
+`Authorization: Bearer $PLAYER_TOKEN`; the token carries the player's Core-issued `userId`.
+Authoring and operator routes live under `/v1/admin/*` and take the admin session cookie (admin
+app, console) or `x-admin-service-key: $SERVICE_KEY` (server-side tools). Responses use:
 
 ```json
 { "data": {}, "error": null }
@@ -20,9 +24,9 @@ All `/v1` routes require `x-api-key: $API_KEY`. Responses use:
 On failure, `data` is `null` and `error` contains a stable code and message. Always check `error`
 before reading `data`.
 
-For local dev, set `API_KEY_SECRET` in `.env` (change it from the placeholder before calling any
-endpoint). The Docker Compose E2E stack (`docker-compose.e2e.yml`) uses a fixed key,
-`e2e-stack-secret`, already known by the test suite — don't reuse it outside that stack.
+For local dev, set `ADMIN_SERVICE_KEY` (and `ADMIN_PASSWORD_HASH` for the admin app) in `.env`.
+The Docker Compose E2E stack (`docker-compose.e2e.yml`) uses fixed secrets already known by the
+test suite — don't reuse them outside that stack.
 
 With `LLM_PROVIDER=null` (the default for local dev and E2E), the Avatar replies with a fixed stub
 (`"[null] ..."`) instead of calling a real provider. This lets you exercise the full API flow
@@ -35,22 +39,23 @@ conversation for each user run:
 
 ```bash
 curl -X POST "$BASE_URL/v1/sessions" \
-  -H 'Content-Type: application/json' -H "x-api-key: $API_KEY" \
-  -d '{"userId":"user_1","scenarioId":"scenario_1"}'
+  -H 'Content-Type: application/json' -H "Authorization: Bearer $PLAYER_TOKEN" \
+  -d '{"scenarioId":"scenario_1"}'
 
 curl -X POST "$BASE_URL/v1/sessions/$SESSION_ID/conversations" \
-  -H 'Content-Type: application/json' -H "x-api-key: $API_KEY" \
+  -H 'Content-Type: application/json' -H "Authorization: Bearer $PLAYER_TOKEN" \
   -d '{"avatarId":"avatar_1"}'
 
 curl -X POST "$BASE_URL/v1/conversations/$CONVERSATION_ID/messages" \
-  -H 'Content-Type: application/json' -H "x-api-key: $API_KEY" \
+  -H 'Content-Type: application/json' -H "Authorization: Bearer $PLAYER_TOKEN" \
   -d '{"message":{"content":"Hello."}}'
 
 curl "$BASE_URL/v1/conversations/$CONVERSATION_ID/history" \
-  -H "x-api-key: $API_KEY"
+  -H "Authorization: Bearer $PLAYER_TOKEN"
 ```
 
-Use the IDs returned by Core; clients must not generate or parse them. A Conversation is one
+Use the IDs returned by Core; clients must not generate or parse them. Another player's session or
+conversation returns `404`, and limits answer `429` with `Retry-After`. A Conversation is one
 bounded Avatar episode inside a Session. Switching, ending, and resetting are explicit lifecycle work.
 
 ## Transports

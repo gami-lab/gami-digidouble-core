@@ -131,6 +131,34 @@ jobs:
       - name: Audit for known vulnerabilities
         run: pnpm audit --audit-level=high
 
+  bundle-secrets:
+    name: Browser bundles contain no secrets
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build browser apps
+        run: pnpm turbo run build --filter=@gami/web --filter=@gami/admin --filter=@gami/console
+
+      - name: Scan bundles
+        run: pnpm check:bundle-secrets
+
   docker-build:
     name: Docker — production image builds
     runs-on: ubuntu-latest

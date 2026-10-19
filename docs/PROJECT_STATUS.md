@@ -20,6 +20,9 @@ shipped platform includes:
 - health, metrics, safe diagnostics, replay, reset, and memory/reindex operations
 - provider/model selection and bounded observability behind internal ports, including symmetric
   four-slot scenario selection and independent scenario-default avatar trait preparation
+- two-tier route security: admin sign-in (session cookie or server-side service key), Core-issued
+  player tokens with session/conversation ownership, rate limits, body limits, per-tier CORS, and
+  secret-free browser bundles
 
 See `EPICS.md` for the delivery ledger behind each capability and the open backlog. Contract-level
 detail for a specific area belongs in its owning document (`GAME_MASTER_CONTRACT.md`,
@@ -45,6 +48,8 @@ detail for a specific area belongs in its owning document (`GAME_MASTER_CONTRACT
 - Voice input and text-to-speech are optional and provider-neutral behind application ports; the
   platform stays fully functional on text alone when Deepgram/Gradium/OpenAI voice are unconfigured, and no raw
   audio is persisted.
+- Every route declares one tier; player routes take only a player token and never a client-chosen
+  `userId`; a foreign session or conversation is indistinguishable from a missing one (`404`).
 - Public/admin diagnostics never expose raw prompts, secrets, provider payloads, raw vectors, or unbounded transcripts.
 - Fresh deployment uses the canonical PostgreSQL bootstrap; old compatibility volumes/contracts are not supported.
 - `tools/conversation-evaluation` is an external client/tool boundary; its report types stay outside the Core domain and do not extend shared or Core contracts.
@@ -55,11 +60,12 @@ detail for a specific area belongs in its owning document (`GAME_MASTER_CONTRACT
   knowledge retrieval bench, and a live per-session turn timeline (latency breakdown, Avatar inputs,
   RAG results, GM decisions, memory updates) linking each LLM call to its Langfuse trace. Authoring
   lives in admin.
-- `apps/web` — the public player-facing chat surface: browser-owned identity, scenario discovery,
+- `apps/web` — the public player-facing chat surface: Core-issued player identity, scenario discovery,
   available-avatar chat, SSE-driven runtime updates, autoplayed completed-message audio streamed as
   PCM (playing while it is synthesized) with text-preserving fallback, and a hands-free voice loop (listen, auto-send on pause, answer, speak,
   listen again) alongside text input.
-- `apps/admin` — the scenario-builder authoring app (scenarios, avatars, knowledge, model selection).
+- `apps/admin` — the scenario-builder authoring app (scenarios, avatars, knowledge, model
+  selection), behind the admin sign-in.
 - `tools/conversation-evaluation` — an external, authenticated CLI for scripted-conversation
   evaluation: semantic judging through an LLM judge, runtime latency/token metrics, per-model
   comparison reports, and a local dependency-free report viewer. It reuses shared API contracts and
@@ -76,7 +82,6 @@ that touches persistence, retrieval, or provider adapters.
 
 ## Current limitations
 
-- Route security has one shared API key and no admin sign-in (`EPICS.md` 12.1).
 - The public player is a demo surface rather than a guided experience (`EPICS.md` 12.2).
 - Media sources are retrievable but never triggered or displayed (`EPICS.md` 12.3).
 - Evaluation measures factual recall only, not discovery pacing, persona, or GM decisions (`EPICS.md` 12.4).
@@ -102,7 +107,10 @@ that touches persistence, retrieval, or provider adapters.
   Docker/config, and workflows. The local comment-policy rule, unused-disable
   reporting, and warning-comment checks now run through `pnpm lint` and staged-file linting. Public
   contracts and runtime behavior remain unchanged apart from the documented hack removals.
-- Phase A has API-key auth only (no user accounts/roles), one Core deployment unit, optional
+- EPIC 12.1 is complete: see `EPICS.md` for the shipped summary and `API_CONTRACT.md` for the tier,
+  identity, ownership, and abuse-control rules.
+- Phase A has one operator password and anonymous Core-issued player identities (no user
+  accounts, roles, or OIDC; a player who clears the browser loses their sessions), one Core deployment unit, optional
   provider integrations, and no audio persistence — sufficient for the current prototype scope, but
   worth revisiting before multi-tenant or external-user deployment.
 - Stack/provider/database checks depend on the configured environment; deterministic package tests remain the default gate.

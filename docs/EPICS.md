@@ -261,53 +261,22 @@ specific construct that keeps them. Added the local comment-policy ESLint rule, 
 reporting, warning-comment checks, and RuleTester coverage. Public contracts and runtime behavior
 are unchanged apart from the documented hack removals.
 
+#### `12.1 Two-Tier Route Security` ✅ Done
+
+Every route declares a `public`, `admin`, or `open` tier, enforced at startup and by a route-tier
+matrix test; authoring CRUD, the raw exchange, and cross-user session management moved under
+`/v1/admin`. Admins sign in with one operator password (scrypt) to a Redis-backed `HttpOnly`
+cookie with a CSRF origin check; tools use a server-side service key. Players get a Core-issued
+HMAC token, `userId` comes only from it, and another player's session or conversation returns
+`404` before any body is read; player tokens get `403` on admin routes. Rate limits, per-tier body
+limits, and per-tier CORS bound abuse. The shared `x-api-key` and `VITE_API_KEY` are gone, CI scans
+the built bundles for secrets, and nginx sends CSP and framing headers.
+
 ## Open Backlog
 
 Reviewed 2026-10-18 against the code, the evaluation reports, and the live AVA scenario. Order of
-work: 12.1, 12.4 and the 12.5 end-to-end metric first; then 12.3, 12.2 and per-sentence speech;
+work: 12.4 and the 12.5 end-to-end metric first; then 12.3, 12.2 and per-sentence speech;
 12.6 last, because it needs per-sentence audio (12.5) and the player media layer (12.3).
-
-### `12.1 Two-Tier Route Security`
-
-**Current state**  
-One `API_KEY_SECRET` protects every route. `docker-compose.coolify.yml` builds it into both the
-web and admin bundles as `VITE_API_KEY`, so the full-power key is in public JavaScript. The admin
-SPA is served by nginx at `/admin` with no sign-in. Scenario, avatar, and knowledge CRUD routes are
-not under `/v1/admin`, so there is no prefix split. `userId` is chosen by the browser, so any known
-session id can be read. Absorbs the permission-boundary scope left over from 3.3.
-
-**Purpose**  
-Give public player routes and admin routes different security levels, and protect the admin.
-
-**Description**  
-Declare a tier for every route, authenticate admins with a real sign-in, and replace the shipped
-secret on public routes with a short-lived player token that carries ownership.
-
-**Includes**
-
-- explicit `public` / `admin` tier on every route; authoring CRUD moves under `/v1/admin`
-- admin sign-in (session cookie or OIDC); no secret in the admin bundle
-- public player token issued by Core (short TTL); no secret in the web bundle
-- ownership checks: a session or conversation must belong to the token's user
-- rate limits and body-size limits on message and voice routes
-- tight CORS per tier
-
-**Definition of done**
-
-- the public bundle contains no secret
-- admin UI and admin routes require a login
-- another user's session or conversation returns 404
-
-**What can be tested**
-
-1. a route-tier matrix test fails CI when a route has no tier
-2. a player token receives 403 on every admin route
-3. cross-user session and history reads return 404
-4. rate limits trigger on message and voice routes
-
-**User increment**
-
-- the platform can be exposed publicly without exposing authoring or other users' data
 
 ### `12.2 Public Experience UI`
 

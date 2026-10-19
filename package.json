@@ -11,7 +11,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "report:commit-time": "node scripts/commit-time-report.mjs",
-    "test": "pnpm run test:lint-rules && turbo run test",
+    "test": "pnpm run test:lint-rules && node --test scripts/check-bundle-secrets.test.mjs && turbo run test",
     "test:lint-rules": "node --test eslint-rules/no-agent-comments.test.mjs",
     "test:integration-e2e": "turbo run test:integration-e2e --filter=@gami/core",
     "test:stack-e2e": "turbo run test:stack-e2e --filter=@gami/core",
@@ -28,7 +28,8 @@
     "infra:logs": "docker compose logs -f",
     "seed:murder-party:api": "pnpm --filter @gami/core seed:murder-party:api",
     "seed:murder-party:api:local": "MURDER_PARTY_API_BASE_URL=${MURDER_PARTY_API_BASE_URL:-http://localhost:3000} pnpm --filter @gami/core seed:murder-party:api",
-    "seed:murder-party:api:prod": "pnpm --filter @gami/core seed:murder-party:api"
+    "seed:murder-party:api:prod": "pnpm --filter @gami/core seed:murder-party:api",
+    "check:bundle-secrets": "node scripts/check-bundle-secrets.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",

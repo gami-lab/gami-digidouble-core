@@ -17,10 +17,11 @@ Use `pnpm infra:reset` only when a fresh local database is needed. The canonical
 `infra/postgres/init.sql`; it is applied only to an empty volume.
 
 Review `.env` before first run: `DATABASE_URL`/`REDIS_URL` are already set for the default local
-stack; `API_KEY_SECRET` must be changed before calling any endpoint; `LLM_PROVIDER` defaults to
-`null`, so no provider key is needed to exercise the API locally (the Avatar replies with a fixed
-stub); Langfuse variables are optional. The `docker-compose.e2e.yml` stack uses a separate, fixed
-key (`e2e-stack-secret`) already known by the test suite.
+stack; set `ADMIN_PASSWORD_HASH` (`pnpm --filter @gami/core hash-admin-password`) to sign in to the
+admin app and console, and `ADMIN_SERVICE_KEY` for the seed script and evaluation tool;
+`LLM_PROVIDER` defaults to `null`, so no provider key is needed to exercise the API locally (the
+Avatar replies with a fixed stub); Langfuse variables are optional. The `docker-compose.e2e.yml`
+stack uses separate, fixed secrets already known by the test suite.
 
 A pre-commit hook (via `simple-git-hooks` + `lint-staged`) is installed automatically on
 `pnpm install` and formats/lints staged files before each commit. Bypass it only in an emergency

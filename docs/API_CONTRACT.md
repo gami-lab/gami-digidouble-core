@@ -6,7 +6,8 @@ schemas belong to `packages/shared/src/` and route schemas; do not copy them her
 ## Base rules
 
 - Versioned base path: `/v1`; health compatibility route: `GET /health`.
-- Authentication: `x-api-key`.
+- Authentication depends on the route tier: player routes take `Authorization: Bearer <player
+token>`, admin routes the admin session cookie or `x-admin-service-key`, open routes nothing.
 - IDs are opaque strings; timestamps are ISO-8601 UTC strings.
 - JSON success/error responses use `ApiResponse<T>`. SSE uses shared event DTOs. Binary audio is the only intentional non-envelope success response.
 - Public payloads are projections, never database rows. Unknown fields are rejected at input boundaries.
