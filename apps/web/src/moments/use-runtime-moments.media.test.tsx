@@ -34,10 +34,13 @@ function cue(cueId: string, kind: 'image' | 'video'): RuntimeEvent {
   }
 }
 
+type HookProps = { current: ActiveChatRuntimeState; speaking?: boolean }
+
 function setup(initial: ActiveChatRuntimeState) {
-  const hook = renderHook(({ current }) => useRuntimeMoments('session_1', [], current), {
-    initialProps: { current: initial },
-  })
+  const hook = renderHook<ReturnType<typeof useRuntimeMoments>, HookProps>(
+    ({ current, speaking = false }) => useRuntimeMoments('session_1', [], current, speaking),
+    { initialProps: { current: initial } },
+  )
   const show = () => render(<>{hook.result.current.renderMedia()}</>)
   return { hook, show }
 }
@@ -65,6 +68,18 @@ describe('runtime media cues in the player', () => {
 
     hook.rerender({ current: chat() })
     expect(hook.result.current.watching).toBe('fullscreen')
+  })
+
+  it('holds a cue while the visitor is speaking so their sentence is not cut off', () => {
+    const { hook } = setup(chat())
+    hook.rerender({ current: chat(), speaking: true })
+    act(() => {
+      hook.result.current.onRuntimeEvent(cue('cue-image', 'image'))
+    })
+    expect(hook.result.current.watching).toBeNull()
+
+    hook.rerender({ current: chat(), speaking: false })
+    expect(hook.result.current.watching).toBe('overlay')
   })
 
   it('reports started once and one terminal outcome per cue, then moves on', () => {

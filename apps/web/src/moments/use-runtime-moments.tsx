@@ -31,6 +31,8 @@ export function useRuntimeMoments(
   sessionId: string | null,
   avatars: AvailableAvatarSummary[],
   chat: ActiveChatRuntimeState,
+  /** The microphone hears the visitor: a cue waits so it never cuts their sentence off. */
+  visitorSpeaking: boolean,
 ): RuntimeMoments {
   const [state, setState] = useState(() => createRuntimeMomentsState(sessionId))
   useEffect(() => {
@@ -52,7 +54,11 @@ export function useRuntimeMoments(
     availableAvatarIds: avatars.map((avatar) => avatar.avatarId),
   })
   const avatar = avatars.find((item) => item.avatarId === moment?.avatarId)
-  const media = useMediaCuePlayback(sessionId, currentMediaMoment(state, { busy }), setState)
+  const media = useMediaCuePlayback(
+    sessionId,
+    currentMediaMoment(state, { busy: busy || visitorSpeaking }),
+    setState,
+  )
   useDismissOverlayOnSend(media.moment, chat.sendStatus === 'streaming', media.end)
 
   return {

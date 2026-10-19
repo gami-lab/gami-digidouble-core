@@ -20,6 +20,8 @@ type ConversationScreenProps = {
   notice: ReactNode
   /** Scenario media on screen: the microphone pauses, and a fullscreen video blocks typing. */
   watching: MediaCueDisplay | null
+  /** Reports whether the microphone hears the visitor, so media waits for them to finish. */
+  onVisitorSpeaking?: (speaking: boolean) => void
 }
 
 export function ConversationScreen({
@@ -28,9 +30,11 @@ export function ConversationScreen({
   onSwitch,
   notice,
   watching,
+  onVisitorSpeaking,
 }: ConversationScreenProps): JSX.Element {
   const { t } = useTranslation()
   const voice = useVoiceConversation(chat, watching !== null)
+  useReportVisitorSpeaking(voice.hearing, onVisitorSpeaking)
   const voiceAvailable = voice.supported && voice.error === null
   const [showTranscript, setShowTranscript] = useState(!voice.supported)
   useStopVoiceWithoutConversation(chat, voice)
@@ -149,6 +153,16 @@ function VoiceHint({ voice }: { voice: VoiceConversationState }): JSX.Element | 
     return <p className="voice-hint">{t('chat.voice.hearing')}</p>
   }
   return null
+}
+
+function useReportVisitorSpeaking(
+  hearing: boolean,
+  onVisitorSpeaking: ((speaking: boolean) => void) | undefined,
+): void {
+  useEffect(() => {
+    onVisitorSpeaking?.(hearing)
+  }, [hearing, onVisitorSpeaking])
+  useEffect(() => () => onVisitorSpeaking?.(false), [onVisitorSpeaking])
 }
 
 /** Ending or switching away from the conversation also ends the voice loop. */

@@ -99,7 +99,23 @@ function setup(gmOutput: object = UNLOCK_OUTPUT) {
       turnIndex: 1,
       correlationId: 'corr_1',
     })
-  return { run, events, eventLog, gmStates, complete }
+  /** What a session reset leaves behind: initial unlocks and a reset boundary in the log. */
+  const reset = async () => {
+    await new Promise((resolve) => setTimeout(resolve, 2))
+    await sessions.update('session_1', { unlockedAvatarIds: ['avatar_1'] })
+    await eventLog.append({
+      sessionId: 'session_1',
+      type: 'session_reset',
+      severity: 'info',
+      payload: {},
+    })
+    await new Promise((resolve) => setTimeout(resolve, 2))
+  }
+  return { run, reset, events, eventLog, gmStates, complete }
+}
+
+function cues(events: RuntimeEvent[]): unknown[] {
+  return events.filter((event) => event.type === 'runtime.media_cue').map((event) => event.payload)
 }
 
 describe('RunGameMasterUseCase — media triggers', () => {
@@ -120,6 +136,19 @@ describe('RunGameMasterUseCase — media triggers', () => {
       asset: { assetId: 'media_reveal' },
     })
     expect(eventLog.getAll().filter((event) => event.type === 'media.cue_emitted')).toHaveLength(1)
+  })
+
+  it('replays the unlock media after a session reset', async () => {
+    const { run, reset, events } = setup()
+
+    await run()
+    await reset()
+    await run()
+
+    expect(cues(events).map((cue) => (cue as { origin: string }).origin)).toEqual([
+      'avatar_unlocked',
+      'avatar_unlocked',
+    ])
   })
 
   it('cues the switch-to media when the GM switches to an unlocked avatar', async () => {
@@ -147,10 +176,6 @@ const STAY_OUTPUT = {
   retrievalPlan: { required: false },
   directorNotes: 'Let the chalet come back to you.',
   progressionUpdate: { progression: 'increase' },
-}
-
-function cues(events: RuntimeEvent[]): unknown[] {
-  return events.filter((event) => event.type === 'runtime.media_cue').map((event) => event.payload)
 }
 
 function decisionOf(eventLog: InMemoryEventLogRepository): Record<string, unknown> {
@@ -189,6 +214,24 @@ describe('RunGameMasterUseCase — GM media cue', () => {
       mediaCueAssetId: 'media_chalet',
       mediaCueOutcome: 'accepted',
     })
+  })
+
+  it('offers an already cued asset again after a session reset', async () => {
+    const { run, reset, complete } = setup({
+      ...STAY_OUTPUT,
+      mediaCue: { assetId: 'media_chalet' },
+    })
+    const lastPrompt = () =>
+      (complete.mock.calls.at(-1)?.[0] as { messages: Array<{ content: string }> }).messages[0]
+        ?.content ?? ''
+
+    await run()
+    await run()
+    expect(lastPrompt()).not.toContain('media_chalet')
+
+    await reset()
+    await run()
+    expect(lastPrompt()).toContain('media_chalet')
   })
 
   it('ignores a cue outside the catalogue without changing the other decisions', async () => {

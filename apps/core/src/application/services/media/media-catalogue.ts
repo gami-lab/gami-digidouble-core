@@ -1,13 +1,14 @@
 import type { GameMasterMediaCatalogueEntry } from '../../../domain/game-master/game-master.types.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IMediaAssetRepository } from '../../ports/IMediaAssetRepository.js'
+import { loadSessionMediaHistory } from './media-history.js'
 
 /** Bounds the catalogue that enters every GM prompt. */
 export const GM_MEDIA_CATALOGUE_LIMITS = { maxEntries: 20, descriptionMaxLength: 300 } as const
 
 /**
  * The scenario's cue-able assets the GM may still cue in this session: an asset already cued
- * (by any trigger) is left out, so it plays at most once per session.
+ * (by any trigger) since the last reset is left out, so it plays at most once per run.
  */
 export async function loadGameMasterMediaCatalogue(
   mediaAssetRepository: IMediaAssetRepository,
@@ -19,13 +20,9 @@ export async function loadGameMasterMediaCatalogue(
     (asset) => asset.cueable,
   )
   if (assets.length === 0) return []
-  const cued = new Set(
-    (await eventLogRepository?.findBySessionId(sessionId, { type: 'media.cue_emitted' }))?.map(
-      (event) => event.payload['assetId'],
-    ) ?? [],
-  )
+  const { cuedAssetIds } = await loadSessionMediaHistory(eventLogRepository, sessionId)
   return assets
-    .filter((asset) => !cued.has(asset.assetId))
+    .filter((asset) => !cuedAssetIds.has(asset.assetId))
     .slice(0, GM_MEDIA_CATALOGUE_LIMITS.maxEntries)
     .map((asset) => ({
       assetId: asset.assetId,

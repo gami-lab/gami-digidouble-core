@@ -6,6 +6,7 @@ import { InMemoryAvatarRepository } from '../../../infrastructure/db/in-memory-a
 import { InMemoryConversationRepository } from '../../../infrastructure/db/in-memory-conversation.repository.js'
 import { InMemoryConversationMemoryRepository } from '../../../infrastructure/db/in-memory-conversation-memory.repository.js'
 import { InMemoryConversationWorkingMemoryRepository } from '../../../infrastructure/db/in-memory-conversation-working-memory.repository.js'
+import { InMemoryEventLogRepository } from '../../../infrastructure/db/in-memory-event-log.repository.js'
 import { InMemoryMessageRepository } from '../../../infrastructure/db/in-memory-message.repository.js'
 import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
@@ -68,6 +69,7 @@ type UseCaseFactoryOptions = {
   messageRepository?: InMemoryMessageRepository
   conversationWorkingMemoryRepository?: InMemoryConversationWorkingMemoryRepository
   conversationMemoryRepository?: InMemoryConversationMemoryRepository
+  eventLogRepository?: InMemoryEventLogRepository
 }
 
 function makeUseCase(options: UseCaseFactoryOptions = {}): ResetSessionUseCase {
@@ -88,6 +90,7 @@ function makeUseCase(options: UseCaseFactoryOptions = {}): ResetSessionUseCase {
     config.messageRepository,
     config.conversationWorkingMemoryRepository,
     config.conversationMemoryRepository,
+    config.eventLogRepository,
   )
 }
 
@@ -228,6 +231,20 @@ describe('ResetSessionUseCase baseline behavior', () => {
 
     const messages = await messageRepository.findByConversationId('conversation_1')
     expect(messages).toEqual([])
+  })
+
+  it('records a reset boundary so media history starts over', async () => {
+    const eventLogRepository = new InMemoryEventLogRepository()
+    const useCase = makeUseCase({
+      sessions: [makeSession({ sessionId: 'session_1' })],
+      eventLogRepository,
+    })
+
+    await useCase.execute({ sessionId: 'session_1' })
+
+    expect(eventLogRepository.getAll()).toEqual([
+      expect.objectContaining({ sessionId: 'session_1', type: 'session_reset' }),
+    ])
   })
 
   it('refreshes lastActivityAt to a recent timestamp', async () => {

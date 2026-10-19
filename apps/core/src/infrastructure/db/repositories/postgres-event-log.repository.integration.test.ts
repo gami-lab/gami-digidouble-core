@@ -327,3 +327,58 @@ describe.skipIf(!DB_AVAILABLE)('PostgresEventLogRepository — findBySessionId',
   defineFindBySessionLimitTest(() => ({ sql, scenarioRepo, sessionRepo, eventLogRepo }))
   defineFindBySessionEmptyTest(() => ({ sql, scenarioRepo, sessionRepo, eventLogRepo }))
 })
+
+describe.skipIf(!DB_AVAILABLE)('PostgresEventLogRepository — idempotent media entries', () => {
+  let sql: Sql
+  let eventLogRepo: PostgresEventLogRepository
+  let sessionId = ''
+
+  beforeAll(() => {
+    sql = createTestSql()
+    eventLogRepo = new PostgresEventLogRepository(sql)
+  })
+
+  afterEach(async () => {
+    await truncateAllTables(sql)
+  })
+
+  afterAll(async () => {
+    await sql.end()
+  })
+
+  async function createSession(): Promise<string> {
+    const scenario = await new PostgresScenarioRepository(sql).create({ name: 'Media log' })
+    const session = await new PostgresSessionRepository(sql).create({
+      userId: 'user-media',
+      scenarioId: scenario.scenarioId,
+      unlockedAvatarIds: [],
+    })
+    return session.sessionId
+  }
+
+  function cue(assetId: string): StoredEvent {
+    return { sessionId, type: 'media.cue_emitted', severity: 'info', payload: { assetId } }
+  }
+
+  it('writes an id once, finds it by id, and filters a session by type', async () => {
+    sessionId = await createSession()
+
+    await expect(eventLogRepo.appendOnce('evt_media_cue_a', cue('media_a'))).resolves.toBe(true)
+    await expect(eventLogRepo.appendOnce('evt_media_cue_a', cue('media_b'))).resolves.toBe(false)
+    await eventLogRepo.append({ sessionId, type: 'session_reset', severity: 'info', payload: {} })
+
+    await expect(eventLogRepo.findById('evt_media_cue_a')).resolves.toMatchObject({
+      sessionId,
+      type: 'media.cue_emitted',
+      payload: { assetId: 'media_a' },
+    })
+    await expect(eventLogRepo.findById('evt_missing')).resolves.toBeNull()
+    const cues = await eventLogRepo.findBySessionId(sessionId, { type: 'media.cue_emitted' })
+    expect(cues.map((event) => event.payload['assetId'])).toEqual(['media_a'])
+    const [reset] = await eventLogRepo.findBySessionId(sessionId, {
+      type: 'session_reset',
+      limit: 1,
+    })
+    expect(reset?.type).toBe('session_reset')
+  })
+})

@@ -158,6 +158,37 @@ describe('media library', () => {
   })
 })
 
+describe('media library edits', () => {
+  it('reloads the library after a delete so a removed poster disappears too', async () => {
+    vi.mocked(deleteMediaAsset).mockResolvedValue(undefined)
+    renderLibrary()
+    await screen.findByRole('listitem', { name: 'The hall at night' })
+    vi.mocked(listMediaAssets).mockResolvedValue([])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('listitem', { name: 'The hall at night' })).toBeNull()
+    })
+    expect(listMediaAssets).toHaveBeenCalledTimes(2)
+  })
+
+  it('sets how long an image stays on screen', async () => {
+    vi.mocked(updateMediaAsset).mockResolvedValue({ ...hall, durationMs: 12_000 })
+    renderLibrary()
+    await screen.findByRole('listitem', { name: 'The hall at night' })
+
+    fireEvent.change(screen.getByLabelText('Display seconds of media_hall'), {
+      target: { value: '12' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save duration' }))
+
+    await waitFor(() => {
+      expect(updateMediaAsset).toHaveBeenCalledWith('media_hall', { durationMs: 12_000 })
+    })
+  })
+})
+
 describe('media picker', () => {
   it('offers only assets whose kind the slot accepts', () => {
     render(

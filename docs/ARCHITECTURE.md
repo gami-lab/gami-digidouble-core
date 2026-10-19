@@ -101,7 +101,7 @@ Player media: intro/outro slot videos play full screen (skip, mute, tap-to-play 
 blocked) before the step's text, slot images replace the cover, and the conversation stage loops
 the Avatar's muted idle video. `runtime.media_cue` events join the runtime-moments state as a
 separate media queue (`moments/runtime-moments.ts`): a cue waits while the character thinks or
-speaks, plays in arrival order once per `cueId`, videos full screen and images as an overlay that
+speaks and while the microphone hears the visitor, plays in arrival order once per `cueId`, videos full screen and images as an overlay that
 sending a message dismisses. While media plays, presence is `watching`, the voice loop stops
 listening, and a fullscreen video disables typing; everything resumes after end or skip. The
 player reports `started` and one terminal outcome per cue to Core.

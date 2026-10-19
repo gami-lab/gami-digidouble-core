@@ -63,7 +63,9 @@ These are easy to regress silently because they are policy, not type-level const
   (auth, validation, cue scoped to the owned session, once per outcome, route and stack tests);
   the player queues cues behind speech, de-duplicates by `cueId`, reports `started` once even when
   `playing` repeats, dismisses an overlay on send, pauses and resumes the voice loop, offers
-  tap-to-play, and plays intro/outro slots with text and cover fallbacks.
+  tap-to-play, and plays intro/outro slots with text and cover fallbacks. A cue also waits while
+  the visitor is speaking; after a session reset the unlock media replays and cued assets return to
+  the GM catalogue; deleting a video removes its otherwise unused poster.
 - Player identity comes only from a Core-signed token; another player's session, conversation,
   history, runtime state, events stream, or audio is indistinguishable from a missing one (`404`).
 - Session unlock state is fixed at session start and changes only through Game Master unlocks; the

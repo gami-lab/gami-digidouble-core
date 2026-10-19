@@ -56,6 +56,10 @@ async function upload(
   })
 }
 
+function uploadVideo(app: App, posterAssetId: string) {
+  return upload(app, MP4_BYTES, 'video/mp4', `description=Film&posterAssetId=${posterAssetId}`)
+}
+
 async function uploadAsset(app: App, body = PNG_BYTES, type = 'image/png') {
   const response = await upload(app, body, type)
   expect(response.statusCode).toBe(201)
@@ -285,6 +289,34 @@ describe('admin media deletion', () => {
 
     expect(response.statusCode).toBe(200)
     expect(storage.has(asset.assetId.replace('media_', ''))).toBe(false)
+  })
+
+  it('deletes a video poster with its video unless something else uses it', async () => {
+    const { app, storage } = makeApp()
+    const poster = await uploadAsset(app)
+    const shared = await uploadAsset(app)
+    const upload = async (posterId: string) =>
+      (await uploadVideo(app, posterId)).json<ApiResponse<MediaAssetResponse>>().data?.asset
+        .assetId ?? ''
+    const video = await upload(poster.assetId)
+    const coverVideo = await upload(shared.assetId)
+    await app.inject({
+      method: 'PATCH',
+      url: '/v1/admin/scenarios/scenario_1',
+      headers: serviceKeyHeaders(),
+      payload: { presentation: { cover: shared.assetId } },
+    })
+
+    for (const assetId of [video, coverVideo]) {
+      await app.inject({
+        method: 'DELETE',
+        url: `/v1/admin/media/${assetId}`,
+        headers: serviceKeyHeaders(),
+      })
+    }
+
+    expect(storage.has(poster.assetId.replace('media_', ''))).toBe(false)
+    expect(storage.has(shared.assetId.replace('media_', ''))).toBe(true)
   })
 
   it('refuses with 409 while a presentation slot or a poster references the asset', async () => {

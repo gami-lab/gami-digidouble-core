@@ -5,6 +5,8 @@ import type { IScenarioRepository } from '../../ports/IScenarioRepository.js'
 import type { ISessionRepository } from '../../ports/ISessionRepository.js'
 import type { IConversationWorkingMemoryRepository } from '../../ports/IConversationWorkingMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../../ports/IConversationMemoryRepository.js'
+import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
+import { SESSION_RESET_EVENT_TYPE } from '../../services/media/media-history.js'
 import { DomainError } from '../../../domain/errors.js'
 import { resolveInitialUnlockedAvatarIds } from '../../../domain/scenario/scenario-policy.service.js'
 import type { ResetSessionInput, ResetSessionOutput } from './reset-session.types.js'
@@ -18,6 +20,7 @@ export class ResetSessionUseCase {
     private readonly messageRepository: IMessageRepository,
     private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
     private readonly conversationMemoryRepository?: IConversationMemoryRepository,
+    private readonly eventLogRepository?: IEventLogRepository,
   ) {}
 
   async execute(input: ResetSessionInput): Promise<ResetSessionOutput> {
@@ -53,6 +56,12 @@ export class ResetSessionUseCase {
         gmNotes: null,
         status: 'active',
         lastActivityAt: new Date().toISOString(),
+      })
+      await this.eventLogRepository?.append({
+        sessionId: input.sessionId,
+        type: SESSION_RESET_EVENT_TYPE,
+        severity: 'info',
+        payload: {},
       })
       return { session: updated }
     } catch (error) {

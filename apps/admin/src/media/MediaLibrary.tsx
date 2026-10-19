@@ -69,7 +69,7 @@ export function MediaLibrary({ scenarioId, onClose }: MediaLibraryProps): JSX.El
             })}
             onDelete={() => void run(asset.assetId, async () => {
               await deleteMediaAsset(asset.assetId)
-              return assets.filter((item) => item.assetId !== asset.assetId)
+              return await listMediaAssets(scenarioId)
             })}
           />
         ))}
@@ -87,7 +87,7 @@ type MediaAssetRowProps = {
   asset: MediaAssetSummary
   assets: readonly MediaAssetSummary[]
   error: string | null
-  onSave: (changes: { description?: string; cueable?: boolean }) => void
+  onSave: (changes: { description?: string; cueable?: boolean; durationMs?: number | null }) => void
   onDelete: () => void
 }
 
@@ -109,6 +109,7 @@ function MediaAssetRow({ asset, assets, error, onSave, onDelete }: MediaAssetRow
           value={description}
           onChange={(event) => { setDescription(event.target.value) }}
         />
+        {asset.kind === 'image' ? <ImageDurationField asset={asset} onSave={onSave} /> : null}
         <label>
           <input
             type="checkbox"
@@ -128,5 +129,43 @@ function MediaAssetRow({ asset, assets, error, onSave, onDelete }: MediaAssetRow
         {error !== null ? <p className="admin-error">{error}</p> : null}
       </div>
     </li>
+  )
+}
+
+/** How long the image stays up when the Game Master or a trigger shows it; empty uses the default. */
+function ImageDurationField({
+  asset,
+  onSave,
+}: {
+  asset: MediaAssetSummary
+  onSave: (changes: { durationMs: number | null }) => void
+}): JSX.Element {
+  const [seconds, setSeconds] = useState(asset.durationMs === null ? '' : String(asset.durationMs / 1000))
+  const parsed = seconds.trim() === '' ? null : Math.round(Number(seconds) * 1000)
+  const valid = parsed === null || (Number.isFinite(parsed) && parsed > 0)
+  return (
+    <div className="admin-form-group">
+      <label>
+        Display seconds{' '}
+        <input
+          type="number"
+          min={1}
+          max={600}
+          className="admin-form-input"
+          aria-label={`Display seconds of ${asset.assetId}`}
+          placeholder="8"
+          value={seconds}
+          onChange={(event) => { setSeconds(event.target.value) }}
+        />
+      </label>
+      <button
+        type="button"
+        className="admin-button admin-button-secondary"
+        disabled={!valid || parsed === asset.durationMs}
+        onClick={() => { onSave({ durationMs: parsed }) }}
+      >
+        Save duration
+      </button>
+    </div>
   )
 }

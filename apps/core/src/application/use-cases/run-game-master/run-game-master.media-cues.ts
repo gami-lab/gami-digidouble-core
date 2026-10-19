@@ -8,11 +8,13 @@ import type { MediaCueService } from '../../services/media/media-cue.service.js'
 import type { IEventLogRepository } from '../../ports/IEventLogRepository.js'
 import type { IMediaAssetRepository } from '../../ports/IMediaAssetRepository.js'
 import { loadGameMasterMediaCatalogue } from '../../services/media/media-catalogue.js'
+import { loadSessionMediaHistory } from '../../services/media/media-history.js'
 import type { RunGameMasterInput } from './run-game-master.types.js'
 
 /**
  * Unlock and GM-switch media follow their runtime events, then the GM's own cue. An avatar unlocks
- * once per session and a GM run switches and cues at most once, which keys each cue to its event.
+ * once per session run (a reset starts a new run) and a GM run switches and cues at most once,
+ * which keys each cue to its event.
  */
 export async function emitTriggeredMediaCues(
   cueService: MediaCueService,
@@ -22,6 +24,7 @@ export async function emitTriggeredMediaCues(
     unlockedAvatarIds: string[]
     switchedAvatarId: string | undefined
     mediaCue: MediaCueDecision | undefined
+    eventLogRepository: IEventLogRepository | undefined
   },
 ): Promise<void> {
   const { input, scenarioAvatars, unlockedAvatarIds, switchedAvatarId, mediaCue } = args
@@ -33,14 +36,20 @@ export async function emitTriggeredMediaCues(
     correlationId: input.correlationId,
     ...(input.conversationId !== undefined ? { conversationId: input.conversationId } : {}),
   }
-  for (const avatarId of unlockedAvatarIds) {
+  const unlockCues = unlockedAvatarIds.flatMap((avatarId) => {
     const assetId = triggersOf(avatarId)?.onUnlock
-    if (assetId === undefined) continue
+    return assetId === undefined ? [] : [{ avatarId, assetId }]
+  })
+  const { runKey } =
+    unlockCues.length === 0
+      ? { runKey: '' }
+      : await loadSessionMediaHistory(args.eventLogRepository, input.sessionId)
+  for (const { avatarId, assetId } of unlockCues) {
     await cueService.emit({
       ...base,
       assetId,
       origin: 'avatar_unlocked',
-      triggerKey: `unlock:${input.sessionId}:${avatarId}`,
+      triggerKey: `unlock:${input.sessionId}:${runKey}:${avatarId}`,
     })
   }
   const switchAssetId =

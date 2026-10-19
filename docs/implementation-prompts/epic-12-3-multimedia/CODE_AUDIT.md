@@ -226,3 +226,31 @@ evidence and what was not verified (hands-free voice in the browser, the deploye
 
 **Close with debt** after items 1–3; item 5 is an operational follow-up already listed in
 `EPICS.md`.
+
+## Remediation Outcome
+
+### Changes Made
+
+1. **Cue held while the visitor speaks** — the conversation screen reports when the microphone
+   hears the visitor; `useRuntimeMoments` treats that as busy for media, so a cue starts only after
+   the visitor's sentence is sent. Tested at the hook and the screen.
+2. **Reset-aware media history** — a session reset writes `session_reset`; media history
+   (`media-history.ts`) counts only cues after the latest reset. Unlock cues are keyed per run, so
+   the unlock video replays after a reset, and cued assets return to the GM catalogue. Tested in the
+   GM application tests and the reset use case.
+3. **Posters do not leak** — deleting a video also deletes its poster when nothing else (slot,
+   trigger, other poster) uses it; the admin library reloads after a delete. Route and admin tests.
+4. **Image display duration** — the library row edits an image's display seconds (`durationMs`).
+   Admin test.
+
+### Not changed
+
+- The provider-gated switch-cue stack test stays gated (Avatars need prepared traits); the cue
+  path is covered at route level with the real publisher and was run with a provider.
+- Uploading the real AVA film and re-verifying on the deployed stack remain an operational
+  follow-up in `EPICS.md`.
+
+### Grade after remediation
+
+**A− — production-ready for Phase A.** The two cue-lifecycle defects and the poster leak are fixed
+and tested; what remains is operational (deployed AVA media) or a deliberate test gate.

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import type { ComponentProps } from 'react'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ConversationSummary } from '@gami/shared'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -76,9 +77,21 @@ function mockVoice(overrides: Partial<VoiceConversationState> = {}): VoiceConver
   return voice
 }
 
-function renderScreen(chat = createChat(), onSwitch = vi.fn()): void {
-  render(<ConversationScreen avatar={clara} chat={chat} onSwitch={onSwitch} notice={null}
-        watching={null} />)
+function renderScreen(
+  chat = createChat(),
+  onSwitch = vi.fn(),
+  props: Partial<Pick<ComponentProps<typeof ConversationScreen>, 'watching' | 'onVisitorSpeaking'>> = {},
+) {
+  return render(
+    <ConversationScreen
+      avatar={clara}
+      chat={chat}
+      onSwitch={onSwitch}
+      notice={null}
+      watching={null}
+      {...props}
+    />,
+  )
 }
 
 beforeEach(async () => {
@@ -106,8 +119,7 @@ describe('voice-first conversation screen', () => {
   it('announces listening, thinking, and speaking in one polite status', () => {
     mockVoice({ enabled: true, phase: 'listening' })
     const { rerender } = render(
-      <ConversationScreen avatar={clara} chat={createChat()} onSwitch={vi.fn()} notice={null}
-        watching={null} />,
+      <ConversationScreen avatar={clara} chat={createChat()} onSwitch={vi.fn()} notice={null} watching={null} />,
     )
     const status = screen.getByRole('status')
     expect(status.getAttribute('aria-live')).toBe('polite')
@@ -127,8 +139,7 @@ describe('voice-first conversation screen', () => {
 
     mockVoice({ enabled: true, phase: 'speaking' })
     const speaking = createChat({ audio: { messageId: 'm2', status: 'playing', errorCode: null } })
-    rerender(<ConversationScreen avatar={clara} chat={speaking} onSwitch={vi.fn()} notice={null}
-        watching={null} />)
+    rerender(<ConversationScreen avatar={clara} chat={speaking} onSwitch={vi.fn()} notice={null} watching={null} />)
     expect(screen.getByRole('status').textContent).toBe('Speaking…')
   })
 
@@ -253,8 +264,7 @@ describe('idle hint', () => {
     mockVoice()
     const chat = createChat()
     render(
-      <ConversationScreen avatar={withQuestions} chat={chat} onSwitch={vi.fn()} notice={null}
-        watching={null} />,
+      <ConversationScreen avatar={withQuestions} chat={chat} onSwitch={vi.fn()} notice={null} watching={null} />,
     )
     expect(screen.queryByText('Not sure what to say?')).toBeNull()
 
@@ -326,5 +336,23 @@ describe('idle hint', () => {
       />,
     )
     expect(screen.queryByText('Not sure what to say?')).toBeNull()
+  })
+
+  it('tells the experience when the visitor is speaking, and stops on unmount', () => {
+    mockVoice({ enabled: true, phase: 'listening', hearing: true })
+    const onVisitorSpeaking = vi.fn()
+    const { unmount } = renderScreen(createChat(), vi.fn(), { onVisitorSpeaking })
+
+    expect(onVisitorSpeaking).toHaveBeenLastCalledWith(true)
+    unmount()
+    expect(onVisitorSpeaking).toHaveBeenLastCalledWith(false)
+  })
+
+  it('shows watching and blocks typing while a fullscreen video plays', () => {
+    mockVoice({ enabled: true, phase: 'watching' })
+    renderScreen(createChat(), vi.fn(), { watching: 'fullscreen' })
+
+    expect(screen.getByRole('status').textContent).toBe('Watching with you…')
+    expect(screen.getByRole<HTMLTextAreaElement>('textbox').disabled).toBe(true)
   })
 })

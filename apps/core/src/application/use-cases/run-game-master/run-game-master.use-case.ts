@@ -266,6 +266,7 @@ export class RunGameMasterUseCase {
         unlockedAvatarIds: args.unlockResult.newlyUnlockedAvatarIds,
         switchedAvatarId: args.routingResult.switchedAvatarId,
         mediaCue: args.effectiveOutput.mediaCue,
+        eventLogRepository: this.options.eventLogRepository,
       })
     }
     await persistGameMasterResult({

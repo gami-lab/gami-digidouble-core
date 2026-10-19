@@ -180,7 +180,8 @@ All admin routes use `/v1/admin/*` and accept only an admin session cookie or th
   streamed to storage, never buffered whole.
 - `PATCH /v1/admin/media/{assetId}` — `UpdateMediaAssetRequest`; `null` clears `posterAssetId` or
   `durationMs`.
-- `DELETE /v1/admin/media/{assetId}` — `DeleteMediaAssetResponse`; also deletes the stored file.
+- `DELETE /v1/admin/media/{assetId}` — `DeleteMediaAssetResponse`; also deletes the stored file,
+  and the asset's poster when nothing else (slot, trigger, other poster) uses it.
 - `GET /v1/admin/media/{assetId}/file` — admin preview of an uploaded file whatever the scenario
   status (same `Range`/`ETag` behavior as the open route, `Cache-Control: private, no-cache`).
   `MediaAssetSummary.previewUrl` points here for uploads and at the URL for URL assets;

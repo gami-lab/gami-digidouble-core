@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import { useActiveChatRuntime, type ActiveChatRuntimeState } from '../chat/use-active-chat-runtime'
 import {
@@ -28,7 +28,13 @@ export function GuidedExperience({ userId }: { userId: string }): JSX.Element {
     initialActiveAvatarId: remembered?.activeAvatarId ?? null,
     initialConversationId: remembered?.conversationId ?? null,
   })
-  const moments = useRuntimeMoments(discovery.session?.sessionId ?? null, discovery.avatars, chat)
+  const [visitorSpeaking, setVisitorSpeaking] = useState(false)
+  const moments = useRuntimeMoments(
+    discovery.session?.sessionId ?? null,
+    discovery.avatars,
+    chat,
+    visitorSpeaking,
+  )
   runtimeEventRef.current = moments.onRuntimeEvent
   const endRequestedRef = useRef(false)
 
@@ -58,6 +64,7 @@ export function GuidedExperience({ userId }: { userId: string }): JSX.Element {
         dispatch={dispatch}
         discovery={discovery}
         watching={moments.watching}
+        onVisitorSpeaking={setVisitorSpeaking}
         notice={moments.render(() => {
           dispatch({ type: 'conversationStarted' })
         })}

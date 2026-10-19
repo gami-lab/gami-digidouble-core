@@ -48,7 +48,9 @@ the runtime event is published only when that insert wins. `media.cue_skipped` (
 `assetId`, `reason`) records a trigger whose asset no longer resolves. Player reports add
 `media.playback_started|completed|skipped|failed` (`cueId`, `assetId`, `origin`, server-measured
 `cueToReportMs` from the cue's own entry, optional `clientLatencyMs`), written once per cue and
-outcome under `evt_media_playback_{cueId}_{outcome}`.
+outcome under `evt_media_playback_{cueId}_{outcome}`. A session reset writes `session_reset`;
+media history counts only events after the latest one, so unlock cues (keyed per run) replay and
+cued assets return to the Game Master catalogue after a reset.
 
 ## Media files
 

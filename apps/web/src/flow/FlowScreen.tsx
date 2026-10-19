@@ -21,6 +21,7 @@ type FlowScreenProps = {
   notice: ReactNode
   /** How a playing media cue is displayed, if one is playing. */
   watching: MediaCueDisplay | null
+  onVisitorSpeaking: (speaking: boolean) => void
   dispatch: (event: FlowEvent) => void
   discovery: ScenarioAvatarDiscoveryState
   chat: ActiveChatRuntimeState
@@ -77,10 +78,11 @@ const SCENARIO_SCREENS: Record<ScenarioStep, (props: ScenarioScreenProps) => JSX
       onBack={back(dispatch)}
     />
   ),
-  conversation: ({ scenario, discovery, chat, dispatch, notice, watching }) => (
+  conversation: ({ scenario, discovery, chat, dispatch, notice, watching, onVisitorSpeaking }) => (
     <ConversationScreen
       notice={notice}
       watching={watching}
+      onVisitorSpeaking={onVisitorSpeaking}
       avatar={
         discovery.avatars.find((item) => item.avatarId === chat.activeAvatarId) ?? {
           name: scenario.name,

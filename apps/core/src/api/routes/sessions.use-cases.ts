@@ -86,15 +86,7 @@ export function createSessionRouteUseCases(deps: {
     ),
     getSessionUseCase: new GetSessionUseCase(deps.sessionRepository),
     listSessionsUseCase: new ListSessionsUseCase(deps.sessionRepository),
-    resetSessionUseCase: new ResetSessionUseCase(
-      deps.sessionRepository,
-      deps.scenarioRepository,
-      deps.avatarRepository,
-      deps.conversationRepository,
-      deps.messageRepository,
-      deps.conversationWorkingMemoryRepository,
-      deps.conversationMemoryRepository,
-    ),
+    resetSessionUseCase: createResetSessionUseCase(deps),
     startConversationUseCase: new StartConversationUseCase(
       deps.sessionRepository,
       deps.avatarRepository,
@@ -154,5 +146,20 @@ function createMediaCueService(deps: {
     deps.mediaAssetRepository,
     deps.eventLogRepository,
     deps.sessionEventPublisher,
+  )
+}
+
+function createResetSessionUseCase(
+  deps: Parameters<typeof createSessionRouteUseCases>[0],
+): ResetSessionUseCase {
+  return new ResetSessionUseCase(
+    deps.sessionRepository,
+    deps.scenarioRepository,
+    deps.avatarRepository,
+    deps.conversationRepository,
+    deps.messageRepository,
+    deps.conversationWorkingMemoryRepository,
+    deps.conversationMemoryRepository,
+    deps.eventLogRepository,
   )
 }

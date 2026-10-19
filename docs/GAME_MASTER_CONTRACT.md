@@ -42,8 +42,8 @@ GM input is a bounded projection of:
   visibility-filtered, but GM sees an unrestricted corpus only through this explicit mode. A
   missing active avatar is not itself an authorization bypass.
 - pending guidance from the previous GM turn, consumed at most once
-- a media catalogue: the scenario's `cueable` media assets not yet cued in this session (any
-  trigger), as `assetId`, kind, and description, capped at 20 entries and 300 characters per
+- a media catalogue: the scenario's `cueable` media assets not yet cued in the session's current run
+  (any trigger; a reset starts a new run), as `assetId`, kind, and description, capped at 20 entries and 300 characters per
   description. It is static scenario data loaded with the run — not memory and not retrieval —
   and is omitted entirely (no section, prose, field, or schema) when empty
 
@@ -123,7 +123,7 @@ Reducer rules:
   `display`) follows the event that triggered it: an unlocked Avatar's `mediaTriggers.onUnlock`
   after `runtime.avatar_unlocked` (`origin: 'avatar_unlocked'`), and the target's
   `mediaTriggers.onSwitchTo` after a GM-accepted or explicit switch (`origin: 'avatar_switched'`).
-  The cue id derives from the triggering event and the asset (unlock: session + Avatar; GM switch:
+  The cue id derives from the triggering event and the asset (unlock: session run + Avatar; GM switch:
   run correlation id + Avatar; explicit switch: the new conversation), so a replayed GM run never
   emits twice. A missing or foreign asset is skipped and never affects the unlock or switch.
 
