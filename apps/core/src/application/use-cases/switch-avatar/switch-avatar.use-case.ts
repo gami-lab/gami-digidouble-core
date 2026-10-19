@@ -8,6 +8,9 @@ import type { Session } from '../../../domain/conversation/session.types.js'
 import { DomainError } from '../../../domain/errors.js'
 import { requirePreparedAvatar } from '../../../domain/avatar/avatar.types.js'
 import type { RunGameMasterUseCase } from '../run-game-master/run-game-master.use-case.js'
+import type { MediaCueService } from '../../services/media/media-cue.service.js'
+import { readMediaTriggers } from '../../../domain/media/avatar-media-triggers.js'
+import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import {
   hydrateConversationMemoryForNewConversation,
   type EpisodicMemoryHydrationService,
@@ -35,12 +38,13 @@ export class SwitchAvatarUseCase {
     private readonly conversationWorkingMemoryRepository?: IConversationWorkingMemoryRepository,
     private readonly eventLogRepository?: IEventLogRepository,
     private readonly runGameMasterUseCase?: RunGameMasterUseCase | null,
+    private readonly mediaCueService?: MediaCueService,
   ) {}
 
   async execute(input: SwitchAvatarInput): Promise<SwitchAvatarOutput> {
     const { sessionId, avatarId } = this.validateInput(input)
     const session = await this.loadActiveSession(sessionId)
-    await this.ensureAvatarBelongsToScenario(avatarId, session.scenarioId)
+    const avatar = await this.ensureAvatarBelongsToScenario(avatarId, session.scenarioId)
     this.ensureAvatarIsUnlocked(session, avatarId)
 
     const previousConversation = await this.conversationRepository.findActiveBySessionId(sessionId)
@@ -79,6 +83,8 @@ export class SwitchAvatarUseCase {
       avatarId,
       scenarioId: session.scenarioId,
     })
+
+    this.emitSwitchMedia(avatar, sessionId, conversation.conversationId)
 
     const updatedSession = await this.sessionRepository.findById(sessionId)
     if (updatedSession === null) {
@@ -133,7 +139,24 @@ export class SwitchAvatarUseCase {
     return session
   }
 
-  private async ensureAvatarBelongsToScenario(avatarId: string, scenarioId: string): Promise<void> {
+  /** Fire-and-forget: the switch response never waits for media. A new conversation is a new event. */
+  private emitSwitchMedia(avatar: AvatarConfig, sessionId: string, conversationId: string): void {
+    const assetId = readMediaTriggers(avatar.config)?.onSwitchTo
+    if (this.mediaCueService === undefined || assetId === undefined) return
+    void this.mediaCueService.emit({
+      sessionId,
+      scenarioId: avatar.scenarioId,
+      conversationId,
+      assetId,
+      origin: 'avatar_switched',
+      triggerKey: `switch:${conversationId}`,
+    })
+  }
+
+  private async ensureAvatarBelongsToScenario(
+    avatarId: string,
+    scenarioId: string,
+  ): Promise<AvatarConfig> {
     const avatar = await this.avatarRepository.findById(avatarId)
     if (avatar === null) {
       throw new DomainError('NOT_FOUND', `Avatar ${avatarId} was not found.`)
@@ -142,6 +165,7 @@ export class SwitchAvatarUseCase {
       throw new DomainError('VALIDATION_ERROR', 'Avatar does not belong to the session scenario.')
     }
     requirePreparedAvatar(avatar)
+    return avatar
   }
 
   private async closePreviousConversation(

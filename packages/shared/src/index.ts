@@ -141,6 +141,9 @@ export type {
   ListMediaAssetsResponse,
   MediaAssetResponse,
   MediaAssetSummary,
+  MediaCueDisplay,
+  MediaCueOrigin,
+  MediaCuePayload,
   MediaKind,
   MediaMimeType,
   MediaRef,
@@ -152,6 +155,8 @@ export type {
 export {
   AVATAR_MEDIA_TRIGGER_SLOTS,
   isAvatarMediaTriggers,
+  isMediaCuePayload,
+  MEDIA_CUE_ORIGINS,
   MEDIA_KINDS,
   MEDIA_LIMITS,
   MEDIA_MIME_TYPES,

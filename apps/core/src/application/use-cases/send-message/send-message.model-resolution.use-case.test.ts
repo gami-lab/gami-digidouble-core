@@ -53,7 +53,11 @@ const messageRepository = {
   deleteByConversationId: vi.fn(),
 }
 const llm = { complete: vi.fn() }
-const eventLogRepository = { append: appendEventMock, findBySessionId: vi.fn() }
+const eventLogRepository = {
+  append: appendEventMock,
+  appendOnce: vi.fn(),
+  findBySessionId: vi.fn(),
+}
 
 beforeEach(() => {
   findSessionByIdMock.mockResolvedValue({

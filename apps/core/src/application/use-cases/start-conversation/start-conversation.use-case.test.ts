@@ -200,7 +200,7 @@ describe('StartConversationUseCase', () => {
         hydrateForNewConversationWithMetadata,
         generateForClosedConversation: vi.fn().mockResolvedValue(undefined),
       },
-      { append: appendEventMock, findBySessionId: vi.fn() },
+      { append: appendEventMock, appendOnce: vi.fn(), findBySessionId: vi.fn() },
     )
 
     await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_1' })
@@ -236,7 +236,7 @@ describe('StartConversationUseCase empty hydration', () => {
         }),
         generateForClosedConversation: vi.fn().mockResolvedValue(undefined),
       },
-      { append: appendEventMock, findBySessionId: vi.fn() },
+      { append: appendEventMock, appendOnce: vi.fn(), findBySessionId: vi.fn() },
     )
 
     await useCase.execute({ sessionId: 'session_1', avatarId: 'avatar_1' })

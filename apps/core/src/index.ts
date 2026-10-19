@@ -21,6 +21,7 @@ function isMissingEnvFileError(error: unknown): boolean {
 import { loadConfig } from './config.js'
 import type { Config } from './config.js'
 import { FilesystemMediaStorage } from './infrastructure/media/filesystem-media-storage.js'
+import { MediaCueService } from './application/services/media/media-cue.service.js'
 import { createServer } from './api/server.js'
 import type { IDependencyProbe } from './application/ports/IDependencyProbe.js'
 import { RunGameMasterUseCase } from './application/use-cases/run-game-master/run-game-master.use-case.js'
@@ -95,31 +96,22 @@ async function main(): Promise<void> {
       observability,
     ),
   )
-  const modelConfigRepository = repositories.modelConfigRepository
   const runtimeModelConfigFallback: ModelConfig = {
     ...DEFAULT_MODEL_CONFIG,
     globalDefault: { provider: resolveProviderName(config.llmProvider), model: '' },
   }
   const sessionEventPublisher = new InMemorySessionEventPublisher()
   const memorySelectionService = buildMemorySelectionService(repositories)
-  const runGameMasterUseCase = new RunGameMasterUseCase(
-    repositories.gmStateRepository,
-    repositories.sessionRepository,
-    repositories.avatarRepository,
+  const runGameMasterUseCase = buildRunGameMasterUseCase({
+    repositories,
     llmAdapter,
     observability,
-    {
-      scenarioRepository: repositories.scenarioRepository,
-      eventLogRepository: repositories.eventLogRepository,
-      messageRepository: repositories.messageRepository,
-      sessionEventPublisher,
-      memorySelectionService,
-      modelConfigRepository,
-      llmAdapterRegistry,
-      modelConfigFallback: runtimeModelConfigFallback,
-      typedRetrievalService,
-    },
-  )
+    sessionEventPublisher,
+    memorySelectionService,
+    llmAdapterRegistry,
+    modelConfigFallback: runtimeModelConfigFallback,
+    typedRetrievalService,
+  })
   const probes: IDependencyProbe[] = [
     new PostgresProbe(sql),
     new RedisProbe(redisClient),
@@ -195,6 +187,42 @@ function buildCoreRepositories(sql: ReturnType<typeof getDbClient>, mediaStorage
     mediaAssetRepository: new PostgresMediaAssetRepository(sql),
     mediaStorage: new FilesystemMediaStorage(mediaStorageDir),
   }
+}
+
+function buildRunGameMasterUseCase(deps: {
+  repositories: CoreRepositories
+  llmAdapter: ReturnType<typeof createLlmAdapter>
+  observability: ReturnType<typeof createObservabilityAdapter>
+  sessionEventPublisher: InMemorySessionEventPublisher
+  memorySelectionService: MemorySelectionService
+  llmAdapterRegistry: DefaultLlmAdapterRegistry
+  modelConfigFallback: ModelConfig
+  typedRetrievalService: TypedRetrievalService
+}): RunGameMasterUseCase {
+  const { repositories, sessionEventPublisher } = deps
+  return new RunGameMasterUseCase(
+    repositories.gmStateRepository,
+    repositories.sessionRepository,
+    repositories.avatarRepository,
+    deps.llmAdapter,
+    deps.observability,
+    {
+      scenarioRepository: repositories.scenarioRepository,
+      eventLogRepository: repositories.eventLogRepository,
+      messageRepository: repositories.messageRepository,
+      sessionEventPublisher,
+      memorySelectionService: deps.memorySelectionService,
+      modelConfigRepository: repositories.modelConfigRepository,
+      llmAdapterRegistry: deps.llmAdapterRegistry,
+      modelConfigFallback: deps.modelConfigFallback,
+      typedRetrievalService: deps.typedRetrievalService,
+      mediaCueService: new MediaCueService(
+        repositories.mediaAssetRepository,
+        repositories.eventLogRepository,
+        sessionEventPublisher,
+      ),
+    },
+  )
 }
 
 function buildMemorySelectionService(repositories: CoreRepositories): MemorySelectionService {

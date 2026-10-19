@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type {
   ApiResponse,
   AvatarSummary,
@@ -11,6 +11,7 @@ import { InMemoryAvatarRepository } from '../../infrastructure/db/in-memory-avat
 import { InMemoryMediaAssetRepository } from '../../infrastructure/db/in-memory-media-asset.repository.js'
 import { InMemoryScenarioRepository } from '../../infrastructure/db/in-memory-scenario.repository.js'
 import { InMemorySessionRepository } from '../../infrastructure/db/in-memory-session.repository.js'
+import { InMemorySessionEventPublisher } from '../../infrastructure/events/in-memory-session-event-publisher.js'
 import { makeMediaAsset } from '../../test-utils/media.js'
 import { createServer } from '../server.js'
 import { playerHeaders, serviceKeyHeaders } from './test-auth.js'
@@ -133,5 +134,76 @@ describe('avatar media triggers', () => {
     expect(response.json<ApiResponse<null>>().error?.details).toMatchObject({
       usages: [expect.stringContaining('onUnlock')],
     })
+  })
+})
+
+const PREPARED_TRAITS = {
+  identity: [],
+  personality: [],
+  speakingStyle: [],
+  background: [],
+  timeline: [],
+  currentSituation: [],
+  behaviouralRules: [],
+}
+
+describe('switch media trigger', () => {
+  it('publishes the switch-to cue on the session stream after the switch, once per switch', async () => {
+    const publisher = new InMemorySessionEventPublisher()
+    const sessions = new InMemorySessionRepository()
+    const app = createServer(TEST_CONFIG, {
+      scenarioRepository: new InMemoryScenarioRepository([
+        { ...scenario, avatarAvailability: { initialAvatarIds: ['avatar_1', 'avatar_2'] } },
+      ]),
+      avatarRepository: new InMemoryAvatarRepository([
+        makeAvatarConfig({
+          avatarId: 'avatar_1',
+          scenarioId: 'scenario_1',
+          computedTraits: PREPARED_TRAITS,
+        }),
+        makeAvatarConfig({
+          avatarId: 'avatar_2',
+          scenarioId: 'scenario_1',
+          computedTraits: PREPARED_TRAITS,
+          config: { mediaTriggers: { onSwitchTo: 'media_cut' } },
+        }),
+      ]),
+      sessionRepository: sessions,
+      mediaAssetRepository: new InMemoryMediaAssetRepository([
+        makeMediaAsset({ assetId: 'media_cut' }),
+      ]),
+      sessionEventPublisher: publisher,
+    })
+    const started = await app.inject({
+      method: 'POST',
+      url: '/v1/sessions',
+      headers: playerHeaders(),
+      payload: { scenarioId: 'scenario_1' },
+    })
+    const sessionId =
+      started.json<ApiResponse<{ session: { sessionId: string } }>>().data?.session.sessionId ?? ''
+    const cues: unknown[] = []
+    publisher.subscribe(sessionId, (event) => {
+      if (event.type === 'runtime.media_cue') cues.push(event.payload)
+    })
+    const switchTo = (avatarId: string) =>
+      app.inject({
+        method: 'POST',
+        url: `/v1/sessions/${sessionId}/switch-avatar`,
+        headers: playerHeaders(),
+        payload: { avatarId },
+      })
+
+    expect((await switchTo('avatar_2')).statusCode).toBe(200)
+    await vi.waitFor(() => {
+      expect(cues).toHaveLength(1)
+    })
+    await switchTo('avatar_1')
+    await switchTo('avatar_2')
+
+    await vi.waitFor(() => {
+      expect(cues).toHaveLength(2)
+    })
+    expect(cues[0]).toMatchObject({ origin: 'avatar_switched', asset: { assetId: 'media_cut' } })
   })
 })

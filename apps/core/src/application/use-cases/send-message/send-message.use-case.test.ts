@@ -77,7 +77,11 @@ const messageRepository = {
 }
 
 const llm = { complete: completeMock, stream: streamMock }
-const eventLogRepository = { append: appendEventMock, findBySessionId: vi.fn() }
+const eventLogRepository = {
+  append: appendEventMock,
+  appendOnce: vi.fn(),
+  findBySessionId: vi.fn(),
+}
 const userRepository = { findById: findUserByIdMock, upsert: vi.fn() }
 
 const SAMPLE_TRAITS: AvatarComputedTraits = {

@@ -90,8 +90,8 @@ that touches persistence, retrieval, or provider adapters.
 - Multimedia (`EPICS.md` 12.3) is in progress: the shared media contract, presentation media
   references, the media asset store (upload/URL, filesystem storage, open file route with `Range`)
   exist, with the admin media library, slot pickers, Avatar media triggers, and a manifest-driven
-  media seed (`seed:media`, AVA placeholder manifest); runtime cue events, GM cues, and playback
-  are not yet shipped.
+  media seed (`seed:media`, AVA placeholder manifest), and exactly-once `runtime.media_cue` events
+  for unlock and switch triggers; GM cues and player playback are not yet shipped.
 - Evaluation measures factual recall only, not discovery pacing, persona, or GM decisions (`EPICS.md` 12.4).
 - The voice chain runs in series and has no end-to-end latency metric (`EPICS.md` 12.5).
 - No video avatar support (`EPICS.md` 12.6).

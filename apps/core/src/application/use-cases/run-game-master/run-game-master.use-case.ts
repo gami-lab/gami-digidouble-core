@@ -12,6 +12,8 @@ import type { ISessionEventPublisher } from '../../ports/ISessionEventPublisher.
 import type { IAvatarRepository } from '../../ports/IAvatarRepository.js'
 import type { MemorySelectionService } from '../../services/memory-selection.service.js'
 import type { TypedRetrievalService } from '../../services/knowledge/typed-retrieval.service.js'
+import type { MediaCueService } from '../../services/media/media-cue.service.js'
+import { emitTriggeredMediaCues } from './run-game-master.media-cues.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import {
   GAME_MASTER_INPUT_RENDERER_VERSION,
@@ -69,6 +71,7 @@ export type RunGameMasterOptions = {
   modelConfigRepository?: IModelConfigRepository
   llmAdapterRegistry?: LlmAdapterRegistry
   modelConfigFallback?: ModelConfig
+  mediaCueService?: MediaCueService
 }
 
 export class RunGameMasterUseCase {
@@ -200,6 +203,7 @@ export class RunGameMasterUseCase {
     })
     await this.persistAndEmitTurn({
       input,
+      scenarioAvatars,
       currentState,
       nextState,
       effectiveOutput,
@@ -217,6 +221,7 @@ export class RunGameMasterUseCase {
 
   private async persistAndEmitTurn(args: {
     input: RunGameMasterInput
+    scenarioAvatars: AvatarConfig[]
     currentState: GameMasterState
     nextState: GameMasterState
     effectiveOutput: GameMasterOutput
@@ -235,6 +240,14 @@ export class RunGameMasterUseCase {
       args.effectiveOutput,
       args.unlockResult.newlyUnlockedAvatarIds,
     )
+    if (this.options.mediaCueService !== undefined) {
+      await emitTriggeredMediaCues(this.options.mediaCueService, {
+        input: args.input,
+        scenarioAvatars: args.scenarioAvatars,
+        unlockedAvatarIds: args.unlockResult.newlyUnlockedAvatarIds,
+        switchedAvatarId: args.routingResult.switchedAvatarId,
+      })
+    }
     await persistGameMasterResult({
       gmStateRepository: this.gmStateRepository,
       sessionRepository: this.sessionRepository,

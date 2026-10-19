@@ -104,6 +104,7 @@ function createUseCaseWithEpisodicDependencies() {
     },
     {
       append: appendEventMock,
+      appendOnce: vi.fn(),
       findBySessionId: vi.fn(),
     },
   )

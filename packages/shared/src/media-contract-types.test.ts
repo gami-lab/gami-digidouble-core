@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   isAvatarMediaTriggers,
+  isMediaCuePayload,
   MEDIA_KINDS,
   MEDIA_LIMITS,
   MEDIA_MIME_TYPES,
@@ -47,5 +48,27 @@ describe('avatar media triggers', () => {
     expect(isAvatarMediaTriggers({ onUnlock: 'https://cdn.example.com/a.mp4' })).toBe(false)
     expect(isAvatarMediaTriggers(null)).toBe(false)
     expect(isAvatarMediaTriggers(['media_x'])).toBe(false)
+  })
+})
+
+describe('media cue payload', () => {
+  const asset = { assetId: 'media_a', kind: 'video', url: '/v1/media/media_a', description: 'A' }
+
+  it('accepts the runtime cue shape and rejects anything else', () => {
+    expect(
+      isMediaCuePayload({ cueId: 'cue_1', asset, origin: 'game_master', display: 'fullscreen' }),
+    ).toBe(true)
+    expect(isMediaCuePayload({ cueId: 'cue_1', asset, origin: 'user', display: 'overlay' })).toBe(
+      false,
+    )
+    expect(
+      isMediaCuePayload({
+        cueId: 'cue_1',
+        asset: { ...asset, kind: 'audio' },
+        origin: 'game_master',
+        display: 'overlay',
+      }),
+    ).toBe(false)
+    expect(isMediaCuePayload(null)).toBe(false)
   })
 })

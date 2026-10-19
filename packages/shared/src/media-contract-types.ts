@@ -127,6 +127,42 @@ export function isAvatarMediaTriggers(value: unknown): value is AvatarMediaTrigg
   )
 }
 
+export const MEDIA_CUE_ORIGINS = ['avatar_unlocked', 'avatar_switched', 'game_master'] as const
+export type MediaCueOrigin = (typeof MEDIA_CUE_ORIGINS)[number]
+
+/** Videos take over the screen; images appear as an overlay over the conversation. */
+export type MediaCueDisplay = 'fullscreen' | 'overlay'
+
+/** Payload of the `runtime.media_cue` runtime event. `cueId` is stable for one triggering event. */
+export type MediaCuePayload = {
+  cueId: string
+  asset: PublicMediaAsset
+  origin: MediaCueOrigin
+  display: MediaCueDisplay
+}
+
+export function isMediaCuePayload(value: unknown): value is MediaCuePayload {
+  if (typeof value !== 'object' || value === null) return false
+  const payload = value as Record<string, unknown>
+  return (
+    typeof payload['cueId'] === 'string' &&
+    (MEDIA_CUE_ORIGINS as readonly unknown[]).includes(payload['origin']) &&
+    (payload['display'] === 'fullscreen' || payload['display'] === 'overlay') &&
+    isPublicMediaAsset(payload['asset'])
+  )
+}
+
+function isPublicMediaAsset(value: unknown): value is PublicMediaAsset {
+  if (typeof value !== 'object' || value === null) return false
+  const asset = value as Record<string, unknown>
+  return (
+    isMediaRef(asset['assetId']) &&
+    isMediaKind(asset['kind']) &&
+    typeof asset['url'] === 'string' &&
+    typeof asset['description'] === 'string'
+  )
+}
+
 export function isMediaRef(value: unknown): value is MediaRef {
   return typeof value === 'string' && new RegExp(MEDIA_REF_PATTERN).test(value)
 }

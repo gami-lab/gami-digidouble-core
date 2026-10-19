@@ -52,7 +52,10 @@ These are easy to regress silently because they are policy, not type-level const
   an asset of the same scenario whose kind fits the slot; a referenced asset (slot, trigger, or
   poster) cannot be deleted; triggers never reach the player projection. Admin behavior tests
   cover the library (URL add, upload with browser-read duration and poster, `409` reason), the
-  kind-filtered picker, and the slot/trigger round trip into the update payloads.
+  kind-filtered picker, and the slot/trigger round trip into the update payloads. Media cues are
+  exactly-once per triggering event (repeat and GM replay emit nothing), follow their unlock event,
+  skip missing/foreign assets without failing the trigger, and reach only the triggering
+  session's stream (stack test, real-provider gated because Avatars need prepared traits).
 - Player identity comes only from a Core-signed token; another player's session, conversation,
   history, runtime state, events stream, or audio is indistinguishable from a missing one (`404`).
 - Session unlock state is fixed at session start and changes only through Game Master unlocks; the

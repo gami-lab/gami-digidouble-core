@@ -63,6 +63,7 @@ function makeAvatar(overrides: Partial<AvatarConfig> = {}): AvatarConfig {
 
 function createUseCase(eventLog?: {
   append: ReturnType<typeof vi.fn>
+  appendOnce: ReturnType<typeof vi.fn>
   findBySessionId: ReturnType<typeof vi.fn>
 }): RunGameMasterUseCase {
   return new RunGameMasterUseCase(
@@ -104,11 +105,15 @@ beforeEach(() => {
   traceMock.mockResolvedValue(undefined)
 })
 
+function eventLogMocks() {
+  return { append: vi.fn(), appendOnce: vi.fn(), findBySessionId: vi.fn() }
+}
+
 describe('RunGameMasterUseCase — defensive error paths', () => {
   it('emitEventSafe failure does not propagate and execute() still resolves', async () => {
     const failingEventLog = {
+      ...eventLogMocks(),
       append: vi.fn().mockRejectedValue(new Error('db write failed')),
-      findBySessionId: vi.fn(),
     }
     const useCase = createUseCase(failingEventLog)
 

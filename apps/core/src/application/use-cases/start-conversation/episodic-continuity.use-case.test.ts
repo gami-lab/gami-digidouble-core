@@ -42,6 +42,7 @@ const conversationRepository = {
 
 const eventLogRepository = {
   append: appendEventMock,
+  appendOnce: vi.fn(),
   findBySessionId: vi.fn(),
 }
 

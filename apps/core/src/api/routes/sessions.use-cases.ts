@@ -13,6 +13,7 @@ import type { IModelConfigRepository } from '../../application/ports/IModelConfi
 import type { IMediaAssetRepository } from '../../application/ports/IMediaAssetRepository.js'
 import { EpisodicMemoryService } from '../../application/services/episodic-memory.service.js'
 import { MemoryMaintenanceService } from '../../application/services/memory-maintenance.service.js'
+import { MediaCueService } from '../../application/services/media/media-cue.service.js'
 import { EndConversationUseCase } from '../../application/use-cases/end-conversation/end-conversation.use-case.js'
 import { GetAvailableAvatarsUseCase } from '../../application/use-cases/get-available-avatars/get-available-avatars.use-case.js'
 import { GetAvatarTransitionsUseCase } from '../../application/use-cases/get-avatar-transitions/get-avatar-transitions.use-case.js'
@@ -117,6 +118,7 @@ export function createSessionRouteUseCases(deps: {
       deps.conversationWorkingMemoryRepository,
       deps.eventLogRepository,
       deps.runGameMasterUseCase,
+      createMediaCueService(deps),
     ),
     getAvailableAvatarsUseCase: new GetAvailableAvatarsUseCase(
       deps.sessionRepository,
@@ -141,4 +143,16 @@ export function createSessionRouteUseCases(deps: {
       episodicMemoryService,
     ),
   }
+}
+
+function createMediaCueService(deps: {
+  mediaAssetRepository: IMediaAssetRepository
+  eventLogRepository: IEventLogRepository
+  sessionEventPublisher: ISessionEventPublisher
+}): MediaCueService {
+  return new MediaCueService(
+    deps.mediaAssetRepository,
+    deps.eventLogRepository,
+    deps.sessionEventPublisher,
+  )
 }

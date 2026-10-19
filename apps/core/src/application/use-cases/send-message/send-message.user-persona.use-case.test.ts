@@ -59,7 +59,11 @@ const messageRepository = {
   deleteByConversationId: vi.fn(),
 }
 const llm = { complete: completeMock }
-const eventLogRepository = { append: appendEventMock, findBySessionId: vi.fn() }
+const eventLogRepository = {
+  append: appendEventMock,
+  appendOnce: vi.fn(),
+  findBySessionId: vi.fn(),
+}
 const userRepository = { findById: findUserByIdMock, upsert: vi.fn() }
 
 function makeSession(overrides: Partial<Session> = {}): Session {

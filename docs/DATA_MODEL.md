@@ -39,6 +39,14 @@ Redis holds only expiring coordination state:
   or a truncated SHA-256 of the client IP, and the key expires with its window.
 - Voice utterance idempotency records, retained at most one day.
 
+## Media events
+
+`event_log` records media cues with bounded fields only (ids, origin, kind, display — never URLs or
+descriptions): `media.cue_emitted` is written under the deterministic id `evt_media_cue_{cueId}`
+(`ON CONFLICT DO NOTHING`), which is what makes a cue exactly-once across retries and GM replays;
+the runtime event is published only when that insert wins. `media.cue_skipped` (`origin`,
+`assetId`, `reason`) records a trigger whose asset no longer resolves.
+
 ## Media files
 
 Uploaded files are stored by `IMediaStorage` under `storage_key` (the asset UUID). The Phase A

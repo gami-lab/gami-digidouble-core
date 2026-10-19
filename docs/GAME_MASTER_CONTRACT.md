@@ -108,6 +108,13 @@ Reducer rules:
   `runtime.avatar_unlocked` → `{ unlockedAvatarIds }`, `runtime.avatar_suggested` →
   `{ suggestedAvatarId }`. GM reasons stay in the GM event log for operators; the player stages
   these events as narrative moments and never switches automatically.
+- `runtime.media_cue` → `MediaCuePayload` (`cueId`, `asset: PublicMediaAsset`, `origin`,
+  `display`) follows the event that triggered it: an unlocked Avatar's `mediaTriggers.onUnlock`
+  after `runtime.avatar_unlocked` (`origin: 'avatar_unlocked'`), and the target's
+  `mediaTriggers.onSwitchTo` after a GM-accepted or explicit switch (`origin: 'avatar_switched'`).
+  The cue id derives from the triggering event and the asset (unlock: session + Avatar; GM switch:
+  run correlation id + Avatar; explicit switch: the new conversation), so a replayed GM run never
+  emits twice. A missing or foreign asset is skipped and never affects the unlock or switch.
 
 ## Model resolution
 

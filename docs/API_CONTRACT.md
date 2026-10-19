@@ -114,7 +114,10 @@ the scenario afterwards stay locked for existing sessions.
 ### Runtime
 
 - `GET /v1/sessions/{sessionId}/runtime-state`
-- `GET /v1/sessions/{sessionId}/events/stream`
+- `GET /v1/sessions/{sessionId}/events/stream` — `RuntimeEvent` frames. `runtime.media_cue`
+  carries `MediaCuePayload` (`cueId`, `asset: PublicMediaAsset`, `origin`:
+  `avatar_unlocked | avatar_switched | game_master`, `display`: `fullscreen` for videos, `overlay`
+  for images). Each cue is published once; clients still de-duplicate by `cueId`.
 
 ### Scenario catalogue
 

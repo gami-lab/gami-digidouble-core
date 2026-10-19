@@ -33,11 +33,18 @@ export class PostgresEventLogRepository implements IEventLogRepository {
   constructor(private readonly sql: Sql) {}
 
   async append(event: StoredEvent): Promise<void> {
-    const id = `evt_${randomUUID()}`
+    await this.insert(`evt_${randomUUID()}`, event)
+  }
+
+  async appendOnce(eventId: string, event: StoredEvent): Promise<boolean> {
+    return (await this.insert(eventId, event)) > 0
+  }
+
+  private async insert(id: string, event: StoredEvent): Promise<number> {
     const sessionId =
       event.sessionId !== undefined ? stripPrefix('session_', event.sessionId) : null
 
-    await this.sql`
+    const result = await this.sql`
       INSERT INTO event_log (id, session_id, type, severity, correlation_id, request_id, payload, created_at)
       VALUES (
         ${id},
@@ -49,7 +56,9 @@ export class PostgresEventLogRepository implements IEventLogRepository {
         ${this.sql.json(event.payload as JSONValue)},
         NOW()
       )
+      ON CONFLICT (id) DO NOTHING
     `
+    return result.count
   }
 
   async findBySessionId(sessionId: string, opts?: { limit?: number }): Promise<StoredEvent[]> {

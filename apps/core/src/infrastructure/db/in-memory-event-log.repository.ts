@@ -5,10 +5,18 @@ import type {
 
 export class InMemoryEventLogRepository implements IEventLogRepository {
   private readonly events: StoredEvent[] = []
+  private readonly eventIds = new Set<string>()
 
   append(event: StoredEvent): Promise<void> {
     this.events.push({ ...event, createdAt: new Date().toISOString() })
     return Promise.resolve()
+  }
+
+  async appendOnce(eventId: string, event: StoredEvent): Promise<boolean> {
+    if (this.eventIds.has(eventId)) return false
+    this.eventIds.add(eventId)
+    await this.append(event)
+    return true
   }
 
   findBySessionId(sessionId: string, opts?: { limit?: number }): Promise<StoredEvent[]> {

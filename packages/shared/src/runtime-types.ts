@@ -9,6 +9,7 @@ export type RuntimeEvent = {
     | 'runtime.avatar_suggested'
     | 'runtime.choice_required'
     | 'runtime.session_closed'
+    | 'runtime.media_cue'
   occurredAt: string
   correlationId?: string
   payload: Record<string, unknown>
