@@ -19,6 +19,7 @@ import {
   getConversationHistory,
   sendMessageStream,
   startConversation,
+  switchAvatar,
 } from './api/conversations'
 import { upsertUserPersona } from './api/users'
 import { LOCAL_WEB_RUNTIME_STORAGE_KEY } from './runtime/local-runtime-state'
@@ -39,6 +40,7 @@ vi.mock('./api/conversations', () => ({
   endConversation: vi.fn(),
   requestMessageAudio: vi.fn(),
   sendVoiceMessageStream: vi.fn(),
+  switchAvatar: vi.fn(),
 }))
 
 const villa: PublicScenarioSummary = {
@@ -67,7 +69,17 @@ const clara: AvailableAvatarSummary = {
   scenarioId: 'scenario_villa',
   name: 'Clara',
   status: 'active',
-  presentation: { hook: 'The housekeeper who saw everything.' },
+  presentation: {
+    hook: 'The housekeeper who saw everything.',
+    starterQuestions: ['What did you see last night?'],
+  },
+}
+
+const elias: AvailableAvatarSummary = {
+  avatarId: 'avatar_elias',
+  scenarioId: 'scenario_villa',
+  name: 'Elias',
+  status: 'active',
 }
 
 const conversation: ConversationSummary = {
@@ -107,7 +119,7 @@ beforeEach(async () => {
   vi.mocked(listAvailableScenarios).mockResolvedValue([villa])
   vi.mocked(ensureActiveSession).mockResolvedValue(session)
   vi.mocked(startSession).mockResolvedValue({ ...session, sessionId: 'session_2' })
-  vi.mocked(getAvailableAvatarsForSession).mockResolvedValue([clara])
+  vi.mocked(getAvailableAvatarsForSession).mockResolvedValue([clara, elias])
   vi.mocked(subscribeToRuntimeEvents).mockReturnValue({ close: vi.fn() })
   vi.mocked(upsertUserPersona).mockResolvedValue({
     userId: 'player_1',
@@ -177,7 +189,50 @@ describe('guided player flow', () => {
     expect(await screen.findByRole('heading', { name: 'Villa Miralac' })).toBeTruthy()
     expect(startSession).toHaveBeenCalledWith({ scenarioId: 'scenario_villa' })
   })
+})
 
+describe('character cards and switching', () => {
+  it('shows the card hook and portrait placeholder from authored presentation', async () => {
+    await reachCharacterChoice()
+
+    expect(screen.getByText('The housekeeper who saw everything.')).toBeTruthy()
+    expect(screen.getByRole('img', { name: 'Elias' }).textContent).toBe('E')
+  })
+
+  it('starts the conversation with a starter question as the first message', async () => {
+    await reachCharacterChoice()
+
+    await click('What did you see last night?')
+
+    await waitFor(() => {
+      expect(sendMessageStream).toHaveBeenCalledWith(
+        'conversation_1',
+        { message: { content: 'What did you see last night?' } },
+        expect.anything(),
+        expect.anything(),
+      )
+    })
+    expect(startConversation).toHaveBeenCalledWith('session_1', { avatarId: 'avatar_clara' })
+  })
+
+  it('switches to another character through the switch route', async () => {
+    vi.mocked(switchAvatar).mockResolvedValue({
+      ...conversation,
+      conversationId: 'conversation_2',
+      avatarId: 'avatar_elias',
+    })
+    await reachCharacterChoice()
+    await click('Talk to Clara')
+    await screen.findByLabelText('Your message')
+
+    await click('Talk to someone else')
+    await click('Talk to Elias')
+
+    await waitFor(() => {
+      expect(switchAvatar).toHaveBeenCalledWith('session_1', { avatarId: 'avatar_elias' })
+    })
+    expect(await screen.findByRole('heading', { name: 'Elias' })).toBeTruthy()
+  })
 })
 
 describe('guided player resume and failure', () => {

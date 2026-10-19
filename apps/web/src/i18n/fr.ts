@@ -27,9 +27,19 @@ const fr = {
     loading: 'Les personnages se préparent…',
     empty: 'Personne n’est encore là. Restez un instant, quelqu’un pourrait arriver.',
     talkTo: 'Parler à {{name}}',
+    askAbout: 'Commencez par demander à {{name}}',
   },
   conversation: {
-    starting: 'Vous rejoignez la conversation…',
+    switch: 'Parler à quelqu’un d’autre',
+    showTranscript: 'Afficher la conversation',
+    hideTranscript: 'Masquer la conversation',
+  },
+  presence: {
+    joining: 'Arrive…',
+    listening: 'Écoute…',
+    thinking: 'Réfléchit…',
+    speaking: 'Parle…',
+    yourTurn: 'À vous',
   },
   outro: {
     title: 'Fin',

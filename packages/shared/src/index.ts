@@ -290,6 +290,7 @@ export type {
   ListSessionsResponse,
   ResetSessionResponse,
   StartConversationRequest,
+  SwitchAvatarRequest,
   StartConversationResponse,
   ListSessionConversationsResponse,
   EndConversationRequest,

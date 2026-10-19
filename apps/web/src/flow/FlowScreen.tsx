@@ -1,6 +1,6 @@
 import type { JSX } from 'react'
 import type { PublicScenarioSummary } from '@gami/shared'
-import { ActiveChatSection } from '../chat/ActiveChatSection'
+import { ConversationScreen } from '../conversation/ConversationScreen'
 import type { ActiveChatRuntimeState } from '../chat/use-active-chat-runtime'
 import type { ScenarioAvatarDiscoveryState } from '../discovery/use-scenario-avatar-discovery'
 import { CharacterChoiceScreen } from './CharacterChoiceScreen'
@@ -13,7 +13,6 @@ import {
   LoadingScreen,
   OutroScreen,
   ScenarioPickerScreen,
-  StoryCard,
 } from './StoryScreens'
 
 type FlowScreenProps = {
@@ -66,21 +65,27 @@ const SCENARIO_SCREENS: Record<ScenarioStep, (props: ScenarioScreenProps) => JSX
       avatars={discovery.avatars}
       loading={discovery.avatarStatus === 'loading'}
       error={chat.conversationError ?? discovery.avatarError}
-      onChoose={(avatarId) => {
-        chat.startChatWithAvatar(avatarId)
+      onChoose={(avatarId, firstMessage) => {
+        chat.startChatWithAvatar(avatarId, firstMessage)
         dispatch({ type: 'conversationStarted' })
       }}
       onBack={back(dispatch)}
     />
   ),
-  conversation: ({ scenario, discovery, chat }) => {
-    const avatar = discovery.avatars.find((item) => item.avatarId === chat.activeAvatarId)
-    return (
-      <StoryCard titleId="chat-title">
-        <ActiveChatSection title={avatar?.name ?? scenario.name} chat={chat} />
-      </StoryCard>
-    )
-  },
+  conversation: ({ scenario, discovery, chat, dispatch }) => (
+    <ConversationScreen
+      avatar={
+        discovery.avatars.find((item) => item.avatarId === chat.activeAvatarId) ?? {
+          name: scenario.name,
+        }
+      }
+      chat={chat}
+      onSwitch={() => {
+        chat.stopMessageAudio()
+        dispatch({ type: 'switchCharacter' })
+      }}
+    />
+  ),
   outro: ({ scenario, discovery, dispatch }) => (
     <OutroScreen
       scenario={scenario}

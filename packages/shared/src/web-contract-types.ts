@@ -168,6 +168,12 @@ export type StartConversationRequest = {
   avatarId: string
 }
 
+/** Ends the current conversation and opens one with `avatarId`. */
+export type SwitchAvatarRequest = {
+  avatarId: string
+  reason?: string
+}
+
 export type StartConversationResponse = {
   conversation: ConversationSummary
 }

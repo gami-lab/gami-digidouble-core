@@ -68,6 +68,10 @@ These are easy to regress silently because they are policy, not type-level const
   projections (`PublicScenarioSummary`, `AvailableAvatarSummary`); replacing `config` keeps it,
   invalid input is `400`, and orchestration output is identical with or without it. Admin forms
   must keep the shared limits and send `null` when every field is emptied.
+- Player conversation: starter questions use the same send path as typed text; switching
+  character goes through `switch-avatar`; the presence state (listening/thinking/speaking) comes
+  from one pure mapper and is announced in a polite live region; a denied or missing microphone
+  leaves a working text mode.
 - Scenario model selection: every slot in `SCENARIO_MODEL_SLOTS` round-trips through API create/
   update and Postgres read-back, and each runtime role honors its scenario slot before the default.
 - User persona: partial/empty persona handling, prompt injection only when persona data is present,

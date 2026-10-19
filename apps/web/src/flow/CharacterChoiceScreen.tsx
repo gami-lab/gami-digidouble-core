@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AvailableAvatarSummary, PublicScenarioSummary } from '@gami/shared'
+import { CharacterCard } from '../conversation/CharacterCard'
 import { BackButton, StoryCard } from './StoryScreens'
 
 type CharacterChoiceScreenProps = {
@@ -8,7 +9,7 @@ type CharacterChoiceScreenProps = {
   avatars: AvailableAvatarSummary[]
   loading: boolean
   error: string | null
-  onChoose: (avatarId: string) => void
+  onChoose: (avatarId: string, firstMessage?: string) => void
   onBack: () => void
 }
 
@@ -26,22 +27,15 @@ export function CharacterChoiceScreen({
       <h1 id="characters-title">{t('characters.title')}</h1>
       {loading ? <p className="lead">{t('characters.loading')}</p> : null}
       {!loading && avatars.length === 0 ? <p className="lead">{t('characters.empty')}</p> : null}
-      <div className="story-choices">
+      <div className="character-cards">
         {avatars.map((avatar) => (
-          <button
+          <CharacterCard
             key={avatar.avatarId}
-            type="button"
-            className="story-choice"
-            aria-label={t('characters.talkTo', { name: avatar.name })}
-            onClick={() => {
-              onChoose(avatar.avatarId)
+            avatar={avatar}
+            onChoose={(firstMessage) => {
+              onChoose(avatar.avatarId, firstMessage)
             }}
-          >
-            <strong>{avatar.name}</strong>
-            {avatar.presentation?.hook !== undefined ? (
-              <span>{avatar.presentation.hook}</span>
-            ) : null}
-          </button>
+          />
         ))}
       </div>
       {error !== null ? (

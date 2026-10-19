@@ -27,9 +27,19 @@ const en = {
     loading: 'The characters are getting ready…',
     empty: 'Nobody is here yet. Stay a moment, someone may arrive.',
     talkTo: 'Talk to {{name}}',
+    askAbout: 'Start by asking {{name}}',
   },
   conversation: {
-    starting: 'Joining the conversation…',
+    switch: 'Talk to someone else',
+    showTranscript: 'Show the conversation',
+    hideTranscript: 'Hide the conversation',
+  },
+  presence: {
+    joining: 'Joining…',
+    listening: 'Listening…',
+    thinking: 'Thinking…',
+    speaking: 'Speaking…',
+    yourTurn: 'Your turn',
   },
   outro: {
     title: 'The end',

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ConversationSummary, SessionSummary } from '@gami/shared'
 import i18n from '../i18n/index'
-import { endConversation, getConversationHistory, startConversation } from '../api/conversations'
+import { startConversation, switchAvatar } from '../api/conversations'
 import { sendMessageStream } from '../api/conversations'
 import { startVoiceTurn } from './voice-turn'
 import {
@@ -25,6 +25,15 @@ import {
   type SendStatus,
 } from './chat-thread-state'
 import { useMessageAudioPlayback, type AudioPlaybackState } from './use-message-audio-playback'
+import {
+  applyThreadState,
+  endAndClearConversation,
+  restoreConversation,
+  type EndConversationSetters,
+  type RequestRef,
+  type RestoreSetters,
+  type ThreadStateSetters,
+} from './conversation-lifecycle'
 
 export type ActiveChatRuntimeState = {
   activeAvatarId: string | null
@@ -40,7 +49,8 @@ export type ActiveChatRuntimeState = {
   canSend: boolean
   canEndConversation: boolean
   setComposerValue: (value: string) => void
-  startChatWithAvatar: (avatarId: string) => void
+  /** Opens a conversation (switching away from the current one); `firstMessage` is then sent. */
+  startChatWithAvatar: (avatarId: string, firstMessage?: string) => void
   sendCurrentMessage: () => void
   /** Sends one recorded utterance; the transcript replaces the pending bubble. */
   sendVoiceMessage: (audio: Blob, durationMs?: number) => void
@@ -86,6 +96,8 @@ export function useActiveChatRuntime(
   const activeStreamControllerRef = useRef<AbortController | null>(null)
   const previousSessionIdRef = useRef<string | null>(null)
   const rehydratedConversationRef = useRef(false)
+  const pendingFirstMessageRef = useRef<string | null>(null)
+  const canSend = conversation !== null && sendStatus !== 'streaming'
   const threadSetters: ThreadStateSetters = {
     setActiveAvatarId,
     setConversation,
@@ -121,9 +133,10 @@ export function useActiveChatRuntime(
     conversationRequestIdRef,
     restoreSetters,
   )
-  function startChatWithAvatar(avatarId: string): void {
+  function startChatWithAvatar(avatarId: string, firstMessage?: string): void {
     messageAudio.stopMessageAudio()
-    startChat(session, avatarId, conversationRequestIdRef, threadSetters, {
+    pendingFirstMessageRef.current = firstMessage?.trim() || null
+    startChat(session, avatarId, conversation !== null, conversationRequestIdRef, threadSetters, {
       setConversation,
       setConversationStatus,
       setConversationError,
@@ -132,13 +145,12 @@ export function useActiveChatRuntime(
       stopMessageAudio: messageAudio.stopMessageAudio,
     })
   }
-  function sendCurrentMessage(): void {
+  function sendText(content: string): void {
     sendMessageInActiveConversation(
       conversation,
       sendStatus,
-      composerValue,
+      content,
       conversationRequestIdRef,
-      setComposerValue,
       setSendStatus,
       setSendError,
       setMessages,
@@ -148,6 +160,12 @@ export function useActiveChatRuntime(
       messageAudio.playMessageAudio,
     )
   }
+  function sendCurrentMessage(): void {
+    if (!canSend || composerValue.trim().length === 0) return
+    setComposerValue('')
+    sendText(composerValue)
+  }
+  usePendingFirstMessage(conversation, conversationStatus, pendingFirstMessageRef, sendText)
   function sendVoiceMessage(audio: Blob, durationMs?: number): void {
     if (conversation === null || sendStatus === 'streaming') return
     const recording = durationMs === undefined ? { audio } : { audio, durationMs }
@@ -175,7 +193,6 @@ export function useActiveChatRuntime(
       messageAudio.stopMessageAudio,
     )
   }
-  const canSend = conversation !== null && sendStatus !== 'streaming'
   const canEndConversation =
     conversation !== null && conversationStatus === 'ready' && sendStatus !== 'streaming'
   return {
@@ -199,6 +216,25 @@ export function useActiveChatRuntime(
     playMessageAudio: messageAudio.playMessageAudio,
     stopMessageAudio: messageAudio.stopMessageAudio,
   }
+}
+
+/** Sends a starter question through the normal send path once its conversation is ready. */
+function usePendingFirstMessage(
+  conversation: ConversationSummary | null,
+  conversationStatus: ConversationStatus,
+  pendingRef: { current: string | null },
+  send: (content: string) => void,
+): void {
+  const readyConversationId =
+    conversationStatus === 'ready' ? (conversation?.conversationId ?? null) : null
+  const sendRef = useRef(send)
+  sendRef.current = send
+  useEffect(() => {
+    const firstMessage = pendingRef.current
+    if (readyConversationId === null || firstMessage === null) return
+    pendingRef.current = null
+    sendRef.current(firstMessage)
+  }, [readyConversationId, pendingRef])
 }
 
 function useResetThreadOnSessionChange(
@@ -272,6 +308,7 @@ function useRehydrateConversationFromStorage(
 function startChat(
   session: SessionSummary | null,
   avatarId: string,
+  switchFromCurrent: boolean,
   conversationRequestIdRef: RequestRef,
   threadSetters: ThreadStateSetters,
   conversationSetters: ConversationSetters,
@@ -288,15 +325,20 @@ function startChat(
   conversationRequestIdRef.current += 1
   const requestId = conversationRequestIdRef.current
   applyThreadState(createThreadStateForAvatarSelection(avatarId), threadSetters)
-  void createConversation(session.sessionId, avatarId, requestId, conversationSetters)
+  void createConversation(
+    session.sessionId,
+    avatarId,
+    switchFromCurrent,
+    requestId,
+    conversationSetters,
+  )
 }
 
 function sendMessageInActiveConversation(
   conversation: ConversationSummary | null,
   sendStatus: SendStatus,
-  composerValue: string,
+  text: string,
   conversationRequestIdRef: RequestRef,
-  setComposerValue: (value: string) => void,
   setSendStatus: (value: SendStatus) => void,
   setSendError: (value: string | null) => void,
   setMessages: (updater: (current: ChatThreadMessage[]) => ChatThreadMessage[]) => void,
@@ -309,13 +351,12 @@ function sendMessageInActiveConversation(
     return
   }
 
-  const content = composerValue.trim()
+  const content = text.trim()
   if (content.length === 0) {
     return
   }
 
   const conversationId = conversation.conversationId
-  setComposerValue('')
   startStreamedTurn({
     conversationId,
     pendingContent: content,
@@ -372,18 +413,17 @@ type ConversationSetters = {
   stopMessageAudio: () => void
 }
 
-type RequestRef = {
-  current: number
-}
-
 async function createConversation(
   sessionId: string,
   avatarId: string,
+  switchFromCurrent: boolean,
   requestId: number,
   setters: ConversationSetters,
 ): Promise<void> {
   try {
-    const createdConversation = await startConversation(sessionId, { avatarId })
+    const createdConversation = switchFromCurrent
+      ? await switchAvatar(sessionId, { avatarId })
+      : await startConversation(sessionId, { avatarId })
     if (requestId !== setters.conversationRequestIdRef.current) {
       return
     }
@@ -401,128 +441,4 @@ async function createConversation(
       error instanceof Error ? error.message : i18n.t('errors.unableToStartChat'),
     )
   }
-}
-
-type RestoreSetters = {
-  setActiveAvatarId: (value: string | null) => void
-  setConversation: (value: ConversationSummary | null) => void
-  setConversationStatus: (value: ConversationStatus) => void
-  setConversationError: (value: string | null) => void
-  setMessages: (value: ChatThreadMessage[]) => void
-  setAvatarDraft: (value: ChatThreadAvatarDraft | null) => void
-  setComposerValue: (value: string) => void
-  setSendStatus: (value: SendStatus) => void
-  setSendError: (value: string | null) => void
-  conversationRequestIdRef: RequestRef
-}
-
-async function restoreConversation(
-  conversationId: string,
-  requestId: number,
-  setters: RestoreSetters,
-): Promise<void> {
-  try {
-    const history = await getConversationHistory(conversationId)
-    if (requestId !== setters.conversationRequestIdRef.current) {
-      return
-    }
-
-    setters.setActiveAvatarId(history.conversation.avatarId)
-    setters.setConversation(history.conversation)
-    setters.setConversationStatus('ready')
-    setters.setConversationError(null)
-    setters.setMessages(
-      history.messages.map((message) => ({
-        localId: message.messageId,
-        role: message.role,
-        content: message.content,
-        createdAt: message.createdAt,
-      })),
-    )
-    setters.setComposerValue('')
-    setters.setAvatarDraft(null)
-    setters.setSendStatus('idle')
-    setters.setSendError(null)
-  } catch (error) {
-    if (requestId !== setters.conversationRequestIdRef.current) {
-      return
-    }
-
-    applyThreadState(createThreadStateForConversationEnd(), {
-      setActiveAvatarId: setters.setActiveAvatarId,
-      setConversation: setters.setConversation,
-      setConversationStatus: setters.setConversationStatus,
-      setConversationError: setters.setConversationError,
-      setMessages: setters.setMessages,
-      setAvatarDraft: setters.setAvatarDraft,
-      setComposerValue: setters.setComposerValue,
-      setSendStatus: setters.setSendStatus,
-      setSendError: setters.setSendError,
-    })
-    setters.setConversationError(
-      error instanceof Error ? error.message : i18n.t('errors.unableToRestoreConversation'),
-    )
-  }
-}
-
-type EndConversationSetters = {
-  setActiveAvatarId: (value: string | null) => void
-  setConversation: (value: ConversationSummary | null) => void
-  setConversationStatus: (value: ConversationStatus) => void
-  setConversationError: (value: string | null) => void
-  setMessages: (value: ChatThreadMessage[]) => void
-  setAvatarDraft: (value: ChatThreadAvatarDraft | null) => void
-  setComposerValue: (value: string) => void
-  setSendStatus: (value: SendStatus) => void
-  setSendError: (value: string | null) => void
-  conversationRequestIdRef: RequestRef
-}
-
-async function endAndClearConversation(
-  sessionId: string,
-  conversationId: string,
-  runId: number,
-  setters: EndConversationSetters,
-): Promise<void> {
-  try {
-    await endConversation(sessionId, conversationId)
-    if (runId !== setters.conversationRequestIdRef.current) {
-      return
-    }
-
-    applyThreadState(createThreadStateForConversationEnd(), setters)
-  } catch (error) {
-    if (runId !== setters.conversationRequestIdRef.current) {
-      return
-    }
-
-    setters.setConversationStatus('ready')
-    setters.setConversationError(
-      error instanceof Error ? error.message : i18n.t('errors.unableToEndConversation'),
-    )
-  }
-}
-
-type ThreadStateSetters = {
-  setActiveAvatarId: (value: string | null) => void
-  setConversation: (value: ConversationSummary | null) => void
-  setConversationStatus: (value: ConversationStatus) => void
-  setConversationError: (value: string | null) => void
-  setMessages: (value: ChatThreadMessage[]) => void
-  setAvatarDraft: (value: ChatThreadAvatarDraft | null) => void
-  setComposerValue: (value: string) => void
-  setSendStatus: (value: SendStatus) => void
-  setSendError: (value: string | null) => void
-}
-
-function applyThreadState(state: ChatThreadState, setters: ThreadStateSetters): void {
-  setters.setActiveAvatarId(state.activeAvatarId)
-  setters.setConversation(state.conversation)
-  setters.setConversationStatus(state.conversationStatus)
-  setters.setConversationError(state.conversationError)
-  setters.setMessages(state.messages)
-  setters.setAvatarDraft(state.avatarDraft)
-  setters.setComposerValue(state.composerValue)
-  setters.setSendStatus(state.sendStatus)
-  setters.setSendError(state.sendError)
 }

@@ -4,8 +4,8 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import type { ConversationSummary } from '@gami/shared'
 import { describe, expect, it, vi } from 'vitest'
 import '../i18n/index'
-import { ActiveChatSection } from './ActiveChatSection'
-import type { ActiveChatRuntimeState } from './use-active-chat-runtime'
+import { Transcript } from './Transcript'
+import type { ActiveChatRuntimeState } from '../chat/use-active-chat-runtime'
 
 const conversation: ConversationSummary = {
   conversationId: 'conversation_1',
@@ -64,7 +64,7 @@ describe('ActiveChatSection audio controls', () => {
   it('offers playback only for completed Avatar messages and uses the message ID', () => {
     const chat = createChat()
 
-    render(<ActiveChatSection title="Clara" chat={chat} />)
+    render(<Transcript chat={chat} />)
 
     const playButton = screen.getByRole('button', { name: 'Listen to this reply' })
     expect(screen.queryByRole('button', { name: 'Play user response' })).toBeNull()
@@ -77,7 +77,7 @@ describe('ActiveChatSection audio controls', () => {
   it('exposes a stop control while the active message is playing', () => {
     const chat = createChat({ messageId: 'message_avatar_1', status: 'playing' })
 
-    render(<ActiveChatSection title="Clara" chat={chat} />)
+    render(<Transcript chat={chat} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Stop audio' }))
 

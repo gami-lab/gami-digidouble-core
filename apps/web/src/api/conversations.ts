@@ -12,6 +12,8 @@ import type {
   SendMessageRequest,
   StartConversationRequest,
   StartConversationResponse,
+  SwitchAvatarApiResponse,
+  SwitchAvatarRequest,
 } from '@gami/shared'
 import {
   isAudioDeliveryMetadata,
@@ -38,6 +40,18 @@ export async function startConversation(
     request,
   )
 
+  return payload.conversation
+}
+
+export async function switchAvatar(
+  sessionId: string,
+  request: SwitchAvatarRequest,
+): Promise<ConversationSummary> {
+  const payload = await webRequest<SwitchAvatarApiResponse>(
+    'POST',
+    `/v1/sessions/${sessionId}/switch-avatar`,
+    request,
+  )
   return payload.conversation
 }
 

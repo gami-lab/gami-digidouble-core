@@ -5,6 +5,7 @@ import type {
   GetAvailableAvatarsResponse,
   ListSessionsQuery,
   StartSessionRequest,
+  SwitchAvatarRequest,
 } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
 import type { IConversationRepository } from '../../application/ports/IConversationRepository.js'
@@ -82,11 +83,6 @@ type StartSessionRequestBody = StartSessionRequest
 
 type StartConversationRequestBody = {
   avatarId: string
-}
-
-type SwitchAvatarRequestBody = {
-  avatarId: string
-  reason?: string
 }
 
 type SessionParams = {
@@ -399,7 +395,7 @@ function registerEndConversationRoute(app: FastifyInstance, useCase: EndConversa
 }
 
 function registerSwitchAvatarRoute(app: FastifyInstance, useCase: SwitchAvatarUseCase): void {
-  app.post<{ Params: SessionParams; Body: SwitchAvatarRequestBody }>(
+  app.post<{ Params: SessionParams; Body: SwitchAvatarRequest }>(
     '/:sessionId/switch-avatar',
     { schema: { params: sessionParamsSchema, body: switchAvatarBodySchema } },
     async (request, reply) => {
