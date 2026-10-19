@@ -1,11 +1,19 @@
 import type { JSX } from 'react'
 import {
+  AVATAR_MEDIA_TRIGGER_SLOTS,
+  AVATAR_PRESENTATION_MEDIA_SLOTS,
   ENTRY_QUESTION_PERSONA_FIELDS,
   PRESENTATION_LIMITS,
+  SCENARIO_PRESENTATION_MEDIA_SLOTS,
+  type AvatarMediaTriggers,
+  type MediaKind,
+  type MediaRef,
   type AvatarPresentation,
   type EntryQuestionPersonaField,
   type ScenarioPresentation,
 } from '@gami/shared'
+import { MediaPicker } from '../media/MediaPicker'
+import { useMediaAssets, type MediaAssetsState } from '../media/use-media-assets'
 import { moveItem } from './presentation-form'
 
 const PERSONA_FIELD_LABELS: Record<EntryQuestionPersonaField, string> = {
@@ -55,9 +63,59 @@ function TextField({
   )
 }
 
+type MediaSlotsProps = {
+  idPrefix: string
+  slots: Record<string, readonly MediaKind[]>
+  labels: Record<string, string>
+  values: Readonly<Record<string, unknown>>
+  media: MediaAssetsState
+  disabled: boolean
+  onChange: (slot: string, value: MediaRef | undefined) => void
+}
+
+function MediaSlots({
+  idPrefix,
+  slots,
+  labels,
+  values,
+  media,
+  disabled,
+  onChange,
+}: MediaSlotsProps): JSX.Element {
+  return (
+    <>
+      {media.error !== null ? <p className="admin-error">{media.error}</p> : null}
+      {Object.entries(slots).map(([slot, kinds]) => (
+        <MediaPicker
+          key={slot}
+          id={`${idPrefix}-${slot}`}
+          label={labels[slot] ?? slot}
+          value={readRef(values[slot])}
+          assets={media.assets}
+          kinds={kinds}
+          disabled={disabled}
+          onChange={(next) => {
+            onChange(slot, next)
+          }}
+        />
+      ))}
+    </>
+  )
+}
+
+function readRef(value: unknown): MediaRef | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
+const SCENARIO_MEDIA_LABELS = { cover: 'Cover', introMedia: 'Intro media', outroMedia: 'Outro media' }
+const AVATAR_MEDIA_LABELS = { portrait: 'Portrait', idleLoop: 'Idle loop' }
+const TRIGGER_LABELS = { onUnlock: 'When unlocked', onSwitchTo: 'When the visitor switches to' }
+
 type ScenarioPresentationFieldsProps = {
   idPrefix: string
   value: ScenarioPresentation
+  /** Absent while the scenario is being created: it has no media library yet. */
+  scenarioId?: string
   disabled: boolean
   onChange: (value: ScenarioPresentation) => void
 }
@@ -65,6 +123,7 @@ type ScenarioPresentationFieldsProps = {
 export function ScenarioPresentationFields({
   idPrefix,
   value,
+  scenarioId,
   disabled,
   onChange,
 }: ScenarioPresentationFieldsProps): JSX.Element {
@@ -75,6 +134,19 @@ export function ScenarioPresentationFields({
       <p className="admin-muted">
         Shown to visitors only; never sent to the Avatar or Game Master.
       </p>
+      {scenarioId === undefined ? (
+        <p className="admin-muted">
+          Save the scenario first, then add media in its library to assign it here.
+        </p>
+      ) : (
+        <ScenarioMediaSlots
+          idPrefix={idPrefix}
+          scenarioId={scenarioId}
+          value={value}
+          disabled={disabled}
+          onChange={onChange}
+        />
+      )}
       <TextField
         id={`${idPrefix}-tagline`}
         label="Tagline"
@@ -147,10 +219,40 @@ export function ScenarioPresentationFields({
   )
 }
 
+function ScenarioMediaSlots({
+  idPrefix,
+  scenarioId,
+  value,
+  disabled,
+  onChange,
+}: {
+  idPrefix: string
+  scenarioId: string
+  value: ScenarioPresentation
+  disabled: boolean
+  onChange: (value: ScenarioPresentation) => void
+}): JSX.Element {
+  const media = useMediaAssets(scenarioId)
+  return (
+    <MediaSlots
+      idPrefix={idPrefix}
+      slots={SCENARIO_PRESENTATION_MEDIA_SLOTS}
+      labels={SCENARIO_MEDIA_LABELS}
+      values={value}
+      media={media}
+      disabled={disabled}
+      onChange={(slot, ref) => {
+        onChange({ ...value, [slot]: ref })
+      }}
+    />
+  )
+}
+
 type AvatarPresentationFieldsProps = {
   idPrefix: string
   avatarName: string
   value: AvatarPresentation
+  media: MediaAssetsState
   disabled: boolean
   onChange: (value: AvatarPresentation) => void
 }
@@ -159,12 +261,24 @@ export function AvatarPresentationFields({
   idPrefix,
   avatarName,
   value,
+  media,
   disabled,
   onChange,
 }: AvatarPresentationFieldsProps): JSX.Element {
   return (
     <fieldset className="admin-presentation">
       <legend>Player presentation</legend>
+      <MediaSlots
+        idPrefix={idPrefix}
+        slots={AVATAR_PRESENTATION_MEDIA_SLOTS}
+        labels={AVATAR_MEDIA_LABELS}
+        values={value}
+        media={media}
+        disabled={disabled}
+        onChange={(slot, ref) => {
+          onChange({ ...value, [slot]: ref })
+        }}
+      />
       <TextField
         id={`${idPrefix}-hook`}
         label="One-line hook"
@@ -184,6 +298,43 @@ export function AvatarPresentationFields({
         }}
       />
       <CharacterCardPreview avatarName={avatarName} value={value} />
+    </fieldset>
+  )
+}
+
+type AvatarMediaTriggerFieldsProps = {
+  idPrefix: string
+  value: AvatarMediaTriggers
+  media: MediaAssetsState
+  disabled: boolean
+  onChange: (value: AvatarMediaTriggers) => void
+}
+
+/** Story-event media Core cues to the player; separate from presentation by contract. */
+export function AvatarMediaTriggerFields({
+  idPrefix,
+  value,
+  media,
+  disabled,
+  onChange,
+}: AvatarMediaTriggerFieldsProps): JSX.Element {
+  return (
+    <fieldset className="admin-presentation">
+      <legend>Media triggers</legend>
+      <p className="admin-muted">
+        Played once to the visitor when this character is unlocked or chosen.
+      </p>
+      <MediaSlots
+        idPrefix={`${idPrefix}-trigger`}
+        slots={AVATAR_MEDIA_TRIGGER_SLOTS}
+        labels={TRIGGER_LABELS}
+        values={value}
+        media={media}
+        disabled={disabled}
+        onChange={(slot, ref) => {
+          onChange({ ...value, [slot]: ref })
+        }}
+      />
     </fieldset>
   )
 }

@@ -11,8 +11,8 @@ export type ServableMediaFile = {
 }
 
 /**
- * Media is authored content served without a credential, so only uploaded files of active
- * scenarios are reachable; everything else is indistinguishable from an unknown id.
+ * Finds the stored file of an uploaded asset. The player route serves media without a credential,
+ * so it asks for active scenarios only; anything else is indistinguishable from an unknown id.
  */
 export class ReadMediaFileUseCase {
   constructor(
@@ -21,11 +21,16 @@ export class ReadMediaFileUseCase {
     private readonly mediaStorage: IMediaStorage,
   ) {}
 
-  async find(assetId: MediaRef): Promise<ServableMediaFile | null> {
+  async find(
+    assetId: MediaRef,
+    options: { activeScenarioOnly: boolean },
+  ): Promise<ServableMediaFile | null> {
     const asset = await this.mediaAssetRepository.findById(assetId)
     if (asset?.storageKey == null) return null
-    const scenario = await this.scenarioRepository.findById(asset.scenarioId)
-    if (scenario?.status !== 'active') return null
+    if (options.activeScenarioOnly) {
+      const scenario = await this.scenarioRepository.findById(asset.scenarioId)
+      if (scenario?.status !== 'active') return null
+    }
     const file = await this.mediaStorage.stat(asset.storageKey)
     if (file === null) return null
     return { asset: { ...asset, storageKey: asset.storageKey }, byteSize: file.byteSize }

@@ -1,6 +1,10 @@
 import type { AvatarSummary, AvailableAvatarSummary, PublicAvatarPresentation } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { readPresentation, withoutPresentation } from '../../../domain/presentation/presentation.js'
+import {
+  readMediaTriggers,
+  withoutMediaTriggers,
+} from '../../../domain/media/avatar-media-triggers.js'
 
 function readAvailabilityKey(config: Record<string, unknown>): string | undefined {
   const availabilityKey = config['availabilityKey']
@@ -13,6 +17,7 @@ function readAvailabilityKey(config: Record<string, unknown>): string | undefine
 export function toAvatarSummary(avatar: AvatarConfig): AvatarSummary {
   const availabilityKey = readAvailabilityKey(avatar.config)
   const presentation = readPresentation('avatar', avatar.config)
+  const mediaTriggers = readMediaTriggers(avatar.config)
 
   return {
     avatarId: avatar.avatarId,
@@ -26,9 +31,10 @@ export function toAvatarSummary(avatar: AvatarConfig): AvatarSummary {
     ...(avatar.llmOverride !== undefined ? { llmOverride: avatar.llmOverride } : {}),
     ...(avatar.voiceConfig !== undefined ? { voiceConfig: avatar.voiceConfig } : {}),
     ...(presentation !== undefined ? { presentation } : {}),
+    ...(mediaTriggers !== undefined ? { mediaTriggers } : {}),
     ...(availabilityKey !== undefined ? { availabilityKey } : {}),
     ...(avatar.computedTraits !== undefined ? { computedTraits: avatar.computedTraits } : {}),
-    config: withoutPresentation(avatar.config),
+    config: withoutMediaTriggers(withoutPresentation(avatar.config)),
     createdAt: avatar.createdAt,
     updatedAt: avatar.updatedAt,
   }

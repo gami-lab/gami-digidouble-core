@@ -5,7 +5,7 @@ import { normalizeVoiceConfigurationMutation } from '../../../domain/voice/voice
 import { normalizeScenarioLanguage } from '../../../domain/scenario/scenario-language.js'
 import { applyPresentationMutation } from '../../../domain/presentation/presentation.js'
 import type { IMediaAssetRepository } from '../../ports/IMediaAssetRepository.js'
-import { assertPresentationMedia } from '../../services/media/media-references.js'
+import { assertConfigMedia } from '../../services/media/media-references.js'
 
 export class UpdateScenarioUseCase {
   constructor(
@@ -34,7 +34,7 @@ export class UpdateScenarioUseCase {
         existing.config,
         input.presentation,
       )
-      await assertPresentationMedia(
+      await assertConfigMedia(
         this.mediaAssetRepository,
         'scenario',
         existing.scenarioId,

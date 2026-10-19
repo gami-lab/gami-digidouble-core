@@ -2,7 +2,7 @@
   "name": "@gami/core",
   "version": "0.1.0",
   "private": true,
-  "description": "Gami DigiDouble Core \u2014 headless conversational orchestration engine",
+  "description": "Gami DigiDouble Core — headless conversational orchestration engine",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
@@ -10,6 +10,7 @@
     "dev": "tsx watch src/index.ts",
     "seed:ai-guided-discovery": "tsx src/seed/ai-guided-discovery.ts",
     "seed:murder-party:api": "tsx src/seed/murder-party/setup-via-api.ts",
+    "seed:media": "tsx src/seed/media/seed-media-via-api.ts",
     "hash-admin-password": "tsx src/tools/hash-admin-password.ts",
     "retrieval-quality": "tsx src/tools/retrieval-quality/cli.ts",
     "typecheck": "tsc --noEmit",

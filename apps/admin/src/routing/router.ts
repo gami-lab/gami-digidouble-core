@@ -10,6 +10,7 @@ export type DetailMode =
   | { kind: 'editing-knowledge'; sourceId: string }
   | { kind: 'viewing-knowledge-chunks'; sourceId: string }
   | { kind: 'testing-retrieval' }
+  | { kind: 'media' }
 
 export type Route =
   | { name: 'scenario-list' }
@@ -48,6 +49,7 @@ const DETAIL_MODE_PATTERNS: [string[], (ids: string[]) => DetailMode][] = [
   [[], () => ({ kind: 'view' })],
   [['edit'], () => ({ kind: 'editing-scenario' })],
   [['retrieval'], () => ({ kind: 'testing-retrieval' })],
+  [['media'], () => ({ kind: 'media' })],
   [['avatars', 'new'], () => ({ kind: 'creating-avatar' })],
   [['avatars', ':id', 'edit'], ([avatarId = '']) => ({ kind: 'editing-avatar', avatarId })],
   [['knowledge', 'new'], () => ({ kind: 'creating-knowledge' })],
@@ -103,6 +105,8 @@ function formatDetailMode(mode: DetailMode): string {
       return '/edit'
     case 'testing-retrieval':
       return '/retrieval'
+    case 'media':
+      return '/media'
     case 'creating-avatar':
       return '/avatars/new'
     case 'editing-avatar':

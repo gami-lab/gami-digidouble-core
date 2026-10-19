@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  isAvatarMediaTriggers,
   MEDIA_KINDS,
   MEDIA_LIMITS,
   MEDIA_MIME_TYPES,
@@ -35,5 +36,16 @@ describe('media contract', () => {
     }
     expect(MEDIA_LIMITS.maxUploadBytes.video).toBeGreaterThan(MEDIA_LIMITS.maxUploadBytes.image)
     expect(isMediaKind('audio')).toBe(false)
+  })
+})
+
+describe('avatar media triggers', () => {
+  it('accepts unlock and switch refs only', () => {
+    expect(isAvatarMediaTriggers({ onUnlock: 'media_reveal', onSwitchTo: 'media_cut' })).toBe(true)
+    expect(isAvatarMediaTriggers({})).toBe(true)
+    expect(isAvatarMediaTriggers({ onEnter: 'media_x' })).toBe(false)
+    expect(isAvatarMediaTriggers({ onUnlock: 'https://cdn.example.com/a.mp4' })).toBe(false)
+    expect(isAvatarMediaTriggers(null)).toBe(false)
+    expect(isAvatarMediaTriggers(['media_x'])).toBe(false)
   })
 })

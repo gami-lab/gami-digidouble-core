@@ -156,6 +156,10 @@ prompt, personaField: name | roleInWorld }`, `outroText`, `outroMedia`. Avatar: 
   the same scenario, validated on save); the player projection resolves them to
   `PublicMediaAsset`. Core orchestration (Avatar prompt assembly, Game Master, retrieval) never
   reads it; stored values that no longer match the contract are ignored on read.
+- Avatar media triggers (`AvatarMediaTriggers` in `media-contract-types.ts`: `onUnlock`,
+  `onSwitchTo`) live under the reserved `config.mediaTriggers` key and are projected as the typed
+  admin `mediaTriggers` field; admin `config` omits the key, and the player projection never
+  carries triggers. Each trigger is a `MediaRef` of the Avatar's scenario, validated on save.
 
 ## Gotchas
 

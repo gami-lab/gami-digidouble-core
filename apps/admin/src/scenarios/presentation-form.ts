@@ -1,4 +1,4 @@
-import type { AvatarPresentation, ScenarioPresentation } from '@gami/shared'
+import type { AvatarMediaTriggers, AvatarPresentation, ScenarioPresentation } from '@gami/shared'
 
 /**
  * Trims authored text and drops blank fields; `null` means "no presentation" (clears on update).
@@ -30,6 +30,13 @@ export function toAvatarPresentationPayload(value: AvatarPresentation): AvatarPr
     ...text('idleLoop', value.idleLoop),
     ...text('hook', value.hook),
     ...(starterQuestions.length > 0 ? { starterQuestions } : {}),
+  })
+}
+
+export function toMediaTriggersPayload(value: AvatarMediaTriggers): AvatarMediaTriggers | null {
+  return nonEmpty({
+    ...text('onUnlock', value.onUnlock),
+    ...text('onSwitchTo', value.onSwitchTo),
   })
 }
 

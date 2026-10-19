@@ -2,10 +2,18 @@
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createApiError, type AvatarSummary, type ScenarioSummary } from '@gami/shared'
+import {
+  createApiError,
+  type AvatarSummary,
+  type MediaAssetSummary,
+  type MediaKind,
+  type ScenarioSummary,
+} from '@gami/shared'
+import { listMediaAssets } from '../api/media'
 import { createAvatar, updateAvatar, updateScenario } from '../api/scenarios'
 import { AvatarCreateForm, AvatarEditForm } from './ScenarioAvatarForms'
 import { ScenarioEditForm } from './ScenarioEditForm'
+import { ScenarioPresentationFields } from './PresentationFields'
 
 vi.mock('../api/scenarios', () => ({
   createAvatar: vi.fn(),
@@ -14,6 +22,37 @@ vi.mock('../api/scenarios', () => ({
 }))
 
 vi.mock('../voice/VoiceSelect', () => ({ VoiceSelect: () => null }))
+
+vi.mock('../api/media', () => ({
+  listMediaAssets: vi.fn(),
+  mediaSrc: (asset: { previewUrl: string }) => asset.previewUrl,
+}))
+
+function mediaAsset(assetId: string, kind: MediaKind, description: string): MediaAssetSummary {
+  return {
+    assetId,
+    scenarioId: 'scenario_1',
+    kind,
+    source: 'upload',
+    mimeType: kind === 'image' ? 'image/png' : 'video/mp4',
+    byteSize: 10,
+    url: null,
+    fileUrl: `/v1/media/${assetId}`,
+    previewUrl: `/v1/admin/media/${assetId}/file`,
+    posterAssetId: null,
+    durationMs: null,
+    description,
+    cueable: false,
+    createdAt: '2026-10-19T00:00:00.000Z',
+    updatedAt: '2026-10-19T00:00:00.000Z',
+  }
+}
+
+const LIBRARY = [
+  mediaAsset('media_cover', 'image', 'The villa in the storm'),
+  mediaAsset('media_clara', 'image', 'Clara by the window'),
+  mediaAsset('media_intro', 'video', 'Arrival at the villa'),
+]
 
 const scenario: ScenarioSummary = {
   scenarioId: 'scenario_1',
@@ -61,6 +100,7 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(listMediaAssets).mockResolvedValue(LIBRARY)
 })
 
 describe('scenario player presentation', () => {
@@ -243,5 +283,79 @@ describe('presentation on create', () => {
       expect(createAvatar).toHaveBeenCalledTimes(1)
     })
     expect(vi.mocked(createAvatar).mock.calls[0]?.[1]).not.toHaveProperty('presentation')
+  })
+})
+
+describe('media slots and triggers', () => {
+  it('assigns intro media from the library and saves the ref with the scenario', async () => {
+    vi.mocked(updateScenario).mockResolvedValue(scenario)
+    render(
+      <ScenarioEditForm
+        scenario={scenario}
+        onCancel={vi.fn()}
+        onSaved={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+    const introPicker = await screen.findByLabelText(/^Intro media/)
+    await screen.findAllByRole('option', { name: /Arrival at the villa/ })
+
+    fireEvent.change(introPicker, { target: { value: 'media_intro' } })
+    submit(/Save/)
+
+    await waitFor(() => {
+      expect(updateScenario).toHaveBeenCalledTimes(1)
+    })
+    expect(vi.mocked(updateScenario).mock.calls[0]?.[1].presentation).toMatchObject({
+      cover: 'media_cover',
+      introMedia: 'media_intro',
+    })
+  })
+
+  it('offers images only for the cover', async () => {
+    render(
+      <ScenarioEditForm
+        scenario={scenario}
+        onCancel={vi.fn()}
+        onSaved={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+    const cover = await screen.findByLabelText(/^Cover/)
+    await screen.findAllByRole('option', { name: /Arrival at the villa/ })
+
+    const labels = Array.from((cover as HTMLSelectElement).options).map((option) => option.text)
+    expect(labels.some((label) => label.includes('Arrival at the villa'))).toBe(false)
+  })
+
+  it('saves avatar portrait and unlock trigger as refs', async () => {
+    vi.mocked(updateAvatar).mockResolvedValue(avatar)
+    render(
+      <AvatarEditForm
+        avatar={avatar}
+        scenarioLanguage="en"
+        onCancel={vi.fn()}
+        onSaved={vi.fn()}
+        onError={vi.fn()}
+      />,
+    )
+    await screen.findAllByRole('option', { name: /Arrival at the villa/ })
+
+    fireEvent.change(screen.getByLabelText(/^When unlocked/), { target: { value: 'media_intro' } })
+    submit(/Save/)
+
+    await waitFor(() => {
+      expect(updateAvatar).toHaveBeenCalledTimes(1)
+    })
+    const payload = vi.mocked(updateAvatar).mock.calls[0]?.[1]
+    expect(payload?.presentation).toMatchObject({ portrait: 'media_clara' })
+    expect(payload?.mediaTriggers).toEqual({ onUnlock: 'media_intro' })
+  })
+
+  it('explains that a new scenario has no library yet', () => {
+    render(<ScenarioPresentationFields idPrefix="new" value={{}} disabled={false} onChange={vi.fn()} />)
+
+    expect(screen.getByText(/Save the scenario first/)).not.toBeNull()
+    expect(listMediaAssets).not.toHaveBeenCalled()
   })
 })

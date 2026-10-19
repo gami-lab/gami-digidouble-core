@@ -8,6 +8,7 @@ import { makeMediaAsset } from '../../test-utils/media.js'
 import { createServer } from '../server.js'
 import { parseRange } from './media-file.js'
 import { TEST_CONFIG } from './test-config.js'
+import { playerHeaders, serviceKeyHeaders } from './test-auth.js'
 
 const FILE = Buffer.from('0123456789')
 
@@ -113,6 +114,27 @@ describe('open media file route', () => {
     const response = await app.inject({ method: 'GET', url: `/v1/media/${assetId}` })
 
     expect(response.statusCode).toBe(404)
+  })
+})
+
+describe('admin media preview route', () => {
+  it('serves uploads of any scenario status to admin only', async () => {
+    const app = await makeApp()
+
+    const draft = await app.inject({
+      method: 'GET',
+      url: '/v1/admin/media/media_draft-file/file',
+      headers: serviceKeyHeaders(),
+    })
+    const player = await app.inject({
+      method: 'GET',
+      url: '/v1/admin/media/media_draft-file/file',
+      headers: playerHeaders(),
+    })
+
+    expect(draft.statusCode).toBe(200)
+    expect(draft.headers['cache-control']).toBe('private, no-cache')
+    expect(player.statusCode).toBe(403)
   })
 })
 

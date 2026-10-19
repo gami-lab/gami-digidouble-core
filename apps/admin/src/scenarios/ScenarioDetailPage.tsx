@@ -5,7 +5,6 @@ import type {
   AvatarTraitPreparationResult,
   IngestionJobDto,
   PrepareAvatarTraitsRequest,
-  ScenarioAvatarAvailability,
   ScenarioSummary,
 } from '@gami/shared'
 import { ApiError } from '../api/client'
@@ -32,6 +31,8 @@ import { ScenarioKnowledgeRetrievalTester } from './ScenarioKnowledgeRetrievalTe
 import { navigate, navigateUp, type DetailMode } from '../routing/router'
 import { Breadcrumbs, type Crumb } from '../shell/Breadcrumbs'
 import { ScenarioView } from './ScenarioDetailView'
+import { MediaLibrary } from '../media/MediaLibrary'
+import { computeNextAvailability } from './avatar-availability'
 import type { IngestUiStatus, PrepareTraitsStatus } from './ScenarioDetailView'
 
 function buildBreadcrumbs(scenarioId: string, mode: DetailMode, state: DetailState): Crumb[] {
@@ -67,6 +68,8 @@ function describeMode(mode: DetailMode, data: DetailData | null): string | null 
       return `Ingested data: ${sourceName(mode.sourceId)}`
     case 'testing-retrieval':
       return 'Test retrieval'
+    case 'media':
+      return 'Media library'
   }
 }
 
@@ -104,25 +107,6 @@ function summarizePrepareTraitsResults(
   return failures.length > 0
     ? `Prepared ${String(preparedCount)} of ${String(results.length)} avatar(s); failed: ${failures.join(', ')}.`
     : `Prepared traits for ${String(preparedCount)} avatar(s).`
-}
-
-function computeNextAvailability(
-  current: ScenarioAvatarAvailability,
-  avatarId: string,
-  visible: boolean,
-): ScenarioAvatarAvailability {
-  const initial = current.initialAvatarIds
-  const unlockable = current.unlockableAvatarIds ?? []
-  const nextInitial = visible
-    ? initial.includes(avatarId) ? initial : [...initial, avatarId]
-    : initial.filter((id) => id !== avatarId)
-  const nextUnlockable = visible
-    ? unlockable.filter((id) => id !== avatarId)
-    : unlockable.includes(avatarId) ? unlockable : [...unlockable, avatarId]
-  return {
-    initialAvatarIds: nextInitial,
-    ...(nextUnlockable.length > 0 ? { unlockableAvatarIds: nextUnlockable } : {}),
-  }
 }
 
 type ScenarioDetailPageProps = {
@@ -352,6 +336,8 @@ function renderModePanel({
           onClose={() => { setMode({ kind: 'view' }) }}
         />
       )
+    case 'media':
+      return <MediaLibrary scenarioId={data.scenario.scenarioId} onClose={() => { setMode({ kind: 'view' }) }} />
     case 'view':
       return null
   }

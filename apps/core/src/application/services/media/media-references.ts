@@ -5,6 +5,10 @@ import {
   readPresentation,
 } from '../../../domain/presentation/presentation.js'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
+import {
+  mediaTriggerReferences,
+  readMediaTriggers,
+} from '../../../domain/media/avatar-media-triggers.js'
 import type { MediaAsset } from '../../../domain/media/media-asset.types.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import type { IMediaAssetRepository } from '../../ports/IMediaAssetRepository.js'
@@ -47,24 +51,30 @@ export async function assertMediaReferences(
   }
 }
 
-/** Validates the media slots of the presentation stored in a scenario or avatar config. */
-export async function assertPresentationMedia(
+/** Every media reference a scenario or avatar config holds: presentation slots and triggers. */
+export function configMediaReferences(
+  kind: 'scenario' | 'avatar',
+  config: object,
+): MediaReference[] {
+  const presentation = presentationMediaReferences(kind, readPresentation(kind, config))
+  return kind === 'avatar'
+    ? [...presentation, ...mediaTriggerReferences(readMediaTriggers(config))]
+    : presentation
+}
+
+/** Validates the media references of a scenario or avatar config about to be persisted. */
+export async function assertConfigMedia(
   repository: IMediaAssetRepository,
   kind: 'scenario' | 'avatar',
   scenarioId: string,
   config: object,
 ): Promise<void> {
-  const presentation = readPresentation(kind, config)
-  await assertMediaReferences(
-    repository,
-    scenarioId,
-    presentationMediaReferences(kind, presentation),
-  )
+  await assertMediaReferences(repository, scenarioId, configMediaReferences(kind, config))
 }
 
 /**
- * Where an asset is used within its scenario: presentation slots of the scenario and its avatars,
- * and posters of other assets. Each entry is a short operator-facing label.
+ * Where an asset is used within its scenario: presentation slots and triggers of the scenario and
+ * its avatars, and posters of other assets. Each entry is a short operator-facing label.
  */
 export function findMediaUsages(
   assetId: MediaRef,
@@ -72,23 +82,15 @@ export function findMediaUsages(
   avatars: readonly AvatarConfig[],
   assets: readonly MediaAsset[],
 ): string[] {
-  const usages = presentationMediaReferences(
-    'scenario',
-    readPresentation('scenario', scenario.config),
-  )
-    .filter((reference) => reference.assetId === assetId)
-    .map((reference) => `scenario ${reference.slot}`)
-  for (const avatar of avatars) {
-    usages.push(
-      ...presentationMediaReferences('avatar', readPresentation('avatar', avatar.config))
-        .filter((reference) => reference.assetId === assetId)
-        .map((reference) => `${avatar.name} ${reference.slot}`),
-    )
-  }
-  usages.push(
+  const usedBy = (kind: 'scenario' | 'avatar', config: object, owner: string): string[] =>
+    configMediaReferences(kind, config)
+      .filter((reference) => reference.assetId === assetId)
+      .map((reference) => `${owner} ${reference.slot}`)
+  return [
+    ...usedBy('scenario', scenario.config, 'scenario'),
+    ...avatars.flatMap((avatar) => usedBy('avatar', avatar.config, avatar.name)),
     ...assets
       .filter((asset) => asset.posterAssetId === assetId)
       .map((asset) => `poster of ${asset.assetId}`),
-  )
-  return usages
+  ]
 }

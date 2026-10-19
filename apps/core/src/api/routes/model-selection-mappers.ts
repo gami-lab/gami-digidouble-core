@@ -79,6 +79,7 @@ export function mapCreateAvatarInput(
     ...(normalizedLlmOverride !== undefined ? { llmOverride: normalizedLlmOverride } : {}),
     ...(body.voiceConfig !== undefined ? { voiceConfig: body.voiceConfig } : {}),
     ...(body.presentation !== undefined ? { presentation: body.presentation } : {}),
+    ...(body.mediaTriggers !== undefined ? { mediaTriggers: body.mediaTriggers } : {}),
     ...(body.config !== undefined ? { config: body.config } : {}),
     ...(body.status !== undefined ? { status: body.status } : {}),
   }

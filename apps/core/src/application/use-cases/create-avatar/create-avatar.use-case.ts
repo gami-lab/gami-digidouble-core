@@ -6,8 +6,9 @@ import type { CreateAvatarInput, CreateAvatarOutput } from './create-avatar.type
 import { toAvatarSummary } from '../shared/avatar-summary.js'
 import { normalizeVoiceConfigurationMutation } from '../../../domain/voice/voice-configuration.js'
 import { applyPresentationMutation } from '../../../domain/presentation/presentation.js'
+import { applyMediaTriggersMutation } from '../../../domain/media/avatar-media-triggers.js'
 import type { IMediaAssetRepository } from '../../ports/IMediaAssetRepository.js'
-import { assertPresentationMedia } from '../../services/media/media-references.js'
+import { assertConfigMedia } from '../../services/media/media-references.js'
 
 const ALLOWED_AVATAR_STATUSES: ReadonlySet<AvatarStatus> = new Set(['draft', 'active', 'archived'])
 
@@ -49,9 +50,20 @@ export class CreateAvatarUseCase {
     input: CreateAvatarInput,
     scenarioId: string,
   ): Promise<Record<string, unknown> | undefined> {
-    if (input.config === undefined && input.presentation === undefined) return undefined
-    const config = applyPresentationMutation('avatar', input.config, {}, input.presentation)
-    await assertPresentationMedia(this.mediaAssetRepository, 'avatar', scenarioId, config)
+    if (
+      input.config === undefined &&
+      input.presentation === undefined &&
+      input.mediaTriggers === undefined
+    ) {
+      return undefined
+    }
+    const config = applyMediaTriggersMutation(
+      input.config,
+      applyPresentationMutation('avatar', input.config, {}, input.presentation),
+      {},
+      input.mediaTriggers,
+    )
+    await assertConfigMedia(this.mediaAssetRepository, 'avatar', scenarioId, config)
     return config
   }
 }

@@ -8,6 +8,7 @@ import {
 } from '@gami/shared'
 import type {
   AvatarComputedTraits,
+  AvatarMediaTriggers,
   AvatarPresentation,
   AvatarStatus,
   AvatarSummary,
@@ -23,8 +24,9 @@ import {
   type ModelSelectionFormValue,
 } from './model-selection-form'
 import { VoiceSelect } from '../voice/VoiceSelect'
-import { AvatarPresentationFields } from './PresentationFields'
-import { toAvatarPresentationPayload } from './presentation-form'
+import { AvatarMediaTriggerFields, AvatarPresentationFields } from './PresentationFields'
+import { toAvatarPresentationPayload, toMediaTriggersPayload } from './presentation-form'
+import { useMediaAssets } from '../media/use-media-assets'
 
 type AvatarCreateFormProps = {
   scenarioId: string
@@ -47,6 +49,7 @@ export function AvatarCreateForm({
   const [modelOverride, setModelOverride] = useState<ModelSelectionFormValue>(EMPTY_MODEL_SELECTION)
   const [voiceConfig, setVoiceConfig] = useState<VoiceConfiguration | null>(null)
   const [presentation, setPresentation] = useState<AvatarPresentation>({})
+  const [mediaTriggers, setMediaTriggers] = useState<AvatarMediaTriggers>({})
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(event: SyntheticEvent): Promise<void> {
@@ -55,6 +58,7 @@ export function AvatarCreateForm({
     setSaving(true)
     try {
       const presentationPayload = toAvatarPresentationPayload(presentation)
+      const triggersPayload = toMediaTriggersPayload(mediaTriggers)
       const avatar = await createAvatar(scenarioId, {
         name: name.trim(),
         personaPrompt: personaPrompt.trim(),
@@ -62,6 +66,7 @@ export function AvatarCreateForm({
         llmOverride: mapAvatarOverride(modelOverride),
         ...(voiceConfig !== null ? { voiceConfig } : {}),
         ...(presentationPayload !== null ? { presentation: presentationPayload } : {}),
+        ...(triggersPayload !== null ? { mediaTriggers: triggersPayload } : {}),
       })
       onCreated(avatar)
     } catch (error: unknown) {
@@ -93,6 +98,9 @@ export function AvatarCreateForm({
       onVoiceConfigChange={setVoiceConfig}
       presentation={presentation}
       onPresentationChange={setPresentation}
+      scenarioId={scenarioId}
+      mediaTriggers={mediaTriggers}
+      onMediaTriggersChange={setMediaTriggers}
     />
   )
 }
@@ -120,6 +128,9 @@ export function AvatarEditForm({
     avatar.voiceConfig ?? null,
   )
   const [presentation, setPresentation] = useState<AvatarPresentation>(avatar.presentation ?? {})
+  const [mediaTriggers, setMediaTriggers] = useState<AvatarMediaTriggers>(
+    avatar.mediaTriggers ?? {},
+  )
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(event: SyntheticEvent): Promise<void> {
@@ -134,6 +145,7 @@ export function AvatarEditForm({
         llmOverride: mapAvatarOverride(modelOverride),
         voiceConfig,
         presentation: toAvatarPresentationPayload(presentation),
+        mediaTriggers: toMediaTriggersPayload(mediaTriggers),
       })
       onSaved(updated)
     } catch (error: unknown) {
@@ -166,6 +178,9 @@ export function AvatarEditForm({
         onVoiceConfigChange={setVoiceConfig}
         presentation={presentation}
         onPresentationChange={setPresentation}
+        scenarioId={avatar.scenarioId}
+        mediaTriggers={mediaTriggers}
+        onMediaTriggersChange={setMediaTriggers}
       />
       {avatar.computedTraits !== undefined ? (
         <AvatarComputedTraitsView computedTraits={avatar.computedTraits} />
@@ -224,6 +239,9 @@ type AvatarFormProps = {
   onVoiceConfigChange: (value: VoiceConfiguration | null) => void
   presentation: AvatarPresentation
   onPresentationChange: (value: AvatarPresentation) => void
+  scenarioId: string
+  mediaTriggers: AvatarMediaTriggers
+  onMediaTriggersChange: (value: AvatarMediaTriggers) => void
 }
 
 function AvatarForm({
@@ -246,7 +264,11 @@ function AvatarForm({
   onVoiceConfigChange,
   presentation,
   onPresentationChange,
+  scenarioId,
+  mediaTriggers,
+  onMediaTriggersChange,
 }: AvatarFormProps): JSX.Element {
+  const media = useMediaAssets(scenarioId)
   const hasPartialModelOverride = hasPartialModelSelection(modelOverride)
   const submitDisabled =
     saving ||
@@ -277,8 +299,16 @@ function AvatarForm({
           idPrefix={`${idPrefix}-av`}
           avatarName={name}
           value={presentation}
+          media={media}
           disabled={saving}
           onChange={onPresentationChange}
+        />
+        <AvatarMediaTriggerFields
+          idPrefix={`${idPrefix}-av`}
+          value={mediaTriggers}
+          media={media}
+          disabled={saving}
+          onChange={onMediaTriggersChange}
         />
         {hasPartialModelOverride ? (
           <p className="admin-error">

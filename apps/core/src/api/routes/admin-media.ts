@@ -21,6 +21,8 @@ import { DeleteMediaAssetUseCase } from '../../application/use-cases/media-asset
 import { ListMediaAssetsUseCase } from '../../application/use-cases/media-assets/list-media-assets.use-case.js'
 import { UpdateMediaAssetUseCase } from '../../application/use-cases/media-assets/update-media-asset.use-case.js'
 import { UploadMediaAssetUseCase } from '../../application/use-cases/media-assets/upload-media-asset.use-case.js'
+import { ReadMediaFileUseCase } from '../../application/use-cases/media-assets/read-media-file.use-case.js'
+import { assetFileParamsSchema, sendMediaFile } from './media-file.js'
 import { mediaRefSchema } from './presentation-schema.js'
 import { handleRouteError } from './route-error.js'
 
@@ -147,6 +149,24 @@ export const adminMediaRoute: FastifyPluginCallback<AdminMediaRouteOptions> = (a
         await remove.execute(request.params.assetId)
         return ok<DeleteMediaAssetResponse>({ assetId: request.params.assetId, deleted: true })
       }),
+  )
+
+  const readMediaFile = new ReadMediaFileUseCase(
+    options.scenarioRepository,
+    options.mediaAssetRepository,
+    options.mediaStorage,
+  )
+  app.get<{ Params: AssetParams }>(
+    '/media/:assetId/file',
+    { schema: { params: assetFileParamsSchema } },
+    async (request, reply) =>
+      sendMediaFile(
+        request,
+        reply,
+        readMediaFile,
+        await readMediaFile.find(request.params.assetId, { activeScenarioOnly: false }),
+        'private, no-cache',
+      ),
   )
 
   app.register(uploadRoute, options)

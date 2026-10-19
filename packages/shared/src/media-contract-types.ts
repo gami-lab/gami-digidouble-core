@@ -50,6 +50,8 @@ export type MediaAssetSummary = {
   url: string | null
   /** Where the player loads the asset from (Core's file route for uploads, the URL otherwise). */
   fileUrl: string
+  /** Where admin previews the asset, whatever the scenario status (admin credential required). */
+  previewUrl: string
   posterAssetId: MediaRef | null
   durationMs: number | null
   description: string
@@ -100,6 +102,30 @@ export type UpdateMediaAssetRequest = {
 export type ListMediaAssetsResponse = { assets: MediaAssetSummary[] }
 export type MediaAssetResponse = { asset: MediaAssetSummary }
 export type DeleteMediaAssetResponse = { assetId: MediaRef; deleted: true }
+
+/**
+ * Avatar runtime triggers: media Core cues when the Avatar is unlocked or when the visitor switches
+ * to it. They are runtime behavior, not presentation, so they live beside it.
+ */
+export type AvatarMediaTriggers = {
+  onUnlock?: MediaRef
+  onSwitchTo?: MediaRef
+}
+
+/** Create sends an object; update replaces the whole object, and `null` clears it. */
+export type AvatarMediaTriggersUpdate = AvatarMediaTriggers | null
+
+export const AVATAR_MEDIA_TRIGGER_SLOTS = {
+  onUnlock: ['image', 'video'],
+  onSwitchTo: ['image', 'video'],
+} as const satisfies Record<keyof AvatarMediaTriggers, readonly MediaKind[]>
+
+export function isAvatarMediaTriggers(value: unknown): value is AvatarMediaTriggers {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+  return Object.entries(value).every(
+    ([key, ref]) => key in AVATAR_MEDIA_TRIGGER_SLOTS && isMediaRef(ref),
+  )
+}
 
 export function isMediaRef(value: unknown): value is MediaRef {
   return typeof value === 'string' && new RegExp(MEDIA_REF_PATTERN).test(value)

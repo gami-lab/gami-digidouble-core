@@ -4,6 +4,11 @@ export function normalizeApiUrl(value: string): string {
   return value.replace(/\/$/, '')
 }
 
+/** Resolves a Core-relative URL (such as a media file route) against the API base URL. */
+export function resolveApiUrl(url: string, apiBaseUrl: string): string {
+  return new URL(url, `${normalizeApiUrl(apiBaseUrl)}/`).toString()
+}
+
 export function normalizeApiPath(path: string): string {
   return path.startsWith('/') ? path : `/${path}`
 }

@@ -49,7 +49,10 @@ These are easy to regress silently because they are policy, not type-level const
 - Media: the open file route serves only uploads of active scenarios (anything else is `404`) and
   honours single `Range` requests; uploads stream to storage, are checked against their leading
   bytes and per-kind size limit, and leave no file behind on failure; presentation refs must name
-  an asset of the same scenario whose kind fits the slot; a referenced asset cannot be deleted.
+  an asset of the same scenario whose kind fits the slot; a referenced asset (slot, trigger, or
+  poster) cannot be deleted; triggers never reach the player projection. Admin behavior tests
+  cover the library (URL add, upload with browser-read duration and poster, `409` reason), the
+  kind-filtered picker, and the slot/trigger round trip into the update payloads.
 - Player identity comes only from a Core-signed token; another player's session, conversation,
   history, runtime state, events stream, or audio is indistinguishable from a missing one (`404`).
 - Session unlock state is fixed at session start and changes only through Game Master unlocks; the

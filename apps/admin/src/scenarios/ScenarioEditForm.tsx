@@ -97,6 +97,7 @@ export function ScenarioEditForm({
         <ScenarioPresentationFields
           idPrefix="edit-sc"
           value={presentation}
+          scenarioId={scenario.scenarioId}
           disabled={saving}
           onChange={setPresentation}
         />

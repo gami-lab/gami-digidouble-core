@@ -7,6 +7,7 @@ import {
   normalizeApiPath,
   normalizeApiUrl,
   isAdminApiPath,
+  resolveApiUrl,
 } from './api-client-protocol.js'
 
 describe('api client protocol helpers', () => {
@@ -48,5 +49,16 @@ describe('api client protocol helpers', () => {
       'NOT_FOUND: Missing',
     )
     expect(formatApiError(new Error('generic'), 'fallback')).toBe('fallback')
+  })
+})
+
+describe('resolveApiUrl', () => {
+  it('resolves Core-relative paths against the API base and keeps absolute URLs', () => {
+    expect(resolveApiUrl('/v1/media/media_1', 'https://api.example.com/')).toBe(
+      'https://api.example.com/v1/media/media_1',
+    )
+    expect(resolveApiUrl('https://cdn.example.com/a.png', 'https://api.example.com')).toBe(
+      'https://cdn.example.com/a.png',
+    )
   })
 })

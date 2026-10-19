@@ -93,12 +93,16 @@ database volume to reclaim the space, then re-upload media through the admin lib
 4. Register `world` and `avatar_knowledge` sources with explicit visibility, and wait for
    each ingestion job to complete. Core initializes the empty active corpus automatically on the
    first startup.
-5. Run the Avatar-trait preparation step and confirm every active Avatar has `computedTraits` before
+5. Add scenario media in the admin media library, or seed it from a manifest:
+   `ADMIN_SERVICE_KEY=… pnpm --filter @gami/core seed:media -- --manifest
+src/seed/media/ava.media.json --scenario-id <id> --base-url <api>` (rerunnable; assets are
+   matched by description).
+6. Run the Avatar-trait preparation step and confirm every active Avatar has `computedTraits` before
    serving traffic.
-6. Verify retrieval (see [AVATAR_RAG_SETUP_GUIDE.md](AVATAR_RAG_SETUP_GUIDE.md)) and spot-check the
+7. Verify retrieval (see [AVATAR_RAG_SETUP_GUIDE.md](AVATAR_RAG_SETUP_GUIDE.md)) and spot-check the
    schema contract (`gm_states`, `knowledge_sources.visibility_policy`, vector profile/dimension)
    before serving traffic.
-7. Run the applicable deterministic and stack checks
+8. Run the applicable deterministic and stack checks
    (`pnpm --filter @gami/core test:integration-e2e` / `test:stack-e2e`).
 
 Do not attach an old/unsupported volume, seed removed knowledge types, or activate incomplete

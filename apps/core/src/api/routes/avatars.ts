@@ -19,7 +19,10 @@ import {
 } from './model-selection-validation.js'
 import { normalizeAvatarLlmOverride } from './model-selection-mappers.js'
 import { voiceConfigurationUpdateBodySchema } from './voice-configuration-schema.js'
-import { avatarPresentationUpdateBodySchema } from './presentation-schema.js'
+import {
+  avatarMediaTriggersUpdateBodySchema,
+  avatarPresentationUpdateBodySchema,
+} from './presentation-schema.js'
 
 export type AvatarsRouteOptions = {
   config: Config
@@ -65,6 +68,7 @@ const patchAvatarBodySchema = {
     },
     voiceConfig: voiceConfigurationUpdateBodySchema,
     presentation: avatarPresentationUpdateBodySchema,
+    mediaTriggers: avatarMediaTriggersUpdateBodySchema,
     config: { type: 'object' },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
   },

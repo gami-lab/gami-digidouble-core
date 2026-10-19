@@ -14,6 +14,7 @@
 import type { ModelSelectionOverride, ScenarioModelSelection } from './model-catalog.js'
 import type { AvatarRequestOptions } from './web-contract-types.js'
 import type { VoiceConfiguration, VoiceConfigurationUpdate } from './voice-contract-types.js'
+import type { AvatarMediaTriggers, AvatarMediaTriggersUpdate } from './media-contract-types.js'
 import type {
   AvatarPresentation,
   AvatarPresentationUpdate,
@@ -38,6 +39,7 @@ type AvatarMutationOptionalFields = {
   llmOverride?: AvatarLlmOverride | null
   voiceConfig?: VoiceConfiguration
   presentation?: AvatarPresentation
+  mediaTriggers?: AvatarMediaTriggers
   config?: Record<string, unknown>
   status?: AvatarStatus
 }
@@ -65,6 +67,7 @@ export type AvatarSummary = AvatarAuthoredFields & {
   llmOverride?: AvatarLlmOverride
   voiceConfig?: VoiceConfiguration
   presentation?: AvatarPresentation
+  mediaTriggers?: AvatarMediaTriggers
   /** Stable public route key when present in avatar config. */
   availabilityKey?: string
   /** Derived trait structure is present once the Avatar is servable. */
@@ -80,10 +83,11 @@ export type CreateAvatarRequest = Pick<AvatarAuthoredFields, 'name' | 'personaPr
 
 export type UpdateAvatarRequest = Omit<
   Partial<CreateAvatarRequest>,
-  'voiceConfig' | 'presentation'
+  'voiceConfig' | 'presentation' | 'mediaTriggers'
 > & {
   voiceConfig?: VoiceConfigurationUpdate
   presentation?: AvatarPresentationUpdate
+  mediaTriggers?: AvatarMediaTriggersUpdate
 }
 
 export type ScenarioStatus = 'draft' | 'active' | 'archived'

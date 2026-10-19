@@ -1,0 +1,23 @@
+{
+  "assets": [
+    {
+      "key": "introVideo",
+      "url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+      "mimeType": "video/mp4",
+      "durationMs": 5000,
+      "description": "Vidéo d'introduction provisoire : une fleur qui s'ouvre lentement. À remplacer par le film d'introduction d'AVA."
+    },
+    {
+      "key": "chaletView",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Cha%C3%AEne_des_Aravis_from_Chalet_des_Biollaires%2C_Morillon%2C_2014.jpg/1280px-Cha%C3%AEne_des_Aravis_from_Chalet_des_Biollaires%2C_Morillon%2C_2014.jpg",
+      "mimeType": "image/jpeg",
+      "durationMs": 8000,
+      "cueable": true,
+      "description": "La vue depuis le chalet de montagne : des sommets enneigés et une forêt de sapins sous un ciel bleu, là où la famille a passé le séjour."
+    }
+  ],
+  "scenario": {
+    "cover": "chaletView",
+    "introMedia": "introVideo"
+  }
+}

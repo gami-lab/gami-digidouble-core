@@ -18,6 +18,7 @@ export function toMediaAssetSummary(asset: MediaAsset): MediaAssetSummary {
     byteSize: asset.byteSize,
     url: asset.url,
     fileUrl: mediaFileUrl(asset),
+    previewUrl: asset.url ?? `/v1/admin/media/${asset.assetId}/file`,
     posterAssetId: asset.posterAssetId,
     durationMs: asset.durationMs,
     description: asset.description,

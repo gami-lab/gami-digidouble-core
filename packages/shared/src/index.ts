@@ -8,6 +8,7 @@ export {
   isApiResponseEnvelope,
   normalizeApiPath,
   normalizeApiUrl,
+  resolveApiUrl,
   isAdminApiPath,
 } from './api-client-protocol.js'
 export { ADMIN_SERVICE_KEY_HEADER } from './auth-contract-types.js'
@@ -133,6 +134,8 @@ export {
   isScenarioPresentation,
 } from './presentation-contract-types.js'
 export type {
+  AvatarMediaTriggers,
+  AvatarMediaTriggersUpdate,
   CreateUrlMediaAssetRequest,
   DeleteMediaAssetResponse,
   ListMediaAssetsResponse,
@@ -147,6 +150,8 @@ export type {
   UploadMediaAssetQuery,
 } from './media-contract-types.js'
 export {
+  AVATAR_MEDIA_TRIGGER_SLOTS,
+  isAvatarMediaTriggers,
   MEDIA_KINDS,
   MEDIA_LIMITS,
   MEDIA_MIME_TYPES,

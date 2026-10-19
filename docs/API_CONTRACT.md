@@ -172,6 +172,10 @@ All admin routes use `/v1/admin/*` and accept only an admin session cookie or th
 - `PATCH /v1/admin/media/{assetId}` — `UpdateMediaAssetRequest`; `null` clears `posterAssetId` or
   `durationMs`.
 - `DELETE /v1/admin/media/{assetId}` — `DeleteMediaAssetResponse`; also deletes the stored file.
+- `GET /v1/admin/media/{assetId}/file` — admin preview of an uploaded file whatever the scenario
+  status (same `Range`/`ETag` behavior as the open route, `Cache-Control: private, no-cache`).
+  `MediaAssetSummary.previewUrl` points here for uploads and at the URL for URL assets;
+  `fileUrl` is what the player loads.
 
 ### Knowledge
 
@@ -263,8 +267,14 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
   the limit, content whose leading bytes do not match its type, a blank or over-long description,
   or an unknown query/body field returns `400 VALIDATION_ERROR`. `posterAssetId` must name another
   image asset of the same scenario. `durationMs` is the video length, or how long an image overlay
-  stays up; Core never probes files. Deleting an asset that a presentation slot or another
-  asset's poster still references returns `409 CONFLICT` with `details.usages`.
+  stays up; Core never probes files. Deleting an asset that a presentation slot, an Avatar
+  media trigger, or another asset's poster still references returns `409 CONFLICT` with
+  `details.usages`.
+- Avatar `mediaTriggers` (`AvatarMediaTriggers`: `onUnlock`, `onSwitchTo`, each an image or video
+  `MediaRef`) is a top-level Avatar create/update field beside `presentation`, with the same
+  rules: update replaces it whole, `null` clears it, omitting it keeps it, and triggers inside
+  `config` are rejected. It is returned on `AvatarSummary` (admin) and never on the player
+  projection.
 - Presentation media slots hold a `MediaRef` (asset id). Scenario: `cover` (image), `introMedia`
   and `outroMedia` (image or video). Avatar: `portrait` (image), `idleLoop` (video). A ref that is
   not an asset id, names an asset of another scenario or a missing asset, or has a kind the slot

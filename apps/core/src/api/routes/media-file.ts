@@ -1,9 +1,12 @@
-import type { FastifyPluginCallback } from 'fastify'
+import type { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify'
 import { fail } from '@gami/shared'
 import type { IMediaAssetRepository } from '../../application/ports/IMediaAssetRepository.js'
 import type { ByteRange, IMediaStorage } from '../../application/ports/IMediaStorage.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
-import { ReadMediaFileUseCase } from '../../application/use-cases/media-assets/read-media-file.use-case.js'
+import {
+  ReadMediaFileUseCase,
+  type ServableMediaFile,
+} from '../../application/use-cases/media-assets/read-media-file.use-case.js'
 
 export type MediaFileRouteOptions = {
   scenarioRepository: IScenarioRepository
@@ -13,8 +16,12 @@ export type MediaFileRouteOptions = {
 
 type AssetParams = { assetId: string }
 
-/** Upload content never changes under an asset id, so caches may keep it for an hour. */
-const CACHE_CONTROL = 'public, max-age=3600'
+export const assetFileParamsSchema = {
+  type: 'object',
+  required: ['assetId'],
+  properties: { assetId: { type: 'string', minLength: 1 } },
+  additionalProperties: false,
+} as const
 
 /**
  * `GET /v1/media/{assetId}` is `open`: `<img>` and `<video>` cannot send a bearer header. It
@@ -28,52 +35,56 @@ export const mediaFileRoute: FastifyPluginCallback<MediaFileRouteOptions> = (app
   )
   app.get<{ Params: AssetParams }>(
     '/:assetId',
-    {
-      config: { tier: 'open' },
-      schema: {
-        params: {
-          type: 'object',
-          required: ['assetId'],
-          properties: { assetId: { type: 'string', minLength: 1 } },
-          additionalProperties: false,
-        },
-      },
-    },
-    async (request, reply) => {
-      const file = await readMediaFile.find(request.params.assetId)
-      if (file === null) {
-        return await reply.status(404).send(fail('NOT_FOUND', 'Media not found'))
-      }
-      const etag = `"${file.asset.assetId}"`
-      reply.headers({
-        'accept-ranges': 'bytes',
-        'cache-control': CACHE_CONTROL,
-        etag,
-        'x-content-type-options': 'nosniff',
-      })
-      if (request.headers['if-none-match'] === etag) return await reply.status(304).send()
-
-      const range = parseRange(request.headers.range, file.byteSize)
-      if (range === 'unsatisfiable') {
-        reply.header('content-range', `bytes */${String(file.byteSize)}`)
-        return await reply.status(416).send(fail('VALIDATION_ERROR', 'Range not satisfiable'))
-      }
-      const stream = await readMediaFile.open(file, range)
-      if (stream === null) {
-        return await reply.status(404).send(fail('NOT_FOUND', 'Media not found'))
-      }
-      reply.type(file.asset.mimeType)
-      if (range === undefined) {
-        reply.header('content-length', String(file.byteSize))
-        return await reply.send(stream)
-      }
-      reply.headers({
-        'content-length': String(range.end - range.start + 1),
-        'content-range': `bytes ${String(range.start)}-${String(range.end)}/${String(file.byteSize)}`,
-      })
-      return await reply.status(206).send(stream)
-    },
+    { config: { tier: 'open' }, schema: { params: assetFileParamsSchema } },
+    async (request, reply) =>
+      sendMediaFile(
+        request,
+        reply,
+        readMediaFile,
+        await readMediaFile.find(request.params.assetId, { activeScenarioOnly: true }),
+        'public, max-age=3600',
+      ),
   )
+}
+
+/**
+ * Writes one stored file with `Range`, `ETag`, and caching headers. Upload content never changes
+ * under an asset id, which is what makes the id a valid ETag.
+ */
+export async function sendMediaFile(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  readMediaFile: ReadMediaFileUseCase,
+  file: ServableMediaFile | null,
+  cacheControl: string,
+): Promise<FastifyReply> {
+  if (file === null) return await reply.status(404).send(fail('NOT_FOUND', 'Media not found'))
+  const etag = `"${file.asset.assetId}"`
+  reply.headers({
+    'accept-ranges': 'bytes',
+    'cache-control': cacheControl,
+    etag,
+    'x-content-type-options': 'nosniff',
+  })
+  if (request.headers['if-none-match'] === etag) return await reply.status(304).send()
+
+  const range = parseRange(request.headers.range, file.byteSize)
+  if (range === 'unsatisfiable') {
+    reply.header('content-range', `bytes */${String(file.byteSize)}`)
+    return await reply.status(416).send(fail('VALIDATION_ERROR', 'Range not satisfiable'))
+  }
+  const stream = await readMediaFile.open(file, range)
+  if (stream === null) return await reply.status(404).send(fail('NOT_FOUND', 'Media not found'))
+  reply.type(file.asset.mimeType)
+  if (range === undefined) {
+    reply.header('content-length', String(file.byteSize))
+    return await reply.send(stream)
+  }
+  reply.headers({
+    'content-length': String(range.end - range.start + 1),
+    'content-range': `bytes ${String(range.start)}-${String(range.end)}/${String(file.byteSize)}`,
+  })
+  return await reply.status(206).send(stream)
 }
 
 /**

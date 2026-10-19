@@ -423,3 +423,30 @@ body {
   font-size: 13px;
   margin: 0;
 }
+
+.admin-media-add {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 0 0 16px;
+}
+
+.admin-media-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+}
+
+.admin-media-item {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+@media (max-width: 640px) {
+  .admin-media-item {
+    grid-template-columns: 1fr;
+  }
+}

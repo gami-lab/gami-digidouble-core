@@ -49,3 +49,13 @@ export const scenarioPresentationUpdateBodySchema = {
 export const avatarPresentationUpdateBodySchema = {
   anyOf: [{ type: 'null' }, avatarPresentationBodySchema],
 } as const
+
+export const avatarMediaTriggersBodySchema = {
+  type: 'object',
+  properties: { onUnlock: mediaRefSchema, onSwitchTo: mediaRefSchema },
+  additionalProperties: false,
+} as const
+
+export const avatarMediaTriggersUpdateBodySchema = {
+  anyOf: [{ type: 'null' }, avatarMediaTriggersBodySchema],
+} as const

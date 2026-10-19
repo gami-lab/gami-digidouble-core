@@ -4,8 +4,9 @@ import type { UpdateAvatarInput, UpdateAvatarOutput } from './update-avatar.type
 import { toAvatarSummary } from '../shared/avatar-summary.js'
 import { normalizeVoiceConfigurationMutation } from '../../../domain/voice/voice-configuration.js'
 import { applyPresentationMutation } from '../../../domain/presentation/presentation.js'
+import { applyMediaTriggersMutation } from '../../../domain/media/avatar-media-triggers.js'
 import type { IMediaAssetRepository } from '../../ports/IMediaAssetRepository.js'
-import { assertPresentationMedia } from '../../services/media/media-references.js'
+import { assertConfigMedia } from '../../services/media/media-references.js'
 
 function buildUpdates(input: UpdateAvatarInput): UpdateAvatarParams {
   const { name, personaPrompt, tone, description, adjustments, llmOverride, status } = input
@@ -34,7 +35,8 @@ export class UpdateAvatarUseCase {
     if (
       Object.keys(updates).length === 0 &&
       input.config === undefined &&
-      input.presentation === undefined
+      input.presentation === undefined &&
+      input.mediaTriggers === undefined
     ) {
       throw new DomainError('INVALID_INPUT', 'At least one field must be provided for update')
     }
@@ -47,14 +49,14 @@ export class UpdateAvatarUseCase {
         'An Avatar must be prepared before it can be active.',
       )
     }
-    if (input.config !== undefined || input.presentation !== undefined) {
-      updates.config = applyPresentationMutation(
-        'avatar',
+    if (hasConfigChange(input)) {
+      updates.config = applyMediaTriggersMutation(
         input.config,
+        applyPresentationMutation('avatar', input.config, existing.config, input.presentation),
         existing.config,
-        input.presentation,
+        input.mediaTriggers,
       )
-      await assertPresentationMedia(
+      await assertConfigMedia(
         this.mediaAssetRepository,
         'avatar',
         existing.scenarioId,
@@ -64,4 +66,12 @@ export class UpdateAvatarUseCase {
     const avatar = await this.avatarRepository.update(input.avatarId, updates)
     return { avatar: toAvatarSummary(avatar) }
   }
+}
+
+function hasConfigChange(input: UpdateAvatarInput): boolean {
+  return (
+    input.config !== undefined ||
+    input.presentation !== undefined ||
+    input.mediaTriggers !== undefined
+  )
 }

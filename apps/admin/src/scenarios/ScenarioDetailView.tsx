@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { JSX } from 'react'
+import { Link } from '../routing/Link'
 import {
   getKnowledgeTypeLabel,
   INGESTION_CHUNK_SIZE_MAX,
@@ -106,6 +107,12 @@ function ScenarioSummarySection({
     <>
       <div className="admin-detail-header">
         <h2>{scenario.name}</h2>
+        <Link
+          to={{ name: 'scenario-detail', scenarioId: scenario.scenarioId, mode: { kind: 'media' } }}
+          className="admin-button admin-button-secondary"
+        >
+          Media library
+        </Link>
         <button
           type="button"
           className="admin-button admin-button-secondary"

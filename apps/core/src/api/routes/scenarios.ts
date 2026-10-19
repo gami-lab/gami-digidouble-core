@@ -57,6 +57,7 @@ import {
   voiceConfigurationUpdateBodySchema,
 } from './voice-configuration-schema.js'
 import {
+  avatarMediaTriggersBodySchema,
   avatarPresentationBodySchema,
   scenarioPresentationBodySchema,
   scenarioPresentationUpdateBodySchema,
@@ -204,6 +205,7 @@ const createAvatarBodySchema = {
     },
     voiceConfig: voiceConfigurationBodySchema,
     presentation: avatarPresentationBodySchema,
+    mediaTriggers: avatarMediaTriggersBodySchema,
     config: { type: 'object' },
     status: { type: 'string', enum: ['draft', 'active', 'archived'] },
   },
