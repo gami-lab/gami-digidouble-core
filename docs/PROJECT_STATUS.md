@@ -23,6 +23,8 @@ shipped platform includes:
 - two-tier route security: admin sign-in (session cookie or server-side service key), Core-issued
   player tokens with session/conversation ownership, rate limits, body limits, per-tier CORS, and
   secret-free browser bundles
+- typed player presentation (cover, tagline, intro, entry question, outro; portrait, hook, starter
+  questions) authored in admin, stored in `uiHints`, and ignored by orchestration
 
 See `EPICS.md` for the delivery ledger behind each capability and the open backlog. Contract-level
 detail for a specific area belongs in its owning document (`GAME_MASTER_CONTRACT.md`,
@@ -60,10 +62,11 @@ detail for a specific area belongs in its owning document (`GAME_MASTER_CONTRACT
   knowledge retrieval bench, and a live per-session turn timeline (latency breakdown, Avatar inputs,
   RAG results, GM decisions, memory updates) linking each LLM call to its Langfuse trace. Authoring
   lives in admin.
-- `apps/web` — the public player-facing chat surface: Core-issued player identity, scenario discovery,
-  available-avatar chat, SSE-driven runtime updates, autoplayed completed-message audio streamed as
-  PCM (playing while it is synthesized) with text-preserving fallback, and a hands-free voice loop (listen, auto-send on pause, answer, speak,
-  listen again) alongside text input.
+- `apps/web` — the guided public player: landing → intro → one in-world question → character cards
+  with starter questions → voice-first conversation (portrait, one announced listening / thinking /
+  speaking state, optional transcript, text fallback) → outro, with GM unlocks and suggestions
+  staged as narrative moments and an idle hint. Core-issued player identity, SSE runtime updates,
+  autoplayed reply audio streamed as PCM with text fallback, and a hands-free voice loop.
 - `apps/admin` — the scenario-builder authoring app (scenarios, avatars, knowledge, model
   selection), behind the admin sign-in.
 - `tools/conversation-evaluation` — an external, authenticated CLI for scripted-conversation
@@ -82,7 +85,8 @@ that touches persistence, retrieval, or provider adapters.
 
 ## Current limitations
 
-- The public player is a demo surface rather than a guided experience (`EPICS.md` 12.2).
+- The guided public player (`EPICS.md` 12.2) is implemented but not yet validated with the five
+  first-time-visitor hallway tests; intro media waits for 12.3.
 - Media sources are retrievable but never triggered or displayed (`EPICS.md` 12.3).
 - Evaluation measures factual recall only, not discovery pacing, persona, or GM decisions (`EPICS.md` 12.4).
 - The voice chain runs in series and has no end-to-end latency metric (`EPICS.md` 12.5).

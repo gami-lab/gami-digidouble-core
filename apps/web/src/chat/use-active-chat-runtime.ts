@@ -434,14 +434,12 @@ async function createConversation(
     setters.setConversation(createdConversation)
     setters.setConversationStatus('ready')
     setters.setConversationError(null)
-  } catch (error) {
+  } catch {
     if (requestId !== setters.conversationRequestIdRef.current) {
       return
     }
 
     setters.setConversationStatus('error')
-    setters.setConversationError(
-      error instanceof Error ? error.message : i18n.t('errors.unableToStartChat'),
-    )
+    setters.setConversationError(i18n.t('errors.unableToStartChat'))
   }
 }

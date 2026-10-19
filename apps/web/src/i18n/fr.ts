@@ -59,7 +59,6 @@ const fr = {
   },
   chat: {
     noMessages: 'Dites bonjour pour commencer la conversation.',
-    avatarResponding: 'Réfléchit…',
     avatarDraft: 'Réponse en cours',
     message: {
       label: 'Votre message',
@@ -83,10 +82,7 @@ const fr = {
       start: 'Parler',
       stop: 'Arrêter de parler',
       starting: 'En attente de l’accès au micro…',
-      listening: 'À l’écoute… parlez quand vous voulez.',
       hearing: 'Je vous écoute… faites une pause pour envoyer, ou appuyez sur Envoyer.',
-      waiting: 'Réfléchit…',
-      speaking: 'Parle… l’écoute reprendra ensuite.',
       unsupported: 'La saisie vocale n’est pas prise en charge par ce navigateur.',
       permissionDenied: 'Accès au micro refusé. Autorisez-le dans le navigateur pour parler.',
       failed: 'Impossible de démarrer le micro.',

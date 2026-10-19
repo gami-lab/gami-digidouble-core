@@ -521,3 +521,7 @@ button:disabled {
 .idle-hint p {
   margin: 0;
 }
+
+.story-card [tabindex='-1']:focus {
+  outline: none;
+}

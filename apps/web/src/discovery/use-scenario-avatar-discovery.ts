@@ -19,19 +19,16 @@ export type ScenarioSelectionState = {
   avatarError: string | null
   avatars: AvailableAvatarSummary[]
   session: SessionSummary | null
-  lastAvatarSyncAt: string | null
 }
 
 export type ScenarioAvatarDiscoveryState = {
   scenarios: PublicScenarioSummary[]
   scenarioStatus: ScenarioLoadStatus
-  scenarioError: string | null
   selectedScenarioId: string | null
   session: SessionSummary | null
   avatars: AvailableAvatarSummary[]
   avatarStatus: AvatarLoadStatus
   avatarError: string | null
-  lastAvatarSyncAt: string | null
   /** True once Core reports the current session closed. */
   sessionClosed: boolean
   selectScenario: (scenarioId: string) => void
@@ -53,7 +50,6 @@ export function useScenarioAvatarDiscovery(
   const initialSelectedScenarioId = options?.initialSelectedScenarioId ?? null
   const [scenarios, setScenarios] = useState<PublicScenarioSummary[]>([])
   const [scenarioStatus, setScenarioStatus] = useState<ScenarioLoadStatus>('loading')
-  const [scenarioError, setScenarioError] = useState<string | null>(null)
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
     initialSelectedScenarioId,
   )
@@ -64,21 +60,19 @@ export function useScenarioAvatarDiscovery(
     initialSelectedScenarioId === null ? 'idle' : 'loading',
   )
   const [avatarError, setAvatarError] = useState<string | null>(null)
-  const [lastAvatarSyncAt, setLastAvatarSyncAt] = useState<string | null>(null)
   const [closedSessionId, setClosedSessionId] = useState<string | null>(null)
   const [scenarioListVersion, setScenarioListVersion] = useState(0)
 
   const scenarioSelectionRequestIdRef = useRef(0)
   const onRuntimeEventRef = useLatestRef(options?.onRuntimeEvent)
 
-  useScenarioList(scenarioListVersion, setScenarios, setScenarioStatus, setScenarioError)
+  useScenarioList(scenarioListVersion, setScenarios, setScenarioStatus)
   useAvatarAvailabilitySubscription(
     selectedScenarioId,
     session,
     setAvatars,
     setAvatarStatus,
     setAvatarError,
-    setLastAvatarSyncAt,
     setClosedSessionId,
     onRuntimeEventRef,
   )
@@ -98,7 +92,6 @@ export function useScenarioAvatarDiscovery(
     setAvatars([])
     setAvatarStatus('idle')
     setAvatarError(null)
-    setLastAvatarSyncAt(null)
   }, [scenarioStatus, scenarios, selectedScenarioId])
 
   useEffect(() => {
@@ -110,7 +103,6 @@ export function useScenarioAvatarDiscovery(
       setAvatars,
       setAvatarStatus,
       setAvatarError,
-      setLastAvatarSyncAt,
       scenarioSelectionRequestIdRef,
     })
   }, [userId, selectedScenarioId])
@@ -123,7 +115,6 @@ export function useScenarioAvatarDiscovery(
     setAvatarError(selectionState.avatarError)
     setAvatars(selectionState.avatars)
     setSession(selectionState.session)
-    setLastAvatarSyncAt(selectionState.lastAvatarSyncAt)
   }
 
   const sessionSetters: SessionAvatarSetters = {
@@ -131,20 +122,17 @@ export function useScenarioAvatarDiscovery(
     setAvatars,
     setAvatarStatus,
     setAvatarError,
-    setLastAvatarSyncAt,
     scenarioSelectionRequestIdRef,
   }
 
   return {
     scenarios,
     scenarioStatus,
-    scenarioError,
     selectedScenarioId,
     session,
     avatars,
     avatarStatus,
     avatarError,
-    lastAvatarSyncAt,
     sessionClosed: session !== null && closedSessionId === session.sessionId,
     selectScenario,
     restartSession: () => {
@@ -163,7 +151,6 @@ export function createScenarioSelectionState(scenarioId: string): ScenarioSelect
     avatarError: null,
     avatars: [],
     session: null,
-    lastAvatarSyncAt: null,
   }
 }
 
@@ -171,33 +158,26 @@ function useScenarioList(
   version: number,
   setScenarios: (value: PublicScenarioSummary[]) => void,
   setScenarioStatus: (value: ScenarioLoadStatus) => void,
-  setScenarioError: (value: string | null) => void,
 ): void {
   useEffect(() => {
     let isCancelled = false
     async function loadScenarios(): Promise<void> {
       setScenarioStatus('loading')
-      setScenarioError(null)
       try {
         const items = await listAvailableScenarios()
         if (!isCancelled) {
           setScenarios(items)
           setScenarioStatus('ready')
         }
-      } catch (error) {
-        if (!isCancelled) {
-          setScenarioStatus('error')
-          setScenarioError(
-            error instanceof Error ? error.message : i18n.t('errors.unableToLoadScenarios'),
-          )
-        }
+      } catch {
+        if (!isCancelled) setScenarioStatus('error')
       }
     }
     void loadScenarios()
     return () => {
       isCancelled = true
     }
-  }, [version, setScenarios, setScenarioStatus, setScenarioError])
+  }, [version, setScenarios, setScenarioStatus])
 }
 
 function useAvatarAvailabilitySubscription(
@@ -208,7 +188,6 @@ function useAvatarAvailabilitySubscription(
     value: AvatarLoadStatus | ((current: AvatarLoadStatus) => AvatarLoadStatus),
   ) => void,
   setAvatarError: (value: string | null) => void,
-  setLastAvatarSyncAt: (value: string | null) => void,
   setClosedSessionId: (value: string) => void,
   onRuntimeEventRef: { current: ((event: RuntimeEvent) => void) | undefined },
 ): void {
@@ -226,12 +205,9 @@ function useAvatarAvailabilitySubscription(
         setAvatars((current) => (areAvatarListsEqual(current, nextAvatars) ? current : nextAvatars))
         setAvatarStatus('ready')
         setAvatarError(null)
-        setLastAvatarSyncAt(new Date().toISOString())
-      } catch (error) {
+      } catch {
         if (isCancelled) return
-        setAvatarError(
-          error instanceof Error ? error.message : i18n.t('errors.unableToRefreshAvatars'),
-        )
+        setAvatarError(i18n.t('errors.unableToRefreshAvatars'))
         setAvatarStatus((current) => (current === 'ready' ? 'ready' : 'error'))
       }
     }
@@ -260,7 +236,6 @@ function useAvatarAvailabilitySubscription(
     setAvatars,
     setAvatarStatus,
     setAvatarError,
-    setLastAvatarSyncAt,
     setClosedSessionId,
     onRuntimeEventRef,
   ])
@@ -288,7 +263,6 @@ type SessionAvatarSetters = {
   setAvatars: (value: AvailableAvatarSummary[]) => void
   setAvatarStatus: (value: AvatarLoadStatus) => void
   setAvatarError: (value: string | null) => void
-  setLastAvatarSyncAt: (value: string | null) => void
   scenarioSelectionRequestIdRef: SelectionRequestRef
 }
 
@@ -323,15 +297,12 @@ async function loadScenarioSessionAndAvatars(
     setters.setAvatars(availableAvatars)
     setters.setAvatarStatus('ready')
     setters.setAvatarError(null)
-    setters.setLastAvatarSyncAt(new Date().toISOString())
-  } catch (error) {
+  } catch {
     if (requestId !== setters.scenarioSelectionRequestIdRef.current) {
       return
     }
     setters.setAvatarStatus('error')
-    setters.setAvatarError(
-      error instanceof Error ? error.message : i18n.t('errors.unableToLoadAvatars'),
-    )
+    setters.setAvatarError(i18n.t('errors.unableToLoadAvatars'))
   }
 }
 

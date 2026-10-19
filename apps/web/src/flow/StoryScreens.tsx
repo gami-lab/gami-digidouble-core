@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { JSX, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { PublicScenarioSummary } from '@gami/shared'
@@ -9,10 +10,20 @@ type StoryCardProps = {
   children: ReactNode
 }
 
+/** Each screen moves focus to its title (unless a field took it) so keyboard and screen-reader
+ * users start at the top of the new step. */
 export function StoryCard({ titleId, cover, children }: StoryCardProps): JSX.Element {
+  const sectionRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const section = sectionRef.current
+    if (section === null || section.contains(document.activeElement)) return
+    const title = document.getElementById(titleId)
+    title?.setAttribute('tabindex', '-1')
+    title?.focus()
+  }, [titleId])
   return (
     <main className="page">
-      <section className="card story-card" aria-labelledby={titleId}>
+      <section ref={sectionRef} className="card story-card" aria-labelledby={titleId}>
         <div className="story-top-bar">
           <LanguageSwitcher />
         </div>

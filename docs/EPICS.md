@@ -281,10 +281,15 @@ work: 12.4 and the 12.5 end-to-end metric first; then 12.3, 12.2 and per-sentenc
 ### `12.2 Public Experience UI`
 
 **Current state**  
-The player is one long page: identity form (four raw persona fields) → scenario list → avatar
-list → chat, with technical wording ("identité locale", "Fil actuel"). Avatars show names only.
-`runtime.avatar_suggested` and `runtime.avatar_unlocked` events arrive but are not staged. Enter
-inserts a newline instead of sending. Absorbs the player-facing scope of 6.3.
+Implemented 2026-10-19; only the human validation is open. Scenario and Avatar presentation has
+one typed shared contract stored in `uiHints` and authored in admin. The player follows landing →
+intro → in-world question → character choice → conversation → outro (French first), with
+character cards, starter questions, a voice-first screen with one announced presence state, an
+optional transcript, staged unlock/suggestion moments, an idle hint, and Enter-to-send. It logs the
+time to first exchange to the browser console. Remaining: the five hallway tests in
+`implementation-prompts/epic-12-2-public-experience-ui/hallway-tests-2026-10-19.md`, and any fixes
+they reveal. Intro media waits for 12.3; the intro is image and text until then. Absorbs the
+player-facing scope of 6.3.
 
 **Purpose**  
 Turn the demo player into a guided experience a first-time visitor understands without help.

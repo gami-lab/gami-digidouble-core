@@ -11,6 +11,7 @@ import {
 } from '../runtime/local-runtime-state'
 import { useRuntimeMoments, type RuntimeMoments } from '../moments/use-runtime-moments'
 import { FlowScreen } from './FlowScreen'
+import { useTimeToFirstExchange } from './use-time-to-first-exchange'
 import { INITIAL_FLOW_STATE, flowReducer, type FlowEvent, type FlowState } from './flow-state'
 
 type Dispatch = (event: FlowEvent) => void
@@ -34,6 +35,10 @@ export function GuidedExperience({ userId }: { userId: string }): JSX.Element {
   useLoadedScenarios(discovery, remembered, dispatch)
   useSelectedScenario(flow, discovery)
   useConversationOutcome(flow, chat, discovery.sessionClosed, endRequestedRef, dispatch)
+  useTimeToFirstExchange(
+    flow.step,
+    chat.messages.some((message) => message.role === 'user'),
+  )
   useEffect(() => {
     persistLocalWebRuntimeState({
       version: 1,

@@ -112,7 +112,7 @@ export async function streamMessageAndReconcile(
         terminalEventSeen = true
       }
     }, setters.streamController.signal)
-  } catch (error) {
+  } catch {
     if (runId !== setters.conversationRequestIdRef.current) {
       return
     }
@@ -120,9 +120,7 @@ export async function streamMessageAndReconcile(
     setters.setAvatarDraft(null)
     setters.setMessages((current) => markSendFailure(current, pendingMessageId))
     setters.setSendStatus('idle')
-    setters.setSendError(
-      error instanceof Error ? error.message : i18n.t('errors.unableToSendMessage'),
-    )
+    setters.setSendError(i18n.t('errors.unableToSendMessage'))
   } finally {
     if (setters.activeStreamControllerRef.current === setters.streamController) {
       setters.activeStreamControllerRef.current = null

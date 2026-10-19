@@ -59,7 +59,6 @@ const en = {
   },
   chat: {
     noMessages: 'Say hello to start the conversation.',
-    avatarResponding: 'Thinking…',
     avatarDraft: 'Reply in progress',
     message: {
       label: 'Your message',
@@ -83,10 +82,7 @@ const en = {
       start: 'Talk',
       stop: 'Stop talking',
       starting: 'Waiting for microphone access…',
-      listening: 'Listening… speak whenever you are ready.',
       hearing: 'Hearing you… pause to send, or press Send.',
-      waiting: 'Thinking…',
-      speaking: 'Speaking… listening resumes after.',
       unsupported: 'Voice input is not supported in this browser.',
       permissionDenied: 'Microphone access was denied. Allow it in your browser to talk.',
       failed: 'The microphone could not be started.',

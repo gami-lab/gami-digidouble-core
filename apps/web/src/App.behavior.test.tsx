@@ -158,6 +158,20 @@ describe('guided player flow', () => {
     expect(screen.getByRole('heading', { name: 'Clara' })).toBeTruthy()
   })
 
+  it('logs the time from landing to the first sent message once', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined)
+    await reachCharacterChoice()
+    await click('What did you see last night?')
+
+    await waitFor(() => {
+      expect(info).toHaveBeenCalledWith(
+        expect.stringMatching(/^\[gami\] time to first exchange: \d+ ms$/),
+      )
+    })
+    expect(info).toHaveBeenCalledTimes(1)
+    info.mockRestore()
+  })
+
   it('lets the visitor skip the in-world question', async () => {
     render(<App />)
     await click('Begin')

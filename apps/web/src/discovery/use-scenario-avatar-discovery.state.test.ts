@@ -9,7 +9,6 @@ describe('scenario selection state', () => {
       avatarError: null,
       avatars: [],
       session: null,
-      lastAvatarSyncAt: null,
     })
   })
 })

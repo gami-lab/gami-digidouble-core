@@ -54,7 +54,7 @@ export async function restoreConversation(
     setters.setAvatarDraft(null)
     setters.setSendStatus('idle')
     setters.setSendError(null)
-  } catch (error) {
+  } catch {
     if (requestId !== setters.conversationRequestIdRef.current) {
       return
     }
@@ -70,9 +70,7 @@ export async function restoreConversation(
       setSendStatus: setters.setSendStatus,
       setSendError: setters.setSendError,
     })
-    setters.setConversationError(
-      error instanceof Error ? error.message : i18n.t('errors.unableToRestoreConversation'),
-    )
+    setters.setConversationError(i18n.t('errors.unableToRestoreConversation'))
   }
 }
 
@@ -102,15 +100,13 @@ export async function endAndClearConversation(
     }
 
     applyThreadState(createThreadStateForConversationEnd(), setters)
-  } catch (error) {
+  } catch {
     if (runId !== setters.conversationRequestIdRef.current) {
       return
     }
 
     setters.setConversationStatus('ready')
-    setters.setConversationError(
-      error instanceof Error ? error.message : i18n.t('errors.unableToEndConversation'),
-    )
+    setters.setConversationError(i18n.t('errors.unableToEndConversation'))
   }
 }
 

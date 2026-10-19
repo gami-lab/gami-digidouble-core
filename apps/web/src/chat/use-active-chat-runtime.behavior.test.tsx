@@ -216,7 +216,7 @@ describe('useActiveChatRuntime behavior', () => {
     await waitFor(() => {
       expect(result.current.sendStatus).toBe('idle')
       expect(result.current.sendError).not.toBeNull()
-      expect(result.current.sendError ?? '').toContain('send failed')
+      expect(result.current.sendError).toBe('Your message could not be sent.')
       expect(result.current.messages.length).toBe(1)
       expect(result.current.messages[0]?.failed).toBe(true)
     })
