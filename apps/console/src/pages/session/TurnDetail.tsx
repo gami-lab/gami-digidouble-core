@@ -40,9 +40,8 @@ export function TurnDetail({ entry, data }: { entry: TurnEntry; data: SessionDat
   const items: RetrievedByType = {
     avatar_knowledge: retrieved?.avatar_knowledge ?? [],
     world: retrieved?.world ?? [],
-    media: retrieved?.media ?? [],
   }
-  const chunkCount = items.avatar_knowledge.length + items.world.length + items.media.length
+  const chunkCount = items.avatar_knowledge.length + items.world.length
   const plan = turn.consumedGmRetrievalPlan
 
   return (

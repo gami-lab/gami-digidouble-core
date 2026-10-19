@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
 import type { AvailableAvatarSummary } from '@gami/shared'
+import { resolveMediaUrl } from '../media/media-url'
 
 type PortraitProps = {
   avatar: Pick<AvailableAvatarSummary, 'name' | 'presentation'>
@@ -13,7 +14,7 @@ export function Portrait({ avatar, size }: PortraitProps): JSX.Element {
     return (
       <img
         className={`portrait portrait-${size}`}
-        src={portrait}
+        src={resolveMediaUrl(portrait.url)}
         alt={avatar.name}
         loading="lazy"
       />

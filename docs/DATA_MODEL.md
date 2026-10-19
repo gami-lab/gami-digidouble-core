@@ -23,7 +23,7 @@ and JSON shapes are defined by `infra/postgres/init.sql` and the repository type
 | Message                  | user/avatar/system content and safe metadata                             | Final Avatar text is the source for optional audio.                                                                                                                                                                                                                                                   |
 | Game Master state/events | current orchestration state and bounded runtime diagnostics              | `gm_states` is one row per session (current-shape-only, no history); the session owns the active Avatar and memory owns covered topics, so GM state has no separate active-avatar or topic columns. `event_log` is append-only and must stay free of raw prompts, secrets, and unbounded transcripts. |
 | Memory                   | working and episodic layers                                              | Each layer has an explicit owner and lifecycle.                                                                                                                                                                                                                                                       |
-| Knowledge source/chunk   | scenario-shared content, visibility, ingestion state, corpus identity    | Types are `avatar_knowledge`, `world`, `media`.                                                                                                                                                                                                                                                       |
+| Knowledge source/chunk   | scenario-shared content, visibility, ingestion state, corpus identity    | Types are `avatar_knowledge`, `world`. Images and video are media assets, not knowledge.                                                                                                                                                                                                              |
 | Embedding profile/corpus | immutable vector profile, generations, reindex progress, active pointer  | Promotion is complete and atomic.                                                                                                                                                                                                                                                                     |
 | Model configuration      | global/role/scenario/avatar model choices                                | `model_config` is a single-row table (one active row); values must come from the shared catalog. Scenario selections are symmetric across `defaultProfile`, `avatarOverride`, `gameMasterOverride`, and `memoryOverride`.                                                                             |
 
@@ -101,8 +101,9 @@ rather than a silent corruption risk:
 
 ## Static knowledge contract
 
-- Canonical `knowledge_sources.knowledge_type` values are exactly `avatar_knowledge`, `world`, and
-  `media`, enforced both by API validation and a PostgreSQL check constraint.
+- Canonical `knowledge_sources.knowledge_type` values are exactly `avatar_knowledge` and `world`,
+  and `format` is one of `pdf`, `text`, `markdown`, `url`, enforced both by API validation and
+  PostgreSQL check constraints.
 - Static source/chunk metadata is validated recursively (see
   `apps/core/src/domain/knowledge/static-knowledge-validation.ts`); the reserved keys `userId`,
   `sessionId`, `conversationId` are always invalid there because static knowledge is scenario-scoped
@@ -139,11 +140,12 @@ rather than a silent corruption risk:
 - Player presentation (`ScenarioPresentation`, `AvatarPresentation` in
   `packages/shared/src/presentation-contract-types.ts`) lives under the reserved `config.uiHints`
   key and is projected as the typed `presentation` field; admin projections return `config`
-  without `uiHints`. Scenario: `cover`, `tagline`, `introText`, `entryQuestion { prompt,
-personaField: name | roleInWorld }`, `outroText`. Avatar: `portrait`, `hook`, up to three
-  `starterQuestions`. Images are `http(s)` URLs for now. Core orchestration (Avatar prompt
-  assembly, Game Master, retrieval) never reads it; stored values that no longer match the
-  contract are ignored on read.
+  without `uiHints`. Scenario: `cover`, `tagline`, `introText`, `introMedia`, `entryQuestion {
+prompt, personaField: name | roleInWorld }`, `outroText`, `outroMedia`. Avatar: `portrait`,
+  `idleLoop`, `hook`, up to three `starterQuestions`. Media slots store a `MediaRef` (asset id of
+  the same scenario, validated on save); the player projection resolves them to
+  `PublicMediaAsset`. Core orchestration (Avatar prompt assembly, Game Master, retrieval) never
+  reads it; stored values that no longer match the contract are ignored on read.
 
 ## Gotchas
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { InMemoryAvatarRepository } from '../../../infrastructure/db/in-memory-avatar.repository.js'
 import { UpdateAvatarUseCase } from './update-avatar.use-case.js'
+import { InMemoryMediaAssetRepository } from '../../../infrastructure/db/in-memory-media-asset.repository.js'
 
 const baseAvatar = {
   avatarId: 'avatar_1',
@@ -15,7 +16,10 @@ const baseAvatar = {
 
 describe('UpdateAvatarUseCase', () => {
   it('throws INVALID_INPUT when no fields are provided', async () => {
-    const useCase = new UpdateAvatarUseCase(new InMemoryAvatarRepository([baseAvatar]))
+    const useCase = new UpdateAvatarUseCase(
+      new InMemoryAvatarRepository([baseAvatar]),
+      new InMemoryMediaAssetRepository(),
+    )
 
     await expect(useCase.execute({ avatarId: 'avatar_1' })).rejects.toMatchObject({
       code: 'INVALID_INPUT',
@@ -23,7 +27,10 @@ describe('UpdateAvatarUseCase', () => {
   })
 
   it('throws NOT_FOUND when avatar does not exist', async () => {
-    const useCase = new UpdateAvatarUseCase(new InMemoryAvatarRepository())
+    const useCase = new UpdateAvatarUseCase(
+      new InMemoryAvatarRepository(),
+      new InMemoryMediaAssetRepository(),
+    )
 
     await expect(
       useCase.execute({ avatarId: 'avatar_missing', personaPrompt: 'New prompt' }),
@@ -32,7 +39,7 @@ describe('UpdateAvatarUseCase', () => {
 
   it('returns updated avatar on happy path', async () => {
     const avatarRepository = new InMemoryAvatarRepository([baseAvatar])
-    const useCase = new UpdateAvatarUseCase(avatarRepository)
+    const useCase = new UpdateAvatarUseCase(avatarRepository, new InMemoryMediaAssetRepository())
 
     const result = await useCase.execute({
       avatarId: 'avatar_1',
@@ -52,7 +59,7 @@ describe('UpdateAvatarUseCase', () => {
     const avatarRepository = new InMemoryAvatarRepository([
       { ...baseAvatar, tone: 'casual', description: 'A helpful avatar' },
     ])
-    const useCase = new UpdateAvatarUseCase(avatarRepository)
+    const useCase = new UpdateAvatarUseCase(avatarRepository, new InMemoryMediaAssetRepository())
 
     const result = await useCase.execute({ avatarId: 'avatar_1', name: 'Ava v2' })
 
@@ -75,7 +82,7 @@ describe('UpdateAvatarUseCase', () => {
     const avatarRepository = new InMemoryAvatarRepository([
       { ...baseAvatar, computedTraits: traits },
     ])
-    const useCase = new UpdateAvatarUseCase(avatarRepository)
+    const useCase = new UpdateAvatarUseCase(avatarRepository, new InMemoryMediaAssetRepository())
 
     const result = await useCase.execute({ avatarId: 'avatar_1', name: 'Ava v2' })
 

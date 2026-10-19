@@ -203,23 +203,15 @@ function toGameMasterRetrievedContext(
     | {
         avatar_knowledge: RetrievedKnowledgeItem[]
         world: RetrievedKnowledgeItem[]
-        media: RetrievedKnowledgeItem[]
       }
     | undefined,
 ): GameMasterInput['context']['retrievedContext'] | undefined {
   if (knowledge === undefined) return undefined
 
-  if (
-    knowledge.avatar_knowledge.length === 0 &&
-    knowledge.world.length === 0 &&
-    knowledge.media.length === 0
-  ) {
-    return undefined
-  }
+  if (knowledge.avatar_knowledge.length === 0 && knowledge.world.length === 0) return undefined
   return {
     avatar_knowledge: knowledge.avatar_knowledge,
     world: knowledge.world,
-    media: knowledge.media,
   }
 }
 

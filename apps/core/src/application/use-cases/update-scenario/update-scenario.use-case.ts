@@ -4,9 +4,14 @@ import type { UpdateScenarioInput, UpdateScenarioOutput } from './update-scenari
 import { normalizeVoiceConfigurationMutation } from '../../../domain/voice/voice-configuration.js'
 import { normalizeScenarioLanguage } from '../../../domain/scenario/scenario-language.js'
 import { applyPresentationMutation } from '../../../domain/presentation/presentation.js'
+import type { IMediaAssetRepository } from '../../ports/IMediaAssetRepository.js'
+import { assertPresentationMedia } from '../../services/media/media-references.js'
 
 export class UpdateScenarioUseCase {
-  constructor(private readonly scenarioRepository: IScenarioRepository) {}
+  constructor(
+    private readonly scenarioRepository: IScenarioRepository,
+    private readonly mediaAssetRepository: IMediaAssetRepository,
+  ) {}
 
   async execute(input: UpdateScenarioInput): Promise<UpdateScenarioOutput> {
     const updates = buildUpdates(input)
@@ -28,6 +33,12 @@ export class UpdateScenarioUseCase {
         input.config,
         existing.config,
         input.presentation,
+      )
+      await assertPresentationMedia(
+        this.mediaAssetRepository,
+        'scenario',
+        existing.scenarioId,
+        updates.config,
       )
     }
     const scenario = await this.scenarioRepository.update(input.scenarioId, updates)

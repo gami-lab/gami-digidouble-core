@@ -23,6 +23,7 @@ import type { IEmbeddingAdapter } from '../application/ports/IEmbeddingAdapter.j
 import type { ISpeechToTextAdapter } from '../application/ports/ISpeechToTextAdapter.js'
 import type { IUtteranceIdempotencyStore } from '../application/ports/IUtteranceIdempotencyStore.js'
 import type { IModelConfigRepository } from '../application/ports/IModelConfigRepository.js'
+import type { IMediaAssetRepository } from '../application/ports/IMediaAssetRepository.js'
 import type { ModelConfig } from '../domain/model-config/index.js'
 import type { TypedRetrievalService } from '../application/services/knowledge/typed-retrieval.service.js'
 import type { RunGameMasterUseCase } from '../application/use-cases/run-game-master/run-game-master.use-case.js'
@@ -75,6 +76,7 @@ import { InMemoryKnowledgeChunkRepository } from '../infrastructure/db/in-memory
 import { InMemoryKnowledgeCorpusRepository } from '../infrastructure/db/in-memory-knowledge-corpus.repository.js'
 import { InMemoryIngestionJobRepository } from '../infrastructure/db/in-memory-ingestion-job.repository.js'
 import { InMemoryModelConfigRepository } from '../infrastructure/db/in-memory-model-config.repository.js'
+import { InMemoryMediaAssetRepository } from '../infrastructure/db/in-memory-media-asset.repository.js'
 import { InMemoryKnowledgeSourceContentLoader } from '../infrastructure/knowledge/in-memory-knowledge-source-content-loader.js'
 import { UnconfiguredEmbeddingAdapter } from '../infrastructure/knowledge/unconfigured-embedding.adapter.js'
 import { InMemoryUtteranceIdempotencyStore } from '../application/voice/in-memory-utterance-idempotency.store.js'
@@ -109,6 +111,7 @@ export interface ServerAdapters {
   textToSpeechProviders?: TextToSpeechProviders
   utteranceIdempotencyStore?: IUtteranceIdempotencyStore
   modelConfigRepository?: IModelConfigRepository
+  mediaAssetRepository?: IMediaAssetRepository
   llmAdapterRegistry?: LlmAdapterRegistry
   modelConfigFallback?: ModelConfig
   typedRetrievalService?: TypedRetrievalService
@@ -265,6 +268,7 @@ function registerPublicRoutes(
   })
   scope.register(scenarioCatalogueRoute, {
     prefix: '/scenarios',
+    mediaAssetRepository: adapters.mediaAssetRepository,
     ...(adapters.scenarioRepository !== undefined
       ? { scenarioRepository: adapters.scenarioRepository }
       : {}),
@@ -366,6 +370,7 @@ function resolveServerAdapters(
     | 'sessionEventPublisher'
     | 'sessionRepository'
     | 'conversationRepository'
+    | 'mediaAssetRepository'
   >
 > &
   ServerAdapters {
@@ -379,6 +384,7 @@ function resolveServerAdapters(
     userRepository: adapters.userRepository ?? new InMemoryUserRepository(),
     sessionRepository: adapters.sessionRepository ?? new InMemorySessionRepository(),
     conversationRepository: adapters.conversationRepository ?? new InMemoryConversationRepository(),
+    mediaAssetRepository: adapters.mediaAssetRepository ?? new InMemoryMediaAssetRepository(),
     ...(adapters.speechToTextAdapter !== undefined &&
     adapters.utteranceIdempotencyStore === undefined
       ? { utteranceIdempotencyStore: new InMemoryUtteranceIdempotencyStore() }
@@ -389,19 +395,18 @@ function resolveServerAdapters(
 
 function buildScenariosRouteOptions(
   config: Config,
-  adapters: ServerAdapters,
+  adapters: ReturnType<typeof resolveServerAdapters>,
 ): ScenariosRouteOptions {
   return {
     config,
+    mediaAssetRepository: adapters.mediaAssetRepository,
     ...(adapters.scenarioRepository !== undefined
       ? { scenarioRepository: adapters.scenarioRepository }
       : {}),
     ...(adapters.avatarRepository !== undefined
       ? { avatarRepository: adapters.avatarRepository }
       : {}),
-    ...(adapters.sessionRepository !== undefined
-      ? { sessionRepository: adapters.sessionRepository }
-      : {}),
+    sessionRepository: adapters.sessionRepository,
     knowledgeSourceRepository: withDefault(
       adapters.knowledgeSourceRepository,
       new InMemoryKnowledgeSourceRepository(),
@@ -425,15 +430,17 @@ function buildScenariosRouteOptions(
   }
 }
 
-function buildAvatarsRouteOptions(config: Config, adapters: ServerAdapters): AvatarsRouteOptions {
+function buildAvatarsRouteOptions(
+  config: Config,
+  adapters: ReturnType<typeof resolveServerAdapters>,
+): AvatarsRouteOptions {
   return {
     config,
+    mediaAssetRepository: adapters.mediaAssetRepository,
     ...(adapters.avatarRepository !== undefined
       ? { avatarRepository: adapters.avatarRepository }
       : {}),
-    ...(adapters.sessionRepository !== undefined
-      ? { sessionRepository: adapters.sessionRepository }
-      : {}),
+    sessionRepository: adapters.sessionRepository,
     textToSpeechProviders: withDefault(adapters.textToSpeechProviders, new TextToSpeechProviders()),
   }
 }

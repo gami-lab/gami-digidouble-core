@@ -49,7 +49,7 @@ function preselectedRetrievalSections() {
   )
   return {
     retrievedItems: avatarKnowledge,
-    typedSections: { avatar_knowledge: avatarKnowledge, world: [], media: [] },
+    typedSections: { avatar_knowledge: avatarKnowledge, world: [] },
   }
 }
 
@@ -88,7 +88,6 @@ describe('assemblePersonaPrompt', () => {
               retrievalItem('avatar_knowledge', 'chunk-1', 'The user prefers concise examples.'),
             ],
             world: [retrievalItem('world', 'chunk-2', 'Ships dock at tidefall.')],
-            media: [retrievalItem('media', 'chunk-3', 'Reference frame: a lantern map.')],
           },
         },
       }),
@@ -113,7 +112,6 @@ describe('assemblePersonaPrompt', () => {
       'Respond entirely in fr-FR. Do not switch languages unless the Scenario language changes.',
     )
     expect(prompt).toContain('Context 1 (avatar_knowledge):')
-    expect(prompt).toContain('Media context 1 (media):')
     expect(prompt).toContain('- Archivist of the north wing')
   })
 

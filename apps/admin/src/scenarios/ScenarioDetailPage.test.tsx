@@ -709,13 +709,11 @@ describe('ScenarioDetailPage retrieval tester', () => {
           reason: 'lexical overlap',
         },
       ],
-      media: [],
       trace: {
         query: 'lore',
         perType: {
           avatar_knowledge: { sourceIds: [], selectedChunkIds: [] },
           world: { sourceIds: ['knowledge_source_1'], selectedChunkIds: ['chunk_1'] },
-          media: { sourceIds: [], selectedChunkIds: [] },
         },
       },
     })

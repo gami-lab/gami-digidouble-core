@@ -235,12 +235,7 @@ function buildRetrievalContext(retrieval: AvatarPromptRetrievalSections | undefi
 
   const avatarKnowledgeAndWorld = [...retrieval.avatar_knowledge, ...retrieval.world]
   const contextLines = formatRetrievedItems(avatarKnowledgeAndWorld, 'Context')
-  const mediaLines = formatRetrievedItems(retrieval.media, 'Media context')
-  const lines = [
-    '## Retrieved Context',
-    ...contextLines,
-    ...(mediaLines.length > 0 ? ['', 'Media retrieval:', ...mediaLines] : []),
-  ]
+  const lines = ['## Retrieved Context', ...contextLines]
   return lines.length > 1 ? [lines.join('\n')] : []
 }
 

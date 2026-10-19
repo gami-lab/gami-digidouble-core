@@ -19,7 +19,17 @@ const conversation: ConversationSummary = {
   lastActivityAt: '2026-06-01T00:00:00.000Z',
 }
 
-const clara = { name: 'Clara', presentation: { portrait: 'https://cdn.example.com/clara.png' } }
+const clara = {
+  name: 'Clara',
+  presentation: {
+    portrait: {
+      assetId: 'media_clara',
+      kind: 'image' as const,
+      url: '/v1/media/media_clara',
+      description: 'Clara in the library',
+    },
+  },
+}
 
 function createChat(overrides: Partial<ActiveChatRuntimeState> = {}): ActiveChatRuntimeState {
   return {
@@ -85,7 +95,7 @@ describe('voice-first conversation screen', () => {
     renderScreen()
 
     expect(screen.getByRole('img', { name: 'Clara' }).getAttribute('src')).toBe(
-      'https://cdn.example.com/clara.png',
+      'http://localhost:3000/v1/media/media_clara',
     )
     const mic = screen.getByRole('button', { name: 'Talk', pressed: false })
     fireEvent.click(mic)

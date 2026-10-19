@@ -50,7 +50,7 @@ hash-admin-password`) with a Redis-backed session cookie (`ADMIN_SESSION_SECRET`
 
 ## Knowledge and retrieval
 
-- Static knowledge types are `avatar_knowledge`, `world`, and `media`.
+- Static knowledge types are `avatar_knowledge` and `world`; images and video are media assets.
 - Conversational memory is a separate lifecycle and is never represented as a static knowledge type.
 - Production embeddings use OpenAI `text-embedding-3-small` at its native 1536 dimensions to match
   the deployed PostgreSQL `VECTOR(1536)` column with `vector_cosine_ops`.

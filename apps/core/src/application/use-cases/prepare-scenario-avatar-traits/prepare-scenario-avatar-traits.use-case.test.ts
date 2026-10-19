@@ -199,11 +199,6 @@ describe('PrepareScenarioAvatarTraitsUseCase — output and source gathering', (
           metadata: { inlineText: 'IN SCOPE WORLD TEXT' },
         }),
         makeKnowledgeSource({
-          sourceId: 'media_excluded',
-          knowledgeType: 'media',
-          metadata: { inlineText: 'MEDIA TEXT SHOULD BE EXCLUDED' },
-        }),
-        makeKnowledgeSource({
           sourceId: 'other_scenario',
           scenarioId: 'scenario_other',
           knowledgeType: 'avatar_knowledge',
@@ -218,7 +213,6 @@ describe('PrepareScenarioAvatarTraitsUseCase — output and source gathering', (
     const userMessage = llm.requests[0]?.messages[0]?.content ?? ''
     expect(userMessage).toContain('IN SCOPE AVATAR KNOWLEDGE TEXT')
     expect(userMessage).toContain('IN SCOPE WORLD TEXT')
-    expect(userMessage).not.toContain('MEDIA TEXT SHOULD BE EXCLUDED')
     expect(userMessage).not.toContain('OTHER SCENARIO TEXT SHOULD BE EXCLUDED')
   })
 

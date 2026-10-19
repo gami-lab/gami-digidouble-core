@@ -24,7 +24,7 @@ const scenario: ScenarioSummary = {
   worldContext: '',
   avatarAvailability: { initialAvatarIds: [] },
   presentation: {
-    cover: 'https://cdn.example.com/cover.jpg',
+    cover: 'media_cover',
     tagline: 'A storm',
     entryQuestion: { prompt: 'Who are you?', personaField: 'name' },
   },
@@ -40,7 +40,7 @@ const avatar: AvatarSummary = {
   status: 'draft',
   personaPrompt: 'You are Clara.',
   presentation: {
-    portrait: 'https://cdn.example.com/clara.png',
+    portrait: 'media_clara',
     hook: 'Saw everything',
     starterQuestions: ['First?', 'Second?'],
   },
@@ -64,7 +64,7 @@ beforeEach(() => {
 })
 
 describe('scenario player presentation', () => {
-  it('shows authored values with a cover preview and saves edits', async () => {
+  it('keeps media refs and saves text edits', async () => {
     vi.mocked(updateScenario).mockResolvedValue(scenario)
     render(
       <ScenarioEditForm
@@ -75,9 +75,6 @@ describe('scenario player presentation', () => {
       />,
     )
 
-    expect(screen.getByRole('img', { name: 'Cover preview' }).getAttribute('src')).toBe(
-      'https://cdn.example.com/cover.jpg',
-    )
     fireEvent.change(screen.getByLabelText('Outro text'), { target: { value: ' See you ' } })
     fireEvent.change(screen.getByLabelText('The answer fills'), {
       target: { value: 'roleInWorld' },
@@ -89,7 +86,7 @@ describe('scenario player presentation', () => {
         'scenario_1',
         expect.objectContaining({
           presentation: {
-            cover: 'https://cdn.example.com/cover.jpg',
+            cover: 'media_cover',
             tagline: 'A storm',
             entryQuestion: { prompt: 'Who are you?', personaField: 'roleInWorld' },
             outroText: 'See you',
@@ -101,16 +98,20 @@ describe('scenario player presentation', () => {
 
   it('clears presentation with null when every field is emptied', async () => {
     vi.mocked(updateScenario).mockResolvedValue(scenario)
+    const withoutMedia = {
+      tagline: 'A storm',
+      entryQuestion: { prompt: 'Who are you?', personaField: 'name' as const },
+    }
     render(
       <ScenarioEditForm
-        scenario={scenario}
+        scenario={{ ...scenario, presentation: withoutMedia }}
         onCancel={vi.fn()}
         onSaved={vi.fn()}
         onError={vi.fn()}
       />,
     )
 
-    for (const label of ['Cover image URL', 'Tagline', 'Entry question']) {
+    for (const label of ['Tagline', 'Entry question']) {
       fireEvent.change(screen.getByLabelText(label), { target: { value: '' } })
     }
     submit(/Save/)
@@ -178,7 +179,7 @@ describe('avatar player presentation', () => {
         'avatar_1',
         expect.objectContaining({
           presentation: {
-            portrait: 'https://cdn.example.com/clara.png',
+            portrait: 'media_clara',
             hook: 'Saw everything',
             starterQuestions: ['Second?', 'First?'],
           },

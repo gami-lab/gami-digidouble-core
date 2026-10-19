@@ -18,7 +18,6 @@ export type ContextSegmentId =
   | 'worldContext'
   | 'retrievedContextAvatarKnowledge'
   | 'retrievedContextWorld'
-  | 'retrievedContextMedia'
   | 'avatarTraits'
 
 export type ContextProjection = 'avatar' | 'gm'
@@ -61,7 +60,6 @@ export const DEFAULT_CONTEXT_ENGINE_POLICY: ContextEnginePolicy = {
     'worldContext',
     'retrievedContextAvatarKnowledge',
     'retrievedContextWorld',
-    'retrievedContextMedia',
     'avatarTraits',
   ],
 }
@@ -77,7 +75,6 @@ const CONTEXT_SECTION_BY_SEGMENT: Record<ContextSegmentId, ContextSectionId> = {
   worldContext: 'worldContext',
   retrievedContextAvatarKnowledge: 'retrievedContext',
   retrievedContextWorld: 'retrievedContext',
-  retrievedContextMedia: 'retrievedContext',
   avatarTraits: 'avatarTraits',
 }
 

@@ -135,13 +135,11 @@ function makeLargeRetrieval(): TypedRetrievalResult {
       },
     ],
     world: [],
-    media: [],
     trace: {
       query: 'hello',
       perType: {
         avatar_knowledge: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_large'] },
         world: { sourceIds: [], selectedChunkIds: [] },
-        media: { sourceIds: [], selectedChunkIds: [] },
       },
     },
   }

@@ -1,0 +1,39 @@
+import { describe, expect, it } from 'vitest'
+import {
+  MEDIA_KINDS,
+  MEDIA_LIMITS,
+  MEDIA_MIME_TYPES,
+  isMediaKind,
+  isMediaRef,
+  mediaKindForMimeType,
+} from './media-contract-types.js'
+
+describe('media contract', () => {
+  it('accepts only prefixed asset ids as media refs', () => {
+    expect(isMediaRef('media_3f1c2a9e-0b7d-4c1e-9a55-2b8d6f0e4a11')).toBe(true)
+    expect(isMediaRef('https://cdn.example.com/cover.jpg')).toBe(false)
+    expect(isMediaRef('scenario_1')).toBe(false)
+    expect(isMediaRef('media_')).toBe(false)
+    expect(isMediaRef('media_a/../b')).toBe(false)
+    expect(isMediaRef(42)).toBe(false)
+  })
+
+  it('maps allowed MIME types to their kind and rejects everything else', () => {
+    expect(mediaKindForMimeType('image/jpeg')).toBe('image')
+    expect(mediaKindForMimeType('IMAGE/PNG')).toBe('image')
+    expect(mediaKindForMimeType('video/mp4; codecs="avc1"')).toBe('video')
+    expect(mediaKindForMimeType('image/svg+xml')).toBeNull()
+    expect(mediaKindForMimeType('video/quicktime')).toBeNull()
+    expect(mediaKindForMimeType('')).toBeNull()
+  })
+
+  it('defines an upload limit and MIME list for every kind', () => {
+    for (const kind of MEDIA_KINDS) {
+      expect(isMediaKind(kind)).toBe(true)
+      expect(MEDIA_LIMITS.maxUploadBytes[kind]).toBeGreaterThan(0)
+      expect(MEDIA_MIME_TYPES[kind].length).toBeGreaterThan(0)
+    }
+    expect(MEDIA_LIMITS.maxUploadBytes.video).toBeGreaterThan(MEDIA_LIMITS.maxUploadBytes.image)
+    expect(isMediaKind('audio')).toBe(false)
+  })
+})

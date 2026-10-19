@@ -36,7 +36,7 @@ GM input is a bounded projection of:
   current working-memory summary projection, episodic memory entries (with their selection
   reasons and score). This is the _only_ home for conversational
   memory in the GM projection.
-- static scenario knowledge retrieval (avatar knowledge, world, media), each item carrying
+- static scenario knowledge retrieval (avatar knowledge, world), each item carrying
   source/chunk/type provenance — never treated as memory or as a fact-extraction input
 - explicit `gm_unrestricted` retrieval visibility for GM: Avatar retrieval may be
   visibility-filtered, but GM sees an unrestricted corpus only through this explicit mode. A

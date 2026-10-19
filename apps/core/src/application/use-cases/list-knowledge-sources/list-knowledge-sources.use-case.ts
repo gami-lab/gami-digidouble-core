@@ -22,7 +22,7 @@ export class ListKnowledgeSourcesUseCase {
     if (input.knowledgeType !== undefined && !ALLOWED_TYPES.has(input.knowledgeType)) {
       throw new DomainError(
         'VALIDATION_ERROR',
-        'knowledgeType must be one of: avatar_knowledge, world, media.',
+        'knowledgeType must be one of: avatar_knowledge, world.',
       )
     }
     if (input.status !== undefined && !ALLOWED_STATUS.has(input.status)) {

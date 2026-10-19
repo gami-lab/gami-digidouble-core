@@ -50,21 +50,18 @@ export type ContextEngineTrace = {
     retrievalCounts: {
       avatar_knowledge: number
       world: number
-      media: number
     }
     retrieval?: RetrievalTrace
     gmRetrieval?: RetrievalTrace
     gmRetrievalCounts: {
       avatar_knowledge: number
       world: number
-      media: number
     }
     visibility?: {
       activeAvatarId?: string
       gmRetrievalCounts?: {
         avatar_knowledge: number
         world: number
-        media: number
       }
       gmUnrestricted?: true
     }

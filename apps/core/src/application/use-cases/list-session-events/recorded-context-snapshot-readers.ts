@@ -102,7 +102,6 @@ function readOptionalRetrievalSelection(
               selectedForAssemblyCounts.avatar_knowledge - includedCounts.avatar_knowledge,
             ),
             world: Math.max(0, selectedForAssemblyCounts.world - includedCounts.world),
-            media: Math.max(0, selectedForAssemblyCounts.media - includedCounts.media),
           },
     ...(retrievalTrace !== undefined ? { retrievalTrace } : {}),
   }
@@ -122,12 +121,10 @@ function readContextEngineSelection(
 function readRetrievalCounts(value: Record<string, unknown>): {
   avatar_knowledge: number
   world: number
-  media: number
 } {
   return {
     avatar_knowledge: readNumber(value['avatar_knowledge']),
     world: readNumber(value['world']),
-    media: readNumber(value['media']),
   }
 }
 
@@ -461,15 +458,14 @@ function readRecordedTypedSections(value: Record<string, unknown>): RecordedType
   return {
     avatar_knowledge: readRecordedKnowledgeReferences(value['avatar_knowledge']),
     world: readRecordedKnowledgeReferences(value['world']),
-    media: readRecordedKnowledgeReferences(value['media']),
     ...(trace !== undefined ? { trace } : {}),
   }
 }
 
 export function hasRecordedKnowledge(
-  value: Pick<RecordedTypedKnowledgeSections, 'avatar_knowledge' | 'world' | 'media'>,
+  value: Pick<RecordedTypedKnowledgeSections, 'avatar_knowledge' | 'world'>,
 ): boolean {
-  return value.avatar_knowledge.length > 0 || value.world.length > 0 || value.media.length > 0
+  return value.avatar_knowledge.length > 0 || value.world.length > 0
 }
 
 // eslint-disable-next-line complexity -- validates each field of an untrusted recorded knowledge reference
@@ -481,7 +477,7 @@ function readRecordedKnowledgeReference(entry: unknown): RecordedKnowledgeRefere
   if (
     sourceId === undefined ||
     chunkId === undefined ||
-    (knowledgeType !== 'avatar_knowledge' && knowledgeType !== 'world' && knowledgeType !== 'media')
+    (knowledgeType !== 'avatar_knowledge' && knowledgeType !== 'world')
   ) {
     return null
   }

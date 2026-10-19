@@ -94,17 +94,14 @@ export type ContextSelectionRetrievalDiagnostics = {
   selectedForAssemblyCounts: {
     avatar_knowledge: number
     world: number
-    media: number
   }
   includedCounts: {
     avatar_knowledge: number
     world: number
-    media: number
   }
   omittedByAssemblyCounts?: {
     avatar_knowledge: number
     world: number
-    media: number
   }
   /** The bounded retrieval diagnostics that produced the selected inputs. */
   retrievalTrace?: RetrievalTraceDto
@@ -414,21 +411,18 @@ export type SessionContextTrace = {
     retrievalCounts: {
       avatar_knowledge: number
       world: number
-      media: number
     }
     retrieval?: RetrievalTraceDto
     gmRetrieval?: RetrievalTraceDto
     gmRetrievalCounts: {
       avatar_knowledge: number
       world: number
-      media: number
     }
     visibility?: {
       activeAvatarId?: string
       gmRetrievalCounts?: {
         avatar_knowledge: number
         world: number
-        media: number
       }
       gmUnrestricted?: true
     }

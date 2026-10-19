@@ -7,11 +7,11 @@
  */
 
 /** Canonical static-knowledge categories shared by HTTP and internal mappings. */
-export const KNOWLEDGE_TYPES = ['avatar_knowledge', 'world', 'media'] as const
+export const KNOWLEDGE_TYPES = ['avatar_knowledge', 'world'] as const
 
 export type KnowledgeType = (typeof KNOWLEDGE_TYPES)[number]
 
-export type KnowledgeSourceFormat = 'pdf' | 'text' | 'markdown' | 'url' | 'media'
+export type KnowledgeSourceFormat = 'pdf' | 'text' | 'markdown' | 'url'
 
 export type KnowledgeSourceStatus = 'pending' | 'ready' | 'error' | 'blocked'
 
@@ -169,7 +169,6 @@ export type KnowledgeSourceDto = {
 export const KNOWLEDGE_TYPE_LABELS: Record<KnowledgeType, string> = {
   avatar_knowledge: 'Shared Avatar Knowledge',
   world: 'Shared World Knowledge',
-  media: 'Media Knowledge',
 }
 
 export function getKnowledgeTypeLabel(type: KnowledgeType): string {
@@ -285,7 +284,6 @@ export type SharedAvatarContextKnowledgeInjection = {
 export type SharedTypedKnowledgeSections = {
   avatar_knowledge: RetrievedKnowledgeItemDto[]
   world: RetrievedKnowledgeItemDto[]
-  media: RetrievedKnowledgeItemDto[]
   /** Optional safe retrieval diagnostics for runtime inspection. */
   trace?: RetrievalTraceDto
 }
@@ -299,7 +297,6 @@ export type RecordedKnowledgeReferenceDto = KnowledgeRetrievalReferenceDto & {
 export type RecordedTypedKnowledgeSections = {
   avatar_knowledge: RecordedKnowledgeReferenceDto[]
   world: RecordedKnowledgeReferenceDto[]
-  media: RecordedKnowledgeReferenceDto[]
   trace?: RetrievalTraceDto
 }
 
@@ -408,7 +405,6 @@ export type QueryKnowledgeRetrievalRequest = {
 export type TypedKnowledgeRetrievalDto = {
   avatar_knowledge: RetrievedKnowledgeItemDto[]
   world: RetrievedKnowledgeItemDto[]
-  media: RetrievedKnowledgeItemDto[]
   trace: RetrievalTraceDto
 }
 

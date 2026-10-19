@@ -12,7 +12,9 @@ Use:
 
 - `avatar_knowledge` for Avatar-specific static facts (backstory, preferences, private notes).
 - `world` for scenario lore, setting rules, and canon shared by Avatars.
-- `media` for descriptions/references to assets stored outside Core.
+
+Images and video are not knowledge: they are scenario media assets, referenced by presentation
+slots, avatar triggers, and Game Master cues.
 
 The `knowledgeType` controls how retrieval groups and returns results; it does not replace
 visibility scoping — those are two independent axes.
@@ -25,7 +27,7 @@ active Avatar in the session determines which chunks are eligible.
 
 1. Create the Scenario and Avatar. Save the returned `avatarId` — you need it for
    `visibleToAvatarIds` if the source should be Avatar-private.
-2. Prepare clean UTF-8 text/Markdown, a reachable URL, or a media description. Prefer one topic
+2. Prepare clean UTF-8 text/Markdown, a PDF, or a reachable URL. Prefer one topic
    per source: splitting a large corpus into several focused sources gives retrieval better recall
    than one large mixed-purpose document, and keeps chunks semantically coherent.
 3. Create the source with `knowledgeType`, `format`, `uriOrPath`, and a visibility policy
@@ -44,7 +46,7 @@ active Avatar in the session determines which chunks are eligible.
 
 ## Content preparation
 
-- One topic per source; avoid mixing unrelated lore, policy, and media notes in a single file.
+- One topic per source; avoid mixing unrelated lore and policy notes in a single file.
 - Prefer clean UTF-8 plain text or Markdown; keep headings short and semantic and paragraphs
   factual — this is what ingestion quality and chunk boundaries depend on most.
 - Remove navigation boilerplate, duplicate sections, and other chrome before ingestion.
@@ -52,8 +54,6 @@ active Avatar in the session determines which chunks are eligible.
   or renaming it breaks future re-ingestion.
 - For PDFs, prefer text-based PDFs over scanned images; run OCR first if the PDF is scanned.
 - For URLs, make sure the content is reachable at ingestion time.
-- Core stores media references/descriptions, not the media asset itself — keep the actual asset
-  external and point the source at it.
 
 ## Visibility
 
@@ -67,8 +67,8 @@ source/chunk metadata — those keys are rejected recursively at the API boundar
 is shared scenario material, not user-private conversational memory, and the two lifecycles must
 not mix.
 
-Operator screens use the same categories as the API — Shared Avatar Knowledge, Shared World
-Knowledge, Media Knowledge — and also show the owning scenario and Avatar visibility policy.
+Operator screens use the same categories as the API — Shared Avatar Knowledge and Shared World
+Knowledge — and also show the owning scenario and Avatar visibility policy.
 
 ## Suggested patterns
 
@@ -76,8 +76,6 @@ Knowledge, Media Knowledge — and also show the owning scenario and Avatar visi
   backstory, recurring preferences, or facts that should not leak to other Avatars.
 - **Shared scenario lore**: `world`, visible to all Avatars. Use for setting rules, historical
   timeline, and scenario canon.
-- **Media-supporting content**: `media`, for captions, asset descriptions, or media-linked
-  reference notes.
 
 ## Common mistakes
 
@@ -86,7 +84,6 @@ Knowledge, Media Knowledge — and also show the owning scenario and Avatar visi
 - Forgetting to trigger ingestion after creating the source (a registered source is not yet
   retrievable).
 - Assuming a source is Avatar-private without explicitly setting `visibleToAvatarIds`.
-- Expecting Core to store the media file itself — keep media external and point at it.
 
 ## Example: minimal end-to-end
 

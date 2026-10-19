@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { InMemoryAvatarRepository } from '../../../infrastructure/db/in-memory-avatar.repository.js'
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
 import { GetAvailableAvatarsUseCase } from './get-available-avatars.use-case.js'
+import { InMemoryMediaAssetRepository } from '../../../infrastructure/db/in-memory-media-asset.repository.js'
 
 describe('GetAvailableAvatarsUseCase', () => {
   it('returns NOT_FOUND when session does not exist', async () => {
     const useCase = new GetAvailableAvatarsUseCase(
       new InMemorySessionRepository(),
       new InMemoryAvatarRepository(),
+      new InMemoryMediaAssetRepository(),
     )
 
     await expect(useCase.execute({ sessionId: 'session_missing' })).rejects.toMatchObject({
@@ -61,6 +63,7 @@ describe('GetAvailableAvatarsUseCase', () => {
           updatedAt: '2026-04-23T10:02:00.000Z',
         },
       ]),
+      new InMemoryMediaAssetRepository(),
     )
 
     const output = await useCase.execute({ sessionId: 'session_1' })
@@ -88,6 +91,7 @@ describe('GetAvailableAvatarsUseCase availability semantics — current avatar',
         },
       ]),
       new InMemoryAvatarRepository([]),
+      new InMemoryMediaAssetRepository(),
     )
 
     const output = await useCase.execute({ sessionId: 'session_1' })
@@ -144,6 +148,7 @@ describe('GetAvailableAvatarsUseCase availability semantics — unlock filter', 
           updatedAt: '2026-04-23T10:00:00.000Z',
         },
       ]),
+      new InMemoryMediaAssetRepository(),
     )
 
     const output = await useCase.execute({ sessionId: 'session_1' })

@@ -203,7 +203,6 @@ function buildTraceRetrievalCounts(
   return {
     avatar_knowledge: input.extensions.retrieval?.avatar_knowledge.length ?? 0,
     world: input.extensions.retrieval?.world.length ?? 0,
-    media: input.extensions.retrieval?.media.length ?? 0,
   }
 }
 
@@ -213,7 +212,6 @@ function buildTraceGmRetrievalCounts(
   return {
     avatar_knowledge: input.extensions.retrievalForGm?.avatar_knowledge.length ?? 0,
     world: input.extensions.retrievalForGm?.world.length ?? 0,
-    media: input.extensions.retrievalForGm?.media.length ?? 0,
   }
 }
 
@@ -226,7 +224,6 @@ function buildTraceVisibility(
   const perTypeVisibility = [
     trace.perType.avatar_knowledge.visibility,
     trace.perType.world.visibility,
-    trace.perType.media.visibility,
   ]
   const activeAvatarId = firstDefinedAvatarId(perTypeVisibility) ?? input.activeAvatarId
   return {
@@ -236,7 +233,6 @@ function buildTraceVisibility(
           gmRetrievalCounts: {
             avatar_knowledge: input.extensions.retrievalForGm.avatar_knowledge.length,
             world: input.extensions.retrievalForGm.world.length,
-            media: input.extensions.retrievalForGm.media.length,
           },
           gmUnrestricted: true,
         }

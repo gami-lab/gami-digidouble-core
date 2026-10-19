@@ -10,6 +10,7 @@ import type { IGmStateRepository } from '../../application/ports/IGmStateReposit
 import type { ISessionEventPublisher } from '../../application/ports/ISessionEventPublisher.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
+import type { IMediaAssetRepository } from '../../application/ports/IMediaAssetRepository.js'
 import { EpisodicMemoryService } from '../../application/services/episodic-memory.service.js'
 import { MemoryMaintenanceService } from '../../application/services/memory-maintenance.service.js'
 import { EndConversationUseCase } from '../../application/use-cases/end-conversation/end-conversation.use-case.js'
@@ -53,6 +54,7 @@ export function createSessionRouteUseCases(deps: {
   eventLogRepository: IEventLogRepository
   sessionEventPublisher: ISessionEventPublisher
   llmAdapter: ILlmAdapter
+  mediaAssetRepository: IMediaAssetRepository
   modelConfigRepository?: IModelConfigRepository
   llmAdapterRegistry?: LlmAdapterRegistry
   modelConfigFallback?: ModelConfig
@@ -119,6 +121,7 @@ export function createSessionRouteUseCases(deps: {
     getAvailableAvatarsUseCase: new GetAvailableAvatarsUseCase(
       deps.sessionRepository,
       deps.avatarRepository,
+      deps.mediaAssetRepository,
     ),
     getAvatarTransitionsUseCase: new GetAvatarTransitionsUseCase(
       deps.sessionRepository,

@@ -91,7 +91,7 @@ const sourceBodySchema = {
     scenarioId: { type: 'string', minLength: 1 },
     name: { type: 'string', minLength: 1 },
     knowledgeType: { type: 'string', enum: KNOWLEDGE_TYPES },
-    format: { type: 'string', enum: ['pdf', 'text', 'markdown', 'url', 'media'] },
+    format: { type: 'string', enum: ['pdf', 'text', 'markdown', 'url'] },
     uriOrPath: { type: 'string', minLength: 1 },
     metadata: { type: 'object' },
     visibilityPolicy: { type: 'string', enum: VISIBILITY_POLICY_ENUM },
@@ -486,7 +486,6 @@ function registerRetrievalRoute(
             counts: {
               avatar_knowledge: bounded.retrieval.avatar_knowledge.length,
               world: bounded.retrieval.world.length,
-              media: bounded.retrieval.media.length,
             },
             durationMs: Date.now() - startedAt,
           },

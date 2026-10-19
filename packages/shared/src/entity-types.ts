@@ -17,6 +17,7 @@ import type { VoiceConfiguration, VoiceConfigurationUpdate } from './voice-contr
 import type {
   AvatarPresentation,
   AvatarPresentationUpdate,
+  PublicScenarioPresentation,
   ScenarioPresentation,
 } from './presentation-contract-types.js'
 export type { ScenarioModelSelection } from './model-catalog.js'
@@ -112,10 +113,9 @@ export type ScenarioSummary = {
 }
 
 /** Player catalogue projection; authoring fields (`worldContext`, `config`, ...) stay admin-only. */
-export type PublicScenarioSummary = Pick<
-  ScenarioSummary,
-  'scenarioId' | 'name' | 'language' | 'presentation'
->
+export type PublicScenarioSummary = Pick<ScenarioSummary, 'scenarioId' | 'name' | 'language'> & {
+  presentation?: PublicScenarioPresentation
+}
 
 export type SessionSummary = {
   sessionId: string

@@ -1,13 +1,18 @@
+import {
+  isMediaRef,
+  type MediaKind,
+  type MediaRef,
+  type PublicMediaAsset,
+} from './media-contract-types.js'
+
 /**
  * Player-facing presentation authored in admin and stored in the scenario/avatar `uiHints` config
  * section. Core orchestration (Avatar prompts, Game Master, retrieval) never reads it.
  *
- * `cover` and `portrait` hold an image URL; the field names deliberately describe the concept so
- * the value can later become a media reference without a rename.
+ * Media slots hold a `MediaRef`; public projections resolve them to `PublicMediaAsset`.
  */
 
 export const PRESENTATION_LIMITS = {
-  imageUrlMaxLength: 2048,
   taglineMaxLength: 160,
   introTextMaxLength: 1200,
   entryQuestionMaxLength: 200,
@@ -16,8 +21,6 @@ export const PRESENTATION_LIMITS = {
   starterQuestionMaxLength: 200,
   starterQuestionsMax: 3,
 } as const
-
-export const PRESENTATION_IMAGE_URL_PATTERN = '^https?://\\S+$'
 
 /** Persona fields an entry question may fill; relationship and dialog guidance stay admin-only. */
 export const ENTRY_QUESTION_PERSONA_FIELDS = ['name', 'roleInWorld'] as const
@@ -30,41 +33,77 @@ export type ScenarioEntryQuestion = {
 }
 
 export type ScenarioPresentation = {
-  cover?: string
+  cover?: MediaRef
   tagline?: string
   introText?: string
+  introMedia?: MediaRef
   entryQuestion?: ScenarioEntryQuestion
   outroText?: string
+  outroMedia?: MediaRef
 }
 
 export type AvatarPresentation = {
-  portrait?: string
+  portrait?: MediaRef
+  idleLoop?: MediaRef
   hook?: string
   starterQuestions?: string[]
 }
+
+/** The asset kinds each presentation media slot accepts. */
+export const SCENARIO_PRESENTATION_MEDIA_SLOTS = {
+  cover: ['image'],
+  introMedia: ['image', 'video'],
+  outroMedia: ['image', 'video'],
+} as const satisfies Record<string, readonly MediaKind[]>
+
+export const AVATAR_PRESENTATION_MEDIA_SLOTS = {
+  portrait: ['image'],
+  idleLoop: ['video'],
+} as const satisfies Record<string, readonly MediaKind[]>
+
+export type ScenarioPresentationMediaSlot = keyof typeof SCENARIO_PRESENTATION_MEDIA_SLOTS
+export type AvatarPresentationMediaSlot = keyof typeof AVATAR_PRESENTATION_MEDIA_SLOTS
+
+/** Player projections: media slots arrive resolved; a ref to a missing asset is omitted. */
+export type PublicScenarioPresentation = Omit<ScenarioPresentation, ScenarioPresentationMediaSlot> &
+  Partial<Record<ScenarioPresentationMediaSlot, PublicMediaAsset>>
+
+export type PublicAvatarPresentation = Omit<AvatarPresentation, AvatarPresentationMediaSlot> &
+  Partial<Record<AvatarPresentationMediaSlot, PublicMediaAsset>>
 
 /** Create sends an object; update replaces the whole object, and `null` clears it. */
 export type ScenarioPresentationUpdate = ScenarioPresentation | null
 export type AvatarPresentationUpdate = AvatarPresentation | null
 
-const SCENARIO_PRESENTATION_KEYS = ['cover', 'tagline', 'introText', 'entryQuestion', 'outroText']
-const AVATAR_PRESENTATION_KEYS = ['portrait', 'hook', 'starterQuestions']
+const SCENARIO_PRESENTATION_KEYS = [
+  'cover',
+  'tagline',
+  'introText',
+  'introMedia',
+  'entryQuestion',
+  'outroText',
+  'outroMedia',
+]
+const AVATAR_PRESENTATION_KEYS = ['portrait', 'idleLoop', 'hook', 'starterQuestions']
 
 export function isScenarioPresentation(value: unknown): value is ScenarioPresentation {
   if (!isRecord(value) || !hasOnlyKeys(value, SCENARIO_PRESENTATION_KEYS)) return false
   return (
-    isOptional(value['cover'], isImageUrl) &&
+    isOptional(value['cover'], isMediaRef) &&
     isOptional(value['tagline'], (v) => isText(v, PRESENTATION_LIMITS.taglineMaxLength)) &&
     isOptional(value['introText'], (v) => isText(v, PRESENTATION_LIMITS.introTextMaxLength)) &&
+    isOptional(value['introMedia'], isMediaRef) &&
     isOptional(value['entryQuestion'], isEntryQuestion) &&
-    isOptional(value['outroText'], (v) => isText(v, PRESENTATION_LIMITS.outroTextMaxLength))
+    isOptional(value['outroText'], (v) => isText(v, PRESENTATION_LIMITS.outroTextMaxLength)) &&
+    isOptional(value['outroMedia'], isMediaRef)
   )
 }
 
 export function isAvatarPresentation(value: unknown): value is AvatarPresentation {
   if (!isRecord(value) || !hasOnlyKeys(value, AVATAR_PRESENTATION_KEYS)) return false
   return (
-    isOptional(value['portrait'], isImageUrl) &&
+    isOptional(value['portrait'], isMediaRef) &&
+    isOptional(value['idleLoop'], isMediaRef) &&
     isOptional(value['hook'], (v) => isText(v, PRESENTATION_LIMITS.hookMaxLength)) &&
     isOptional(value['starterQuestions'], isStarterQuestions)
   )
@@ -84,13 +123,6 @@ function isStarterQuestions(value: unknown): value is string[] {
     Array.isArray(value) &&
     value.length <= PRESENTATION_LIMITS.starterQuestionsMax &&
     value.every((question) => isText(question, PRESENTATION_LIMITS.starterQuestionMaxLength))
-  )
-}
-
-function isImageUrl(value: unknown): value is string {
-  return (
-    isText(value, PRESENTATION_LIMITS.imageUrlMaxLength) &&
-    new RegExp(PRESENTATION_IMAGE_URL_PATTERN).test(value)
   )
 }
 

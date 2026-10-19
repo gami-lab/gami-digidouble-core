@@ -3,6 +3,7 @@ import type { FastifyPluginCallback } from 'fastify'
 import { fail, ok } from '@gami/shared'
 import type { UpdateAvatarRequest, UpdateAvatarResponse } from '@gami/shared'
 import type { IAvatarRepository } from '../../application/ports/IAvatarRepository.js'
+import type { IMediaAssetRepository } from '../../application/ports/IMediaAssetRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { DeleteAvatarUseCase } from '../../application/use-cases/delete-avatar/delete-avatar.use-case.js'
 import type { DeleteAvatarOutput } from '../../application/use-cases/delete-avatar/delete-avatar.types.js'
@@ -24,6 +25,7 @@ export type AvatarsRouteOptions = {
   config: Config
   avatarRepository?: IAvatarRepository
   sessionRepository?: ISessionRepository
+  mediaAssetRepository: IMediaAssetRepository
   textToSpeechProviders: TextToSpeechProviders
 }
 
@@ -73,7 +75,10 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
   const avatarRepository = options.avatarRepository ?? new InMemoryAvatarRepository()
   const sessionRepository = options.sessionRepository ?? new InMemorySessionRepository()
   const deleteAvatarUseCase = new DeleteAvatarUseCase(avatarRepository, sessionRepository)
-  const updateAvatarUseCase = new UpdateAvatarUseCase(avatarRepository)
+  const updateAvatarUseCase = new UpdateAvatarUseCase(
+    avatarRepository,
+    options.mediaAssetRepository,
+  )
 
   app.delete<{ Params: AvatarParams }>(
     '/:avatarId',
@@ -123,7 +128,7 @@ export const avatarsRoute: FastifyPluginCallback<AvatarsRouteOptions> = (app, op
           if (error.code === 'NOT_FOUND') {
             return await reply.status(404).send(fail('NOT_FOUND', error.message))
           }
-          if (error.code === 'INVALID_INPUT') {
+          if (error.code === 'INVALID_INPUT' || error.code === 'VALIDATION_ERROR') {
             return await reply.status(400).send(fail('VALIDATION_ERROR', error.message))
           }
         }

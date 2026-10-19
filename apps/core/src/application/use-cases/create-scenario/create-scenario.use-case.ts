@@ -3,7 +3,11 @@ import { DomainError } from '../../../domain/errors.js'
 import type { CreateScenarioInput, CreateScenarioOutput } from './create-scenario.types.js'
 import { normalizeVoiceConfigurationMutation } from '../../../domain/voice/voice-configuration.js'
 import { toScenarioSummary } from '../shared/scenario-summary.js'
-import { applyPresentationMutation } from '../../../domain/presentation/presentation.js'
+import {
+  applyPresentationMutation,
+  presentationMediaReferences,
+  readPresentation,
+} from '../../../domain/presentation/presentation.js'
 import { normalizeScenarioLanguage } from '../../../domain/scenario/scenario-language.js'
 
 const ALLOWED_SCENARIO_STATUSES: ReadonlySet<CreateScenarioOutput['scenario']['status']> = new Set([
@@ -47,6 +51,12 @@ function buildCreateParams(input: CreateScenarioInput): CreateScenarioParams {
     input.config !== undefined || input.presentation !== undefined
       ? applyPresentationMutation('scenario', input.config, {}, input.presentation)
       : undefined
+  if (config !== undefined && hasPresentationMedia(config)) {
+    throw new DomainError(
+      'VALIDATION_ERROR',
+      'Media can be assigned once the scenario exists and its media assets are uploaded.',
+    )
+  }
   return {
     name,
     status,
@@ -58,4 +68,8 @@ function buildCreateParams(input: CreateScenarioInput): CreateScenarioParams {
     ...(voiceConfig !== undefined ? { voiceConfig } : {}),
     ...(config !== undefined ? { config } : {}),
   }
+}
+
+function hasPresentationMedia(config: object): boolean {
+  return presentationMediaReferences('scenario', readPresentation('scenario', config)).length > 0
 }

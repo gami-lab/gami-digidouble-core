@@ -4,6 +4,7 @@ import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import type { Scenario } from '../../../domain/scenario/scenario.types.js'
 import type { DomainError } from '../../../domain/errors.js'
 import { CreateAvatarUseCase } from './create-avatar.use-case.js'
+import { InMemoryMediaAssetRepository } from '../../../infrastructure/db/in-memory-media-asset.repository.js'
 
 const findScenarioByIdMock = vi.fn()
 const createAvatarMock = vi.fn()
@@ -65,7 +66,11 @@ beforeEach(() => {
 
 describe('CreateAvatarUseCase', () => {
   it('throws VALIDATION_ERROR for blank name', async () => {
-    const useCase = new CreateAvatarUseCase(scenarioRepository, avatarRepository)
+    const useCase = new CreateAvatarUseCase(
+      scenarioRepository,
+      avatarRepository,
+      new InMemoryMediaAssetRepository(),
+    )
 
     await expect(
       useCase.execute({
@@ -77,7 +82,11 @@ describe('CreateAvatarUseCase', () => {
   })
 
   it('throws VALIDATION_ERROR for blank personaPrompt', async () => {
-    const useCase = new CreateAvatarUseCase(scenarioRepository, avatarRepository)
+    const useCase = new CreateAvatarUseCase(
+      scenarioRepository,
+      avatarRepository,
+      new InMemoryMediaAssetRepository(),
+    )
 
     await expect(
       useCase.execute({
@@ -89,7 +98,11 @@ describe('CreateAvatarUseCase', () => {
   })
 
   it('throws NOT_FOUND when scenario does not exist', async () => {
-    const useCase = new CreateAvatarUseCase(scenarioRepository, avatarRepository)
+    const useCase = new CreateAvatarUseCase(
+      scenarioRepository,
+      avatarRepository,
+      new InMemoryMediaAssetRepository(),
+    )
     findScenarioByIdMock.mockResolvedValue(null)
 
     await expect(
@@ -102,7 +115,11 @@ describe('CreateAvatarUseCase', () => {
   })
 
   it('rejects active creation before traits are prepared', async () => {
-    const useCase = new CreateAvatarUseCase(scenarioRepository, avatarRepository)
+    const useCase = new CreateAvatarUseCase(
+      scenarioRepository,
+      avatarRepository,
+      new InMemoryMediaAssetRepository(),
+    )
 
     await expect(
       useCase.execute({
@@ -115,7 +132,11 @@ describe('CreateAvatarUseCase', () => {
   })
 
   it('returns avatar with defaults when optional fields are omitted', async () => {
-    const useCase = new CreateAvatarUseCase(scenarioRepository, avatarRepository)
+    const useCase = new CreateAvatarUseCase(
+      scenarioRepository,
+      avatarRepository,
+      new InMemoryMediaAssetRepository(),
+    )
     createAvatarMock.mockResolvedValue(
       makeAvatarConfig({
         avatarId: 'avatar_abc',
@@ -154,7 +175,11 @@ describe('CreateAvatarUseCase', () => {
 
 describe('CreateAvatarUseCase — optional fields', () => {
   it('passes optional fields (tone, description, adjustments) through to repository and output', async () => {
-    const useCase = new CreateAvatarUseCase(scenarioRepository, avatarRepository)
+    const useCase = new CreateAvatarUseCase(
+      scenarioRepository,
+      avatarRepository,
+      new InMemoryMediaAssetRepository(),
+    )
     createAvatarMock.mockResolvedValue(
       makeAvatarConfig({
         avatarId: 'avatar_opt',
@@ -189,7 +214,11 @@ describe('CreateAvatarUseCase — optional fields', () => {
   })
 
   it('derives availabilityKey from avatar config in the shared response contract', async () => {
-    const useCase = new CreateAvatarUseCase(scenarioRepository, avatarRepository)
+    const useCase = new CreateAvatarUseCase(
+      scenarioRepository,
+      avatarRepository,
+      new InMemoryMediaAssetRepository(),
+    )
     createAvatarMock.mockResolvedValue(
       makeAvatarConfig({
         avatarId: 'avatar_opt',

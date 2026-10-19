@@ -42,12 +42,6 @@ export class FileUrlKnowledgeSourceContentLoader implements IKnowledgeSourceCont
       return { content: inlineText, metadata }
     }
 
-    if (source.format === 'media') {
-      const description =
-        readString(metadata['description']) ?? `Media reference: ${source.uriOrPath}`
-      return { content: description, metadata }
-    }
-
     const content = await this.loadContent(source)
     return { content, metadata }
   }

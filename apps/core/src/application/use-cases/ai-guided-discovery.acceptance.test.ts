@@ -15,6 +15,7 @@ import { SwitchAvatarUseCase } from './switch-avatar/switch-avatar.use-case.js'
 import { ListSessionConversationsUseCase } from './list-session-conversations/list-session-conversations.use-case.js'
 import { RunGameMasterUseCase } from './run-game-master/run-game-master.use-case.js'
 import { buildAiGuidedDiscoveryFixture } from '../../seed/ai-guided-discovery.js'
+import { InMemoryMediaAssetRepository } from '../../infrastructure/db/in-memory-media-asset.repository.js'
 
 type UnlockTarget = 'theo' | 'eva' | null
 
@@ -65,7 +66,11 @@ function createHarness(unlockTarget: UnlockTarget = null) {
     conversationRepository,
     messageRepository,
     startSession: new StartSessionUseCase(sessionRepository, scenarioRepository, avatarRepository),
-    availableAvatars: new GetAvailableAvatarsUseCase(sessionRepository, avatarRepository),
+    availableAvatars: new GetAvailableAvatarsUseCase(
+      sessionRepository,
+      avatarRepository,
+      new InMemoryMediaAssetRepository(),
+    ),
     startConversation: new StartConversationUseCase(
       sessionRepository,
       avatarRepository,

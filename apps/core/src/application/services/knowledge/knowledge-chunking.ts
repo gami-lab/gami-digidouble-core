@@ -40,7 +40,6 @@ export function toChunkSeeds(
   loadedMetadata?: Record<string, unknown>,
   chunkSize?: number,
 ): ChunkSeed[] {
-  if (source.format === 'media') return toMediaChunk(source, loadedMetadata)
   const normalized = content.trim()
   if (normalized.length === 0) {
     return [
@@ -305,25 +304,6 @@ function headersToAdd(currentHeaders: string[], nextHeaders: string[]): string[]
   return nextHeaders.slice(startIndex)
 }
 
-function toMediaChunk(
-  source: KnowledgeSource,
-  loadedMetadata?: Record<string, unknown>,
-): ChunkSeed[] {
-  const mediaDescription =
-    readString(loadedMetadata?.['description']) ?? `Media reference: ${source.uriOrPath}`
-  return [
-    {
-      content: mediaDescription,
-      contentHash: hashKnowledgeChunkContent(mediaDescription),
-      chunkIndex: 0,
-      metadata: {
-        mediaUri: source.uriOrPath,
-        ...buildChunkMetadata(source, loadedMetadata),
-      },
-    },
-  ]
-}
-
 function buildChunkMetadata(
   source: KnowledgeSource,
   loadedMetadata?: Record<string, unknown>,
@@ -333,10 +313,4 @@ function buildChunkMetadata(
     knowledgeType: source.knowledgeType,
     ...(stripNonDescriptiveMetadata(loadedMetadata) ?? {}),
   }
-}
-
-function readString(value: unknown): string | null {
-  if (typeof value !== 'string') return null
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : null
 }

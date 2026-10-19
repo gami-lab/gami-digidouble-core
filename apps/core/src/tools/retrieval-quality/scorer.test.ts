@@ -33,7 +33,6 @@ function retrieval(items: RetrievedKnowledgeItem[]): TypedRetrievalResult {
   return {
     avatar_knowledge: items.filter((entry) => entry.knowledgeType === 'avatar_knowledge'),
     world: items.filter((entry) => entry.knowledgeType === 'world'),
-    media: items.filter((entry) => entry.knowledgeType === 'media'),
     trace: {} as TypedRetrievalResult['trace'],
   }
 }

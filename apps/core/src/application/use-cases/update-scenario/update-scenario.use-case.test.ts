@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory-scenario.repository.js'
 import { UpdateScenarioUseCase } from './update-scenario.use-case.js'
+import { InMemoryMediaAssetRepository } from '../../../infrastructure/db/in-memory-media-asset.repository.js'
 
 const seedScenario = {
   scenarioId: 'scenario_1',
@@ -17,7 +18,10 @@ const seedScenario = {
 
 describe('UpdateScenarioUseCase', () => {
   it('throws INVALID_INPUT when no updatable fields are provided', async () => {
-    const useCase = new UpdateScenarioUseCase(new InMemoryScenarioRepository([seedScenario]))
+    const useCase = new UpdateScenarioUseCase(
+      new InMemoryScenarioRepository([seedScenario]),
+      new InMemoryMediaAssetRepository(),
+    )
 
     await expect(useCase.execute({ scenarioId: 'scenario_1' })).rejects.toMatchObject({
       code: 'INVALID_INPUT',
@@ -25,7 +29,10 @@ describe('UpdateScenarioUseCase', () => {
   })
 
   it('throws NOT_FOUND when scenario does not exist', async () => {
-    const useCase = new UpdateScenarioUseCase(new InMemoryScenarioRepository())
+    const useCase = new UpdateScenarioUseCase(
+      new InMemoryScenarioRepository(),
+      new InMemoryMediaAssetRepository(),
+    )
 
     await expect(
       useCase.execute({ scenarioId: 'scenario_missing', name: 'New Name' }),
@@ -36,7 +43,7 @@ describe('UpdateScenarioUseCase', () => {
 
   it('updates only the provided fields', async () => {
     const repo = new InMemoryScenarioRepository([seedScenario])
-    const useCase = new UpdateScenarioUseCase(repo)
+    const useCase = new UpdateScenarioUseCase(repo, new InMemoryMediaAssetRepository())
 
     const output = await useCase.execute({ scenarioId: 'scenario_1', name: 'Updated Name' })
 
@@ -47,7 +54,7 @@ describe('UpdateScenarioUseCase', () => {
 
   it('updates status without affecting other fields', async () => {
     const repo = new InMemoryScenarioRepository([seedScenario])
-    const useCase = new UpdateScenarioUseCase(repo)
+    const useCase = new UpdateScenarioUseCase(repo, new InMemoryMediaAssetRepository())
 
     const output = await useCase.execute({ scenarioId: 'scenario_1', status: 'active' })
 
@@ -57,7 +64,7 @@ describe('UpdateScenarioUseCase', () => {
 
   it('updates config without clearing it when not provided', async () => {
     const repo = new InMemoryScenarioRepository([seedScenario])
-    const useCase = new UpdateScenarioUseCase(repo)
+    const useCase = new UpdateScenarioUseCase(repo, new InMemoryMediaAssetRepository())
 
     const output = await useCase.execute({
       scenarioId: 'scenario_1',
@@ -78,7 +85,7 @@ describe('UpdateScenarioUseCase', () => {
         config: {},
       },
     ])
-    const useCase = new UpdateScenarioUseCase(repo)
+    const useCase = new UpdateScenarioUseCase(repo, new InMemoryMediaAssetRepository())
 
     const updated = await useCase.execute({
       scenarioId: 'scenario_1',
@@ -99,7 +106,7 @@ describe('UpdateScenarioUseCase', () => {
 
   it('refreshes updatedAt on update', async () => {
     const repo = new InMemoryScenarioRepository([seedScenario])
-    const useCase = new UpdateScenarioUseCase(repo)
+    const useCase = new UpdateScenarioUseCase(repo, new InMemoryMediaAssetRepository())
 
     const output = await useCase.execute({ scenarioId: 'scenario_1', name: 'New' })
 

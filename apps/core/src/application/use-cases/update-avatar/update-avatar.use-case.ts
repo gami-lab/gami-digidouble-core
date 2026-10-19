@@ -4,6 +4,8 @@ import type { UpdateAvatarInput, UpdateAvatarOutput } from './update-avatar.type
 import { toAvatarSummary } from '../shared/avatar-summary.js'
 import { normalizeVoiceConfigurationMutation } from '../../../domain/voice/voice-configuration.js'
 import { applyPresentationMutation } from '../../../domain/presentation/presentation.js'
+import type { IMediaAssetRepository } from '../../ports/IMediaAssetRepository.js'
+import { assertPresentationMedia } from '../../services/media/media-references.js'
 
 function buildUpdates(input: UpdateAvatarInput): UpdateAvatarParams {
   const { name, personaPrompt, tone, description, adjustments, llmOverride, status } = input
@@ -21,7 +23,10 @@ function buildUpdates(input: UpdateAvatarInput): UpdateAvatarParams {
 }
 
 export class UpdateAvatarUseCase {
-  constructor(private readonly avatarRepository: IAvatarRepository) {}
+  constructor(
+    private readonly avatarRepository: IAvatarRepository,
+    private readonly mediaAssetRepository: IMediaAssetRepository,
+  ) {}
 
   async execute(input: UpdateAvatarInput): Promise<UpdateAvatarOutput> {
     const updates = buildUpdates(input)
@@ -48,6 +53,12 @@ export class UpdateAvatarUseCase {
         input.config,
         existing.config,
         input.presentation,
+      )
+      await assertPresentationMedia(
+        this.mediaAssetRepository,
+        'avatar',
+        existing.scenarioId,
+        updates.config,
       )
     }
     const avatar = await this.avatarRepository.update(input.avatarId, updates)

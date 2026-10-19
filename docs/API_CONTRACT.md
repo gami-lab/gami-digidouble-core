@@ -14,7 +14,8 @@ token>`, admin routes the admin session cookie or `x-admin-service-key`, open ro
 - Player-facing projections (`AvailableAvatarSummary`) are explicit field picks and never carry
   authoring internals: `personaPrompt`, `adjustments`, raw `config`, `computedTraits`, model or
   voice configuration stay on admin projections. The typed `presentation` is the only
-  config-derived field that reaches the player.
+  config-derived field that reaches the player, with its media slots resolved to
+  `PublicMediaAsset`.
 - Authentication runs before the request body is read, so an unauthenticated request gets `401`
   even when its body is malformed or oversized.
 - Errors use stable `ErrorCode` categories: `UNAUTHORIZED`, `VALIDATION_ERROR`, `FORBIDDEN`,
@@ -29,6 +30,8 @@ token>`, admin routes the admin session cookie or `x-admin-service-key`, open ro
 - Knowledge/retrieval: `knowledge-contract-types.ts`.
 - Runtime inspection: `runtime-inspector-types.ts` and `runtime-types.ts`.
 - Voice/audio: `voice-contract-types.ts`.
+- Player presentation: `presentation-contract-types.ts`.
+- Media assets, references, kinds, MIME types, and limits: `media-contract-types.ts`.
 - Raw provider exchange: `raw-exchange-contract-types.ts`.
 - Client protocol guards and environment-neutral operator request mappers:
   `api-client-protocol.ts` and `model-config-contract-mappers.ts`.
@@ -111,6 +114,11 @@ the scenario afterwards stay locked for existing sessions.
   (`scenarioId`, `name`, `language`, `presentation`). Avatars reach the player through
   `GET /v1/sessions/{sessionId}/available-avatars` (`AvailableAvatarSummary` includes the Avatar
   `presentation`).
+- Player presentations carry media slots as `PublicMediaAsset` (`assetId`, `kind`, `url`, optional
+  `posterUrl` and `durationMs`, `description`); a slot whose asset no longer resolves is omitted.
+  `url` is absolute for URL assets and a path relative to the Core API origin for uploads
+  (`/v1/media/{assetId}`); clients resolve it against their API base URL and never build media
+  URLs from ids.
 
 ### User persona
 
@@ -225,8 +233,13 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
 - Scenario and Avatar `presentation` (canonical owner `presentation-contract-types.ts`, limits in
   `PRESENTATION_LIMITS`) is a top-level create/update field. An update replaces the whole object
   and `null` clears it; omitting it keeps the stored value, including when `config` is replaced.
-  Unknown keys, blank text, over-limit text, more than three starter questions, non-`http(s)`
-  images, or `uiHints` inside `config` return `400 VALIDATION_ERROR`.
+  Unknown keys, blank text, over-limit text, more than three starter questions, or `uiHints`
+  inside `config` return `400 VALIDATION_ERROR`.
+- Presentation media slots hold a `MediaRef` (asset id). Scenario: `cover` (image), `introMedia`
+  and `outroMedia` (image or video). Avatar: `portrait` (image), `idleLoop` (video). A ref that is
+  not an asset id, names an asset of another scenario or a missing asset, or has a kind the slot
+  does not accept returns `400 VALIDATION_ERROR`; a scenario create cannot reference media because
+  the scenario has no assets yet.
 - Provider credentials and provider-native options are not public fields; a client may only pick a
   shared `format` (default `audio/wav`).
 
@@ -234,8 +247,9 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
 
 - Active Scenarios require canonical BCP-47 `language`; active Avatars require prepared traits
   (`AvatarComputedTraits`) — creation/activation/serving reject incomplete Avatars.
-- Static knowledge accepts only `avatar_knowledge`, `world`, and `media`. The removed `memory` value
-  is rejected with `400 VALIDATION_ERROR`. Source/chunk metadata is validated recursively; reserved
+- Static knowledge accepts only `avatar_knowledge` and `world`; source formats are `pdf`, `text`,
+  `markdown`, and `url`. Images and video are media assets, not knowledge. The removed `memory`
+  and `media` values are rejected with `400 VALIDATION_ERROR`. Source/chunk metadata is validated recursively; reserved
   keys `userId`, `sessionId`, `conversationId` are rejected the same way.
 - `visibilityPolicy` (`'all' | 'avatars' | 'none'`) is required on source create/upload; `'none'`
   means GM-only. `'avatars'` requires at least one avatar ID; `'all'`/`'none'` clear any provided
@@ -288,7 +302,7 @@ CONFLICT`, provider timeout `504`, rate limiting `429`.
 - Retrieval visibility diagnostics report the visibility mode and considered candidates; they do not
   expose an excluded-row count because filtering is performed inside the SQL query.
 - Context projections separate `conversationState` (messages/working memory/episodic
-  memories) from `retrievedContext` (static `avatar_knowledge`/`world`/`media` with
+  memories) from `retrievedContext` (static `avatar_knowledge`/`world` with
   provenance) — retrieved documents are never emitted as conversational memory.
 - Session-context inspection and `turn_completed` events share the same bounded retrieval-trace and
   kept/trimmed selection diagnostics; fields are optional because not every event carries every one.

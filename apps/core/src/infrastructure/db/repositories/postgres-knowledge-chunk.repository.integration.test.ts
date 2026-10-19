@@ -210,16 +210,16 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
     const secondSource = await sourceRepo.create({
       scenarioId: scenario.scenarioId,
       name: 'Chunk source 2',
-      knowledgeType: 'media',
-      format: 'media',
-      uriOrPath: '/tmp/media.png',
+      knowledgeType: 'avatar_knowledge',
+      format: 'text',
+      uriOrPath: '/tmp/second.txt',
       visibilityPolicy: 'all',
     })
 
     await insertChunk(sql, { sourceId, content: 'World chunk', chunkIndex: 0 })
     await insertChunk(sql, {
       sourceId: secondSource.sourceId,
-      content: 'Media chunk',
+      content: 'Second chunk',
       chunkIndex: 0,
     })
 
@@ -369,12 +369,12 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       uriOrPath: '/tmp/other.txt',
       visibilityPolicy: 'all',
     })
-    const mediaSource = await sourceRepo.create({
+    const wrongTypeSource = await sourceRepo.create({
       scenarioId: scenario.scenarioId,
-      name: 'Media',
-      knowledgeType: 'media',
-      format: 'media',
-      uriOrPath: '/tmp/media.png',
+      name: 'Avatar knowledge',
+      knowledgeType: 'avatar_knowledge',
+      format: 'text',
+      uriOrPath: '/tmp/avatar.txt',
       visibilityPolicy: 'all',
     })
     const sourceIds = [
@@ -383,7 +383,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeChunkRepository', () => {
       hiddenSource.sourceId,
       pendingSource.sourceId,
       otherScenarioSource.sourceId,
-      mediaSource.sourceId,
+      wrongTypeSource.sourceId,
     ]
     const active = await activateVectorCorpus(
       sourceIds,

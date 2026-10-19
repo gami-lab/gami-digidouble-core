@@ -279,10 +279,7 @@ function renderRetrievedContext(
     retrievedContext.avatar_knowledge,
   )
   const worldLines = renderRetrievedCategory('World', retrievedContext.world)
-  const mediaLines = renderRetrievedCategory('Media', retrievedContext.media)
-
-  const lines = [...avatarKnowledgeLines, ...worldLines, ...mediaLines]
-  return lines
+  return [...avatarKnowledgeLines, ...worldLines]
 }
 
 function renderRetrievedCategory(

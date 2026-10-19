@@ -18,7 +18,6 @@ describe('presentKnowledgeRetrieval', () => {
           },
         ],
         world: [],
-        media: [],
         trace: {
           query: 'budget',
           perType: {
@@ -27,7 +26,6 @@ describe('presentKnowledgeRetrieval', () => {
               selectedChunkIds: ['knowledge_chunk_1'],
             },
             world: { sourceIds: [], selectedChunkIds: [] },
-            media: { sourceIds: [], selectedChunkIds: [] },
           },
         },
       },
@@ -52,13 +50,11 @@ describe('presentKnowledgeRetrieval', () => {
             content: 'short content',
           },
         ],
-        media: [],
         trace: {
           query: 'timeline',
           perType: {
             avatar_knowledge: { sourceIds: [], selectedChunkIds: [] },
             world: { sourceIds: ['knowledge_source_2'], selectedChunkIds: ['knowledge_chunk_2'] },
-            media: { sourceIds: [], selectedChunkIds: [] },
           },
         },
       },
@@ -83,7 +79,6 @@ describe('presentKnowledgeRetrieval', () => {
         },
       ],
       world: [],
-      media: [],
       trace: {
         query: 'query',
         candidateCount: 4,
@@ -113,7 +108,6 @@ describe('presentKnowledgeRetrieval', () => {
             },
           },
           world: { sourceIds: [], selectedChunkIds: [] },
-          media: { sourceIds: [], selectedChunkIds: [] },
         },
       },
     })

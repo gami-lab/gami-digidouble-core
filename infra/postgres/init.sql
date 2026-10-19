@@ -70,8 +70,8 @@ CREATE TABLE IF NOT EXISTS knowledge_sources (
   visible_to_avatar_ids TEXT[],
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CHECK (knowledge_type IN ('avatar_knowledge', 'world', 'media')),
-  CHECK (format IN ('pdf', 'text', 'markdown', 'url', 'media')),
+  CHECK (knowledge_type IN ('avatar_knowledge', 'world')),
+  CHECK (format IN ('pdf', 'text', 'markdown', 'url')),
   CHECK (status IN ('pending', 'ready', 'error', 'blocked'))
 );
 

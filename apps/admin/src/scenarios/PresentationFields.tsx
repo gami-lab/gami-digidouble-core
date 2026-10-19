@@ -1,7 +1,6 @@
 import type { JSX } from 'react'
 import {
   ENTRY_QUESTION_PERSONA_FIELDS,
-  PRESENTATION_IMAGE_URL_PATTERN,
   PRESENTATION_LIMITS,
   type AvatarPresentation,
   type EntryQuestionPersonaField,
@@ -21,7 +20,6 @@ type TextFieldProps = {
   maxLength: number
   disabled: boolean
   multiline?: boolean
-  imageUrl?: boolean
   onChange: (value: string) => void
 }
 
@@ -32,7 +30,6 @@ function TextField({
   maxLength,
   disabled,
   multiline = false,
-  imageUrl = false,
   onChange,
 }: TextFieldProps): JSX.Element {
   const common = {
@@ -52,23 +49,10 @@ function TextField({
       {multiline ? (
         <textarea {...common} className="admin-form-textarea" rows={3} />
       ) : (
-        <input
-          {...common}
-          type={imageUrl ? 'url' : 'text'}
-          className="admin-form-input"
-          {...(imageUrl
-            ? { pattern: PRESENTATION_IMAGE_URL_PATTERN, placeholder: 'https://…' }
-            : {})}
-        />
+        <input {...common} type="text" className="admin-form-input" />
       )}
     </div>
   )
-}
-
-function ImagePreview({ url, alt }: { url: string | undefined; alt: string }): JSX.Element | null {
-  const trimmed = url?.trim() ?? ''
-  if (!new RegExp(PRESENTATION_IMAGE_URL_PATTERN).test(trimmed)) return null
-  return <img className="admin-presentation-thumbnail" src={trimmed} alt={alt} loading="lazy" />
 }
 
 type ScenarioPresentationFieldsProps = {
@@ -91,18 +75,6 @@ export function ScenarioPresentationFields({
       <p className="admin-muted">
         Shown to visitors only; never sent to the Avatar or Game Master.
       </p>
-      <TextField
-        id={`${idPrefix}-cover`}
-        label="Cover image URL"
-        value={value.cover}
-        maxLength={PRESENTATION_LIMITS.imageUrlMaxLength}
-        disabled={disabled}
-        imageUrl
-        onChange={(cover) => {
-          onChange({ ...value, cover })
-        }}
-      />
-      <ImagePreview url={value.cover} alt="Cover preview" />
       <TextField
         id={`${idPrefix}-tagline`}
         label="Tagline"
@@ -193,17 +165,6 @@ export function AvatarPresentationFields({
   return (
     <fieldset className="admin-presentation">
       <legend>Player presentation</legend>
-      <TextField
-        id={`${idPrefix}-portrait`}
-        label="Portrait image URL"
-        value={value.portrait}
-        maxLength={PRESENTATION_LIMITS.imageUrlMaxLength}
-        disabled={disabled}
-        imageUrl
-        onChange={(portrait) => {
-          onChange({ ...value, portrait })
-        }}
-      />
       <TextField
         id={`${idPrefix}-hook`}
         label="One-line hook"
@@ -327,7 +288,6 @@ function CharacterCardPreview({
     <div className="admin-form-group">
       <p className="admin-form-label">Card preview</p>
       <article className="admin-character-card" aria-label="Character card preview">
-        <ImagePreview url={value.portrait} alt={name} />
         <strong>{name}</strong>
         {value.hook !== undefined && value.hook.trim().length > 0 ? <p>{value.hook}</p> : null}
         {questions.length > 0 ? (

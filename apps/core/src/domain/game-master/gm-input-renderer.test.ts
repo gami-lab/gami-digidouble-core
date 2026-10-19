@@ -86,14 +86,6 @@ function makeInput(overrides: InputOverrides = {}): GameMasterInput {
             content: 'Storm tide rises at dusk.',
           },
         ],
-        media: [
-          {
-            sourceId: 'media_source_1',
-            chunkId: 'media_chunk_1',
-            knowledgeType: 'media',
-            content: 'Harbor map with dock markers.',
-          },
-        ],
         ...overrides.context?.retrievedContext,
       },
       userPersona: {
@@ -175,7 +167,6 @@ describe('renderGameMasterInputForLlm', () => {
       'Avatar knowledge (addressed to the active Avatar; "tu"/"you" means Ava) excerpts:',
     )
     expect(prompt).toContain('World excerpts:')
-    expect(prompt).toContain('Media excerpts:')
 
     const conversationStateStart = prompt.indexOf('## Conversation State')
     const retrievedContextStart = prompt.indexOf('## Retrieved Context')

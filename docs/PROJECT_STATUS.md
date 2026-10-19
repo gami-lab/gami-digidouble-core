@@ -41,7 +41,7 @@ detail for a specific area belongs in its owning document (`GAME_MASTER_CONTRACT
   ownership stays with the platform's switch use case, not the GM itself.
 - Streaming persists exactly one completed Avatar message and never a partial one; provider or
   client interruption closes the active iterator and skips remaining post-turn work.
-- Static knowledge (`avatar_knowledge`, `world`, `media`) is separate from conversational memory,
+- Static knowledge (`avatar_knowledge`, `world`) is separate from conversational memory,
   with independent lifecycle ownership — see `CONTEXT_CONTRACT_OWNERSHIP_MAP.md` for the full matrix.
 - Avatar retrieval is visibility-filtered; GM unrestricted retrieval is explicit and still respects corpus/type/readiness rules.
 - Active Avatars require prepared traits; active Scenarios require canonical language.
@@ -87,7 +87,8 @@ that touches persistence, retrieval, or provider adapters.
 
 - The guided public player (`EPICS.md` 12.2) is implemented but not yet validated with the five
   first-time-visitor hallway tests; intro media waits for 12.3.
-- Media sources are retrievable but never triggered or displayed (`EPICS.md` 12.3).
+- Multimedia (`EPICS.md` 12.3) is in progress: the shared media contract and presentation media
+  references exist; storage, upload, triggers, GM cues, and playback are not yet shipped.
 - Evaluation measures factual recall only, not discovery pacing, persona, or GM decisions (`EPICS.md` 12.4).
 - The voice chain runs in series and has no end-to-end latency metric (`EPICS.md` 12.5).
 - No video avatar support (`EPICS.md` 12.6).

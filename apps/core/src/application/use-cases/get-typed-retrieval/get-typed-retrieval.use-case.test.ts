@@ -107,7 +107,6 @@ describe('GetTypedRetrievalUseCase', () => {
 
     expect(output.retrieval.avatar_knowledge).toHaveLength(1)
     expect(output.retrieval.world).toHaveLength(1)
-    expect(output.retrieval.media).toHaveLength(0)
   })
 
   it('validates input', async () => {

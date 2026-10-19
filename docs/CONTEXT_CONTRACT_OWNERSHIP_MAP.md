@@ -31,7 +31,7 @@ shared DTO via this mapper; application/domain use cases only ever return the in
 
 ## Static knowledge ownership
 
-- `KnowledgeType` is exactly `avatar_knowledge | world | media`; the shared tuple
+- `KnowledgeType` is exactly `avatar_knowledge | world`; the shared tuple
   (`packages/shared/src/knowledge-contract-types.ts`) is the single source and is re-exported, not
   redeclared, by `apps/core/src/domain/knowledge/knowledge.types.ts`. `memory` is rejected as a
   knowledge type at the API boundary — conversational memory has its own contracts (below).
@@ -42,7 +42,7 @@ shared DTO via this mapper; application/domain use cases only ever return the in
 - Reserved metadata keys (the ones that would leak lifecycle scope into static content) are
   rejected recursively on source/chunk create, update, ingestion, and reindex writes — enforced in
   `apps/core/src/domain/knowledge/static-knowledge-validation.ts`.
-- Static retrieval candidate filters are: scenario, `avatar_knowledge|world|media`, ready source,
+- Static retrieval candidate filters are: scenario, `avatar_knowledge|world`, ready source,
   active profile/generation, and Avatar visibility. `gm_unrestricted` bypasses visibility only —
   it never bypasses scenario/type/readiness/active-corpus filtering, and a missing active avatar
   is not itself an authorization bypass.

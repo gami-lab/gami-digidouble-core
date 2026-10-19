@@ -197,15 +197,15 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — list/statu
       uriOrPath: '/world.txt',
       visibilityPolicy: 'all',
     })
-    const media = await sourceRepo.create({
+    const avatarKnowledge = await sourceRepo.create({
       scenarioId,
-      name: 'Media',
-      knowledgeType: 'media',
+      name: 'Avatar knowledge',
+      knowledgeType: 'avatar_knowledge',
       format: 'url',
-      uriOrPath: 'https://example.com/a.png',
+      uriOrPath: 'https://example.com/a.txt',
       visibilityPolicy: 'all',
     })
-    await sourceRepo.updateStatus(media.sourceId, 'ready')
+    await sourceRepo.updateStatus(avatarKnowledge.sourceId, 'ready')
 
     const world = await sourceRepo.listByScenario({ scenarioId, knowledgeType: 'world' })
     const ready = await sourceRepo.listByScenario({ scenarioId, status: 'ready' })
@@ -213,7 +213,7 @@ describe.skipIf(!DB_AVAILABLE)('PostgresKnowledgeSourceRepository — list/statu
     expect(world).toHaveLength(1)
     expect(world[0]?.knowledgeType).toBe('world')
     expect(ready).toHaveLength(1)
-    expect(ready[0]?.sourceId).toBe(media.sourceId)
+    expect(ready[0]?.sourceId).toBe(avatarKnowledge.sourceId)
   })
 
   it('updateStatus returns null for unknown source ids', async () => {

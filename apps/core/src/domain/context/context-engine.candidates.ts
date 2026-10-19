@@ -297,12 +297,6 @@ function pushAvatarRetrievalCandidates(
     selectedAvatarKnowledgeAndWorld.filter((item) => item.knowledgeType === 'world'),
     retrieval.trace,
   )
-  pushAvatarRetrievalSegmentCandidate(
-    candidates,
-    'retrievedContextMedia',
-    retrieval.media,
-    retrieval.trace,
-  )
 }
 
 function pushGmRetrievalCandidates(
@@ -322,17 +316,11 @@ function pushGmRetrievalCandidates(
     retrieval.world,
     retrieval.trace,
   )
-  pushGmRetrievalSegmentCandidate(
-    candidates,
-    'retrievedContextMedia',
-    retrieval.media,
-    retrieval.trace,
-  )
 }
 
 function pushAvatarRetrievalSegmentCandidate(
   candidates: CandidateSegment[],
-  segmentId: 'retrievedContextAvatarKnowledge' | 'retrievedContextWorld' | 'retrievedContextMedia',
+  segmentId: 'retrievedContextAvatarKnowledge' | 'retrievedContextWorld',
   items: RetrievedKnowledgeItem[],
   trace: RetrievalTrace,
 ): void {
@@ -350,7 +338,7 @@ function pushAvatarRetrievalSegmentCandidate(
 
 function pushGmRetrievalSegmentCandidate(
   candidates: CandidateSegment[],
-  segmentId: 'retrievedContextAvatarKnowledge' | 'retrievedContextWorld' | 'retrievedContextMedia',
+  segmentId: 'retrievedContextAvatarKnowledge' | 'retrievedContextWorld',
   items: RetrievedKnowledgeItem[],
   trace: RetrievalTrace,
 ): void {
@@ -370,10 +358,6 @@ function pushGmRetrievalSegmentCandidate(
           ...(draft.gm.sections.retrievedContext?.world ?? []),
           ...(segmentId === 'retrievedContextWorld' ? items : []),
         ],
-        media: [
-          ...(draft.gm.sections.retrievedContext?.media ?? []),
-          ...(segmentId === 'retrievedContextMedia' ? items : []),
-        ],
         trace,
       }
     },
@@ -382,7 +366,7 @@ function pushGmRetrievalSegmentCandidate(
 
 function applyAvatarRetrievedContextSegment(
   draft: MutableOutput,
-  segmentId: 'retrievedContextAvatarKnowledge' | 'retrievedContextWorld' | 'retrievedContextMedia',
+  segmentId: 'retrievedContextAvatarKnowledge' | 'retrievedContextWorld',
   items: RetrievedKnowledgeItem[],
   trace: RetrievalTrace,
 ): void {
@@ -391,7 +375,6 @@ function applyAvatarRetrievedContextSegment(
   const typedSections = {
     avatar_knowledge: [] as RetrievedKnowledgeItem[],
     world: [] as RetrievedKnowledgeItem[],
-    media: [] as RetrievedKnowledgeItem[],
   }
 
   if (current !== undefined) {
@@ -399,7 +382,6 @@ function applyAvatarRetrievedContextSegment(
     if (current.typedSections !== undefined) {
       typedSections.avatar_knowledge.push(...current.typedSections.avatar_knowledge)
       typedSections.world.push(...current.typedSections.world)
-      typedSections.media.push(...current.typedSections.media)
     }
   }
 
@@ -414,11 +396,9 @@ function applyAvatarRetrievedContextSegment(
 }
 
 function toTypedSectionKey(
-  segmentId: 'retrievedContextAvatarKnowledge' | 'retrievedContextWorld' | 'retrievedContextMedia',
-): 'avatar_knowledge' | 'world' | 'media' {
-  if (segmentId === 'retrievedContextAvatarKnowledge') return 'avatar_knowledge'
-  if (segmentId === 'retrievedContextWorld') return 'world'
-  return 'media'
+  segmentId: 'retrievedContextAvatarKnowledge' | 'retrievedContextWorld',
+): 'avatar_knowledge' | 'world' {
+  return segmentId === 'retrievedContextAvatarKnowledge' ? 'avatar_knowledge' : 'world'
 }
 
 function pushAvatarTraitsCandidate(
@@ -445,11 +425,7 @@ function dedupeRetrieval(retrieval: ContextEngineInput['extensions']['retrieval'
     retrieval.world,
     new Set(avatarKnowledge.map((item) => item.chunkId)),
   )
-  const media = dedupeRetrievedItems(
-    retrieval.media,
-    new Set([...avatarKnowledge, ...world].map((item) => item.chunkId)),
-  )
-  return { ...retrieval, avatar_knowledge: avatarKnowledge, world, media }
+  return { ...retrieval, avatar_knowledge: avatarKnowledge, world }
 }
 
 function dedupeRetrievedItems(

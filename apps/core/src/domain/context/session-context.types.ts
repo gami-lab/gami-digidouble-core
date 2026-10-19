@@ -53,7 +53,6 @@ export type AvatarContextRetrievedContext = {
   typedSections?: {
     avatar_knowledge: RetrievedKnowledgeItem[]
     world: RetrievedKnowledgeItem[]
-    media: RetrievedKnowledgeItem[]
   }
 }
 
@@ -84,7 +83,6 @@ export type GmContextConversationState = {
 export type GmContextRetrievedContext = {
   avatar_knowledge: RetrievedKnowledgeItem[]
   world: RetrievedKnowledgeItem[]
-  media: RetrievedKnowledgeItem[]
   trace?: RetrievalTrace
 }
 

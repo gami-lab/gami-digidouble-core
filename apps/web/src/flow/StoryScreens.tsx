@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react'
 import type { JSX, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { PublicScenarioSummary } from '@gami/shared'
+import type { PublicMediaAsset, PublicScenarioSummary } from '@gami/shared'
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher'
+import { resolveMediaUrl } from '../media/media-url'
 
 type StoryCardProps = {
   titleId: string
-  cover?: string | undefined
+  cover?: PublicMediaAsset | undefined
   children: ReactNode
 }
 
@@ -27,7 +28,9 @@ export function StoryCard({ titleId, cover, children }: StoryCardProps): JSX.Ele
         <div className="story-top-bar">
           <LanguageSwitcher />
         </div>
-        {cover !== undefined ? <img className="story-cover" src={cover} alt="" /> : null}
+        {cover !== undefined ? (
+          <img className="story-cover" src={resolveMediaUrl(cover.url)} alt="" />
+        ) : null}
         {children}
       </section>
     </main>

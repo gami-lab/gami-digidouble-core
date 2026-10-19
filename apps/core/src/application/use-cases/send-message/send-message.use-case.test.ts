@@ -422,21 +422,12 @@ describe('SendMessageUseCase — llm request payload', () => {
             content: 'Ships dock at tidefall in this harbor.',
           },
         ],
-        media: [
-          {
-            sourceId: 'source_media',
-            chunkId: 'chunk_media',
-            knowledgeType: 'media',
-            content: 'Reference frame: moonlit pier diagram.',
-          },
-        ],
         trace: {
           query:
             'Keep the answer practical. | What should I do? | The user wants concise harbor instructions. User: Where do I dock? Avatar: Follow the lantern markers.',
           perType: {
             avatar_knowledge: { sourceIds: ['source_memory'], selectedChunkIds: ['chunk_memory'] },
             world: { sourceIds: ['source_world'], selectedChunkIds: ['chunk_world'] },
-            media: { sourceIds: ['source_media'], selectedChunkIds: ['chunk_media'] },
           },
         },
       }),
@@ -541,8 +532,6 @@ describe('SendMessageUseCase — llm request payload', () => {
     expect(llmArg.systemPrompt).toContain('The user prefers checklist-style instructions.')
     expect(llmArg.systemPrompt).toContain('Context 2 (world):')
     expect(llmArg.systemPrompt).toContain('Ships dock at tidefall in this harbor.')
-    expect(llmArg.systemPrompt).toContain('Media retrieval:')
-    expect(llmArg.systemPrompt).toContain('Reference frame: moonlit pier diagram.')
     expect(llmArg.systemPrompt).toContain('Identity:')
     expect(llmArg.systemPrompt).toContain('- Harbor archivist')
     expect(llmArg.systemPrompt).not.toContain(
@@ -858,7 +847,6 @@ describe('SendMessageUseCase — validation and GM integration', () => {
     const retrieve = vi.fn().mockResolvedValue({
       avatar_knowledge: [],
       world: [],
-      media: [],
       trace: {
         query: '',
         outcome: 'failed',
@@ -870,11 +858,6 @@ describe('SendMessageUseCase — validation and GM integration', () => {
             visibility: { consideredChunkCount: 0 },
           },
           world: {
-            sourceIds: [],
-            selectedChunkIds: [],
-            visibility: { consideredChunkCount: 0 },
-          },
-          media: {
             sourceIds: [],
             selectedChunkIds: [],
             visibility: { consideredChunkCount: 0 },
@@ -1042,13 +1025,11 @@ describe('SendMessageUseCase — validation and GM integration', () => {
           },
         ],
         world: [],
-        media: [],
         trace: {
           query: 'secret retrieval query',
           perType: {
             avatar_knowledge: { sourceIds: ['source_hidden'], selectedChunkIds: ['chunk_hidden'] },
             world: { sourceIds: [], selectedChunkIds: [] },
-            media: { sourceIds: [], selectedChunkIds: [] },
           },
         },
       }),
@@ -1104,15 +1085,14 @@ describe('SendMessageUseCase — validation and GM integration', () => {
       shortTermExchangeCount: 0,
       hasWorkingMemory: false,
       retrieval: {
-        selectedForAssemblyCounts: { avatar_knowledge: 1, world: 0, media: 0 },
-        includedCounts: { avatar_knowledge: 1, world: 0, media: 0 },
-        omittedByAssemblyCounts: { avatar_knowledge: 0, world: 0, media: 0 },
+        selectedForAssemblyCounts: { avatar_knowledge: 1, world: 0 },
+        includedCounts: { avatar_knowledge: 1, world: 0 },
+        omittedByAssemblyCounts: { avatar_knowledge: 0, world: 0 },
         retrievalTrace: {
           query: 'secret retrieval query',
           perType: {
             avatar_knowledge: { sourceIds: ['source_hidden'], selectedChunkIds: ['chunk_hidden'] },
             world: { sourceIds: [], selectedChunkIds: [] },
-            media: { sourceIds: [], selectedChunkIds: [] },
           },
         },
       },

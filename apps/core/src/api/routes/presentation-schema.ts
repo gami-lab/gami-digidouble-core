@@ -1,24 +1,17 @@
-import {
-  ENTRY_QUESTION_PERSONA_FIELDS,
-  PRESENTATION_IMAGE_URL_PATTERN,
-  PRESENTATION_LIMITS,
-} from '@gami/shared'
+import { ENTRY_QUESTION_PERSONA_FIELDS, MEDIA_REF_PATTERN, PRESENTATION_LIMITS } from '@gami/shared'
 
 const text = (maxLength: number) =>
   ({ type: 'string', minLength: 1, maxLength, pattern: '\\S' }) as const
 
-const imageUrl = {
-  type: 'string',
-  maxLength: PRESENTATION_LIMITS.imageUrlMaxLength,
-  pattern: PRESENTATION_IMAGE_URL_PATTERN,
-} as const
+export const mediaRefSchema = { type: 'string', pattern: MEDIA_REF_PATTERN } as const
 
 export const scenarioPresentationBodySchema = {
   type: 'object',
   properties: {
-    cover: imageUrl,
+    cover: mediaRefSchema,
     tagline: text(PRESENTATION_LIMITS.taglineMaxLength),
     introText: text(PRESENTATION_LIMITS.introTextMaxLength),
+    introMedia: mediaRefSchema,
     entryQuestion: {
       type: 'object',
       required: ['prompt', 'personaField'],
@@ -29,6 +22,7 @@ export const scenarioPresentationBodySchema = {
       additionalProperties: false,
     },
     outroText: text(PRESENTATION_LIMITS.outroTextMaxLength),
+    outroMedia: mediaRefSchema,
   },
   additionalProperties: false,
 } as const
@@ -36,7 +30,8 @@ export const scenarioPresentationBodySchema = {
 export const avatarPresentationBodySchema = {
   type: 'object',
   properties: {
-    portrait: imageUrl,
+    portrait: mediaRefSchema,
+    idleLoop: mediaRefSchema,
     hook: text(PRESENTATION_LIMITS.hookMaxLength),
     starterQuestions: {
       type: 'array',

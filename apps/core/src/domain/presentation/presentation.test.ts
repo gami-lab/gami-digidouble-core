@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { toScenarioSnapshot } from '../../application/use-cases/send-message/send-message.context-engine.js'
 import type { Scenario } from '../scenario/scenario.types.js'
 import type { Session } from '../conversation/session.types.js'
-import { applyPresentationMutation, readPresentation } from './presentation.js'
+import {
+  applyPresentationMutation,
+  presentationMediaReferences,
+  readPresentation,
+} from './presentation.js'
 
 describe('presentation config mapping', () => {
   it('stores trimmed presentation under uiHints and reads it back', () => {
@@ -69,5 +73,24 @@ describe('Core orchestration ignores presentation', () => {
     const presented = { ...scenario, config: { ...scenario.config, uiHints: { tagline: 'T' } } }
 
     expect(toScenarioSnapshot(session, presented)).toEqual(toScenarioSnapshot(session, scenario))
+  })
+})
+
+describe('presentation media references', () => {
+  it('lists each referenced asset with the kinds its slot accepts', () => {
+    expect(
+      presentationMediaReferences('scenario', {
+        cover: 'media_cover',
+        tagline: 'Not media',
+        introMedia: 'media_intro',
+      }),
+    ).toEqual([
+      { slot: 'cover', assetId: 'media_cover', allowedKinds: ['image'] },
+      { slot: 'introMedia', assetId: 'media_intro', allowedKinds: ['image', 'video'] },
+    ])
+    expect(presentationMediaReferences('avatar', { idleLoop: 'media_idle' })).toEqual([
+      { slot: 'idleLoop', assetId: 'media_idle', allowedKinds: ['video'] },
+    ])
+    expect(presentationMediaReferences('avatar', undefined)).toEqual([])
   })
 })

@@ -44,12 +44,6 @@ describe('retrieval-trace-dto', () => {
           candidateCount: 1,
           selectedCount: 0,
         },
-        media: {
-          sourceIds: ['source_media_1'],
-          selectedChunkIds: [],
-          candidateCount: 1,
-          selectedCount: 0,
-        },
       },
     }
 
@@ -85,7 +79,6 @@ describe('retrieval-trace-dto', () => {
           },
         },
         world: { sourceIds: [], selectedChunkIds: [] },
-        media: { sourceIds: [], selectedChunkIds: [] },
       },
     })
 

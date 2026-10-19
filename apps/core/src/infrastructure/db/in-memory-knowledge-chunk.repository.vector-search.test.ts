@@ -107,7 +107,7 @@ describe('InMemoryKnowledgeChunkRepository vector search', () => {
       makeSource({ sourceId: 'knowledge_source_allowed' }),
       makeSource({ sourceId: 'knowledge_source_wrong_scenario', scenarioId: 'scenario_2' }),
       makeSource({ sourceId: 'knowledge_source_pending', status: 'pending' }),
-      makeSource({ sourceId: 'knowledge_source_media', knowledgeType: 'media' }),
+      makeSource({ sourceId: 'knowledge_source_wrong_type', knowledgeType: 'avatar_knowledge' }),
     ]
     const repository = makeRepository(sources, [
       makeChunk({ sourceId: 'knowledge_source_allowed', chunkId: 'knowledge_chunk_allowed' }),
@@ -116,7 +116,7 @@ describe('InMemoryKnowledgeChunkRepository vector search', () => {
         chunkId: 'knowledge_chunk_wrong_scenario',
       }),
       makeChunk({ sourceId: 'knowledge_source_pending', chunkId: 'knowledge_chunk_pending' }),
-      makeChunk({ sourceId: 'knowledge_source_media', chunkId: 'knowledge_chunk_media' }),
+      makeChunk({ sourceId: 'knowledge_source_wrong_type', chunkId: 'knowledge_chunk_wrong_type' }),
       makeChunk({
         chunkId: 'knowledge_chunk_wrong_profile',
         embeddingProfileId: 'embedding_profile_old',

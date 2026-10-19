@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 import {
   getKnowledgeTypeLabel,
+  KNOWLEDGE_TYPES,
   type KnowledgeRetrievalReferenceDto,
   type KnowledgeType,
   type RetrievalTraceDto,
@@ -12,7 +13,6 @@ export type RetrievedItem = KnowledgeRetrievalReferenceDto & { content?: string 
 
 export type RetrievedByType = Record<KnowledgeType, RetrievedItem[]>
 
-const KNOWLEDGE_TYPES: KnowledgeType[] = ['avatar_knowledge', 'world', 'media']
 
 type RetrievalViewProps = {
   trace: RetrievalTraceDto | undefined

@@ -6,6 +6,8 @@ import type { CreateAvatarInput, CreateAvatarOutput } from './create-avatar.type
 import { toAvatarSummary } from '../shared/avatar-summary.js'
 import { normalizeVoiceConfigurationMutation } from '../../../domain/voice/voice-configuration.js'
 import { applyPresentationMutation } from '../../../domain/presentation/presentation.js'
+import type { IMediaAssetRepository } from '../../ports/IMediaAssetRepository.js'
+import { assertPresentationMedia } from '../../services/media/media-references.js'
 
 const ALLOWED_AVATAR_STATUSES: ReadonlySet<AvatarStatus> = new Set(['draft', 'active', 'archived'])
 
@@ -13,20 +15,17 @@ export class CreateAvatarUseCase {
   constructor(
     private readonly scenarioRepository: IScenarioRepository,
     private readonly avatarRepository: IAvatarRepository,
+    private readonly mediaAssetRepository: IMediaAssetRepository,
   ) {}
 
   async execute(input: CreateAvatarInput): Promise<CreateAvatarOutput> {
     const normalized = normalizeAndValidateInput(input)
     const voiceConfig = normalizeVoiceConfigurationMutation(input.config, input.voiceConfig, false)
-    const config =
-      input.config !== undefined || input.presentation !== undefined
-        ? applyPresentationMutation('avatar', input.config, {}, input.presentation)
-        : undefined
-
     const scenario = await this.scenarioRepository.findById(input.scenarioId)
     if (scenario === null) {
       throw new DomainError('NOT_FOUND', 'Scenario not found')
     }
+    const config = await this.buildConfig(input, scenario.scenarioId)
 
     const avatar = await this.avatarRepository.create({
       scenarioId: scenario.scenarioId,
@@ -44,6 +43,16 @@ export class CreateAvatarUseCase {
     return {
       avatar: toAvatarSummary(avatar),
     }
+  }
+
+  private async buildConfig(
+    input: CreateAvatarInput,
+    scenarioId: string,
+  ): Promise<Record<string, unknown> | undefined> {
+    if (input.config === undefined && input.presentation === undefined) return undefined
+    const config = applyPresentationMutation('avatar', input.config, {}, input.presentation)
+    await assertPresentationMedia(this.mediaAssetRepository, 'avatar', scenarioId, config)
+    return config
   }
 }
 

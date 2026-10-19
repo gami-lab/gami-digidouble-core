@@ -12,7 +12,6 @@ export type AvatarAwarenessItem = {
 export type AvatarPromptRetrievalSections = {
   avatar_knowledge: RetrievedKnowledgeItem[]
   world: RetrievedKnowledgeItem[]
-  media: RetrievedKnowledgeItem[]
 }
 
 export type AvatarPromptOptions = {

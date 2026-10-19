@@ -9,17 +9,14 @@ export type ContextSelectionMetadata = {
     selectedForAssemblyCounts: {
       avatar_knowledge: number
       world: number
-      media: number
     }
     includedCounts: {
       avatar_knowledge: number
       world: number
-      media: number
     }
     omittedByAssemblyCounts: {
       avatar_knowledge: number
       world: number
-      media: number
     }
     retrievalTrace?: ReturnType<typeof toRetrievalTraceDto>
   }
@@ -44,7 +41,6 @@ export function toContextSelectionMetadata(
       selected.retrievalCounts.avatar_knowledge - includedCounts.avatar_knowledge,
     ),
     world: Math.max(0, selected.retrievalCounts.world - includedCounts.world),
-    media: Math.max(0, selected.retrievalCounts.media - includedCounts.media),
   }
   return {
     shortTermExchangeCount: selected.shortTermExchangeCount,
@@ -114,14 +110,12 @@ function sumSelectionTokens(
 function toIncludedRetrievalCounts(assembledContext: ContextEngineOutput): {
   avatar_knowledge: number
   world: number
-  media: number
 } {
   const typedSections = assembledContext.avatar.sections.retrievedContext?.typedSections
   if (typedSections !== undefined) {
     return {
       avatar_knowledge: typedSections.avatar_knowledge.length,
       world: typedSections.world.length,
-      media: typedSections.media.length,
     }
   }
 
@@ -131,6 +125,6 @@ function toIncludedRetrievalCounts(assembledContext: ContextEngineOutput): {
       counts[item.knowledgeType] += 1
       return counts
     },
-    { avatar_knowledge: 0, world: 0, media: 0 },
+    { avatar_knowledge: 0, world: 0 },
   )
 }

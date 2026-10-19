@@ -114,19 +114,43 @@ export {
 } from './voice-contract-types.js'
 export type {
   AvatarPresentation,
+  AvatarPresentationMediaSlot,
   AvatarPresentationUpdate,
   EntryQuestionPersonaField,
+  PublicAvatarPresentation,
+  PublicScenarioPresentation,
   ScenarioEntryQuestion,
   ScenarioPresentation,
+  ScenarioPresentationMediaSlot,
   ScenarioPresentationUpdate,
 } from './presentation-contract-types.js'
 export {
+  AVATAR_PRESENTATION_MEDIA_SLOTS,
   ENTRY_QUESTION_PERSONA_FIELDS,
-  PRESENTATION_IMAGE_URL_PATTERN,
   PRESENTATION_LIMITS,
+  SCENARIO_PRESENTATION_MEDIA_SLOTS,
   isAvatarPresentation,
   isScenarioPresentation,
 } from './presentation-contract-types.js'
+export type {
+  MediaAssetSummary,
+  MediaKind,
+  MediaMimeType,
+  MediaRef,
+  MediaSource,
+  PublicMediaAsset,
+} from './media-contract-types.js'
+export {
+  MEDIA_KINDS,
+  MEDIA_LIMITS,
+  MEDIA_MIME_TYPES,
+  MEDIA_REF_PATTERN,
+  MEDIA_SOURCES,
+  MEDIA_URL_PATTERN,
+  isMediaKind,
+  isMediaRef,
+  mediaKindForMimeType,
+} from './media-contract-types.js'
 export type {
   MessageStreamEventBase,
   MessageStreamStartedEvent,

@@ -16,15 +16,6 @@ export class InMemoryKnowledgeSourceContentLoader implements IKnowledgeSourceCon
       })
     }
 
-    if (source.format === 'media') {
-      const description =
-        readString(metadata['description']) ?? `Media reference: ${source.uriOrPath}`
-      return Promise.resolve({
-        content: description,
-        metadata,
-      })
-    }
-
     return Promise.resolve({
       content: `Reference source: ${source.uriOrPath}`,
       metadata,

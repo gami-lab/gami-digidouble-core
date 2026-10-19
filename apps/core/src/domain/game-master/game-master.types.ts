@@ -39,7 +39,6 @@ export interface GameMasterInput {
     retrievedContext?: {
       avatar_knowledge: RetrievedKnowledgeItem[]
       world: RetrievedKnowledgeItem[]
-      media: RetrievedKnowledgeItem[]
     }
     userPersona?: UserPersona
     availableAvatars: Array<{

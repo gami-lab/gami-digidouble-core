@@ -149,14 +149,12 @@ function toSharedAvatarRetrievedContext(
       (item) => item.knowledgeType === 'avatar_knowledge',
     ),
     world: knowledge.retrievedItems.filter((item) => item.knowledgeType === 'world'),
-    media: knowledge.retrievedItems.filter((item) => item.knowledgeType === 'media'),
   }
   return {
     retrievedItems: knowledge.retrievedItems.map(toSharedRetrievedItem),
     typedSections: {
       avatar_knowledge: typedSections.avatar_knowledge.map(toSharedRetrievedItem),
       world: typedSections.world.map(toSharedRetrievedItem),
-      media: typedSections.media.map(toSharedRetrievedItem),
       ...(knowledge.trace !== undefined ? { trace: toRetrievalTraceDto(knowledge.trace) } : {}),
     },
   }
@@ -168,7 +166,6 @@ function toSharedGmRetrievedContext(
   return {
     avatar_knowledge: knowledge.avatar_knowledge.map(toSharedRetrievedItem),
     world: knowledge.world.map(toSharedRetrievedItem),
-    media: knowledge.media.map(toSharedRetrievedItem),
     ...(knowledge.trace !== undefined ? { trace: toRetrievalTraceDto(knowledge.trace) } : {}),
   }
 }

@@ -17,11 +17,7 @@ export type AvatarRetrievalOutcome = {
 
 function hasRetrievedKnowledge(retrieval: TypedRetrievalResult | undefined): boolean {
   if (retrieval === undefined) return false
-  return (
-    retrieval.avatar_knowledge.length > 0 ||
-    retrieval.world.length > 0 ||
-    retrieval.media.length > 0
-  )
+  return retrieval.avatar_knowledge.length > 0 || retrieval.world.length > 0
 }
 
 /**

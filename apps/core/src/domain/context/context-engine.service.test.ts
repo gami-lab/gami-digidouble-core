@@ -74,15 +74,11 @@ function makeInput(overrides: Partial<ContextEngineInput> = {}): ContextEngineIn
         world: [
           { sourceId: 'source_2', chunkId: 'chunk_2', knowledgeType: 'world', content: 'world' },
         ],
-        media: [
-          { sourceId: 'source_3', chunkId: 'chunk_3', knowledgeType: 'media', content: 'media' },
-        ],
         trace: {
           query: 'hello',
           perType: {
             avatar_knowledge: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
             world: { sourceIds: ['source_2'], selectedChunkIds: ['chunk_2'] },
-            media: { sourceIds: ['source_3'], selectedChunkIds: ['chunk_3'] },
           },
         },
       },
@@ -98,15 +94,11 @@ function makeInput(overrides: Partial<ContextEngineInput> = {}): ContextEngineIn
         world: [
           { sourceId: 'source_2', chunkId: 'chunk_2', knowledgeType: 'world', content: 'world' },
         ],
-        media: [
-          { sourceId: 'source_3', chunkId: 'chunk_3', knowledgeType: 'media', content: 'media' },
-        ],
         trace: {
           query: 'hello',
           perType: {
             avatar_knowledge: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
             world: { sourceIds: ['source_2'], selectedChunkIds: ['chunk_2'] },
-            media: { sourceIds: ['source_3'], selectedChunkIds: ['chunk_3'] },
           },
         },
       },
@@ -142,19 +134,11 @@ function expectedTypedSections() {
         content: 'world',
       },
     ],
-    media: [
-      {
-        sourceId: 'source_3',
-        chunkId: 'chunk_3',
-        knowledgeType: 'media',
-        content: 'media',
-      },
-    ],
   }
 }
 
 function assertBaselineAvatarRetrievedContext(output: ReturnType<ContextEngine['assemble']>): void {
-  expect(output.avatar.sections.retrievedContext?.retrievedItems).toHaveLength(3)
+  expect(output.avatar.sections.retrievedContext?.retrievedItems).toHaveLength(2)
   expect(output.avatar.sections.retrievedContext?.typedSections).toEqual(expectedTypedSections())
 }
 
@@ -162,14 +146,12 @@ function assertBaselineRetrievalCounts(output: ReturnType<ContextEngine['assembl
   expect(output.trace.selectedInputs.retrievalCounts).toEqual({
     avatar_knowledge: 1,
     world: 1,
-    media: 1,
   })
   expect(output.trace.selectedInputs.visibility).toEqual({
     activeAvatarId: 'avatar_1',
     gmRetrievalCounts: {
       avatar_knowledge: 1,
       world: 1,
-      media: 1,
     },
     gmUnrestricted: true,
   })
@@ -201,7 +183,6 @@ function makeTinyBudgetPolicy(): ContextEnginePolicy {
       'worldContext',
       'retrievedContextAvatarKnowledge',
       'retrievedContextWorld',
-      'retrievedContextMedia',
       'avatarTraits',
     ],
   }
@@ -282,16 +263,13 @@ function assertDeterministicConflictResolution(
 function assertDeterministicTypedSections(output: ReturnType<ContextEngine['assemble']>): void {
   const avatarChunkIds =
     output.avatar.sections.retrievedContext?.retrievedItems.map((item) => item.chunkId) ?? []
-  expect(avatarChunkIds).toEqual(['chunk_1', 'chunk_2', 'chunk_3'])
+  expect(avatarChunkIds).toEqual(['chunk_1', 'chunk_2'])
   expect(
     output.avatar.sections.retrievedContext?.typedSections?.avatar_knowledge.map(
       (item) => item.chunkId,
     ),
   ).toEqual(['chunk_1', 'chunk_2'])
   expect(output.avatar.sections.retrievedContext?.typedSections?.world).toEqual([])
-  expect(
-    output.avatar.sections.retrievedContext?.typedSections?.media.map((item) => item.chunkId),
-  ).toEqual(['chunk_3'])
 }
 
 describe('ContextEngine baseline', () => {
@@ -329,7 +307,6 @@ describe('ContextEngine baseline', () => {
     expect(output.trace.selectedInputs.gmRetrievalCounts).toEqual({
       avatar_knowledge: 1,
       world: 1,
-      media: 1,
     })
     expect(output.trace.selection.trimmed).toEqual([])
   })
@@ -385,7 +362,6 @@ describe('ContextEngine baseline', () => {
           similarity: 0.6,
         },
       ],
-      media: [],
     }
 
     const output = new ContextEngine().assemble(input)
@@ -437,7 +413,6 @@ describe('ContextEngine baseline', () => {
           similarity: 0.99,
         },
       ],
-      media: [],
     }
 
     const output = new ContextEngine().assemble(input)
@@ -496,7 +471,6 @@ describe('ContextEngine baseline', () => {
         },
       ],
       world: [],
-      media: [],
     }
 
     const output = new ContextEngine().assemble(input)
@@ -529,7 +503,6 @@ describe('ContextEngine baseline', () => {
         },
       ],
       world: [],
-      media: [],
       trace: {
         query: 'hello',
         perType: {
@@ -547,14 +520,6 @@ describe('ContextEngine baseline', () => {
             visibility: {
               activeAvatarId: 'avatar_1',
               consideredChunkCount: 2,
-            },
-          },
-          media: {
-            sourceIds: [],
-            selectedChunkIds: [],
-            visibility: {
-              activeAvatarId: 'avatar_1',
-              consideredChunkCount: 0,
             },
           },
         },
@@ -583,14 +548,6 @@ describe('ContextEngine baseline', () => {
           content: 'gm world context',
         },
       ],
-      media: [
-        {
-          sourceId: 'source_gm_media',
-          chunkId: 'chunk_gm_media',
-          knowledgeType: 'media',
-          content: 'gm media context',
-        },
-      ],
       trace: {
         query: 'hello',
         perType: {
@@ -599,7 +556,6 @@ describe('ContextEngine baseline', () => {
             selectedChunkIds: ['chunk_avatar_memory'],
           },
           world: { sourceIds: ['source_gm_world'], selectedChunkIds: ['chunk_gm_world'] },
-          media: { sourceIds: ['source_gm_media'], selectedChunkIds: ['chunk_gm_media'] },
         },
       },
     }
@@ -616,7 +572,6 @@ describe('ContextEngine baseline', () => {
         },
       ],
       world: [],
-      media: [],
     })
     expect(output.gm.sections.retrievedContext).toEqual({
       avatar_knowledge: [
@@ -641,14 +596,6 @@ describe('ContextEngine baseline', () => {
           content: 'gm world context',
         },
       ],
-      media: [
-        {
-          sourceId: 'source_gm_media',
-          chunkId: 'chunk_gm_media',
-          knowledgeType: 'media',
-          content: 'gm media context',
-        },
-      ],
       trace: {
         query: 'hello',
         perType: {
@@ -660,10 +607,6 @@ describe('ContextEngine baseline', () => {
             sourceIds: ['source_gm_world'],
             selectedChunkIds: ['chunk_gm_world'],
           },
-          media: {
-            sourceIds: ['source_gm_media'],
-            selectedChunkIds: ['chunk_gm_media'],
-          },
         },
       },
     })
@@ -672,7 +615,6 @@ describe('ContextEngine baseline', () => {
       gmRetrievalCounts: {
         avatar_knowledge: 2,
         world: 1,
-        media: 1,
       },
       gmUnrestricted: true,
     })
@@ -703,7 +645,7 @@ describe('ContextEngine policy', () => {
     const withOutput = engine.assemble(withRetrieval)
     const withoutOutput = engine.assemble(withoutRetrieval)
 
-    expect(withOutput.avatar.sections.retrievedContext?.retrievedItems.length).toBe(3)
+    expect(withOutput.avatar.sections.retrievedContext?.retrievedItems.length).toBe(2)
     expect(withoutOutput.avatar.sections.retrievedContext).toBeUndefined()
     expect((withOutput.gm.sections.retrievedContext?.avatar_knowledge.length ?? 0) > 0).toBe(true)
     expect(withoutOutput.gm.sections.retrievedContext).toBeUndefined()
@@ -711,7 +653,6 @@ describe('ContextEngine policy', () => {
     expect(withoutOutput.trace.selectedInputs.retrievalCounts).toEqual({
       avatar_knowledge: 0,
       world: 0,
-      media: 0,
     })
   })
 

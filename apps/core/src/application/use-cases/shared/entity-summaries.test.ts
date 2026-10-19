@@ -74,7 +74,7 @@ describe('canonical entity projection mappers', () => {
       updatedAt: timestamps.lastActivityAt,
     }
 
-    const summary = toAvailableAvatarSummary(avatar)
+    const summary = toAvailableAvatarSummary(avatar, undefined)
 
     expect(summary).toEqual({
       avatarId: 'avatar_1',

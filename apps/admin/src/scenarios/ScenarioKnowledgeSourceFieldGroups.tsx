@@ -67,7 +67,6 @@ export function KnowledgeSourceIdentityFields({
         >
           <option value="world">Shared World Knowledge</option>
           <option value="avatar_knowledge">Shared Avatar Knowledge</option>
-          <option value="media">Media Knowledge</option>
         </select>
       </div>
 

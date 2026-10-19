@@ -148,7 +148,6 @@ describe('GetSessionContextUseCase', () => {
     expect(output.contextTrace.selectedInputs.retrievalCounts).toEqual({
       avatar_knowledge: 0,
       world: 0,
-      media: 0,
     })
   })
 

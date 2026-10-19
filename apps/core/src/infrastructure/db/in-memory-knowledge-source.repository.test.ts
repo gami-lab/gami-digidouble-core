@@ -95,7 +95,11 @@ describe('InMemoryKnowledgeSourceRepository', () => {
   it('listByScenario supports knowledgeType and status filtering', async () => {
     const repository = new InMemoryKnowledgeSourceRepository([
       makeSource({ sourceId: 'knowledge_source_a', knowledgeType: 'world', status: 'ready' }),
-      makeSource({ sourceId: 'knowledge_source_b', knowledgeType: 'media', status: 'ready' }),
+      makeSource({
+        sourceId: 'knowledge_source_b',
+        knowledgeType: 'avatar_knowledge',
+        status: 'ready',
+      }),
       makeSource({ sourceId: 'knowledge_source_c', knowledgeType: 'world', status: 'error' }),
     ])
 

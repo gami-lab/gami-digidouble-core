@@ -125,7 +125,6 @@ function toRecordedTypedKnowledgeSections(
   const typedSections: RecordedTypedKnowledgeSections = {
     avatar_knowledge: knowledge.avatar_knowledge.map(toRecordedKnowledgeReference),
     world: knowledge.world.map(toRecordedKnowledgeReference),
-    media: knowledge.media.map(toRecordedKnowledgeReference),
     ...(trace !== undefined ? { trace: toRetrievalTraceDto(trace) } : {}),
   }
 
@@ -135,7 +134,6 @@ function toRecordedTypedKnowledgeSections(
 function groupRetrievedItemsByType(items: RetrievedKnowledgeItem[]): {
   avatar_knowledge: RetrievedKnowledgeItem[]
   world: RetrievedKnowledgeItem[]
-  media: RetrievedKnowledgeItem[]
 } {
   return items.reduce(
     (grouped, item) => {
@@ -145,7 +143,6 @@ function groupRetrievedItemsByType(items: RetrievedKnowledgeItem[]): {
     {
       avatar_knowledge: [] as RetrievedKnowledgeItem[],
       world: [] as RetrievedKnowledgeItem[],
-      media: [] as RetrievedKnowledgeItem[],
     },
   )
 }
@@ -168,11 +165,7 @@ function toRecordedKnowledgeReference(item: RetrievedKnowledgeItem): RecordedKno
 }
 
 function hasRecordedKnowledge(typedSections: RecordedTypedKnowledgeSections): boolean {
-  return (
-    typedSections.avatar_knowledge.length > 0 ||
-    typedSections.world.length > 0 ||
-    typedSections.media.length > 0
-  )
+  return typedSections.avatar_knowledge.length > 0 || typedSections.world.length > 0
 }
 
 function toRecordedAvatarTraitsSummary(

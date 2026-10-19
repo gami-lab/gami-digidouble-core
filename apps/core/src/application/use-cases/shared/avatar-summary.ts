@@ -1,4 +1,4 @@
-import type { AvatarSummary, AvailableAvatarSummary } from '@gami/shared'
+import type { AvatarSummary, AvailableAvatarSummary, PublicAvatarPresentation } from '@gami/shared'
 import type { AvatarConfig } from '../../../domain/avatar/avatar.types.js'
 import { readPresentation, withoutPresentation } from '../../../domain/presentation/presentation.js'
 
@@ -35,8 +35,10 @@ export function toAvatarSummary(avatar: AvatarConfig): AvatarSummary {
 }
 
 /** Public player projection; deliberately excludes admin-only Avatar fields. */
-export function toAvailableAvatarSummary(avatar: AvatarConfig): AvailableAvatarSummary {
-  const presentation = readPresentation('avatar', avatar.config)
+export function toAvailableAvatarSummary(
+  avatar: AvatarConfig,
+  presentation: PublicAvatarPresentation | undefined,
+): AvailableAvatarSummary {
   return {
     avatarId: avatar.avatarId,
     scenarioId: avatar.scenarioId,

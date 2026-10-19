@@ -216,7 +216,6 @@ describe('knowledge ingestion inspection and retrieval API wrappers', () => {
     const retrieval = {
       avatar_knowledge: [],
       world: [],
-      media: [],
       trace: { query: 'hello', perType: {} },
     }
     vi.mocked(adminRequest).mockResolvedValue({ retrieval })

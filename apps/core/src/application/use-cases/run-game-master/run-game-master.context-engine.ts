@@ -40,7 +40,6 @@ export function buildGmContextSnapshot(args: {
             retrievedContext: {
               avatar_knowledge: args.retrieval.avatar_knowledge,
               world: args.retrieval.world,
-              media: args.retrieval.media,
               trace: args.retrieval.trace,
             },
           }

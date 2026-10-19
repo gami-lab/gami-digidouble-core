@@ -6,7 +6,7 @@ and gotchas that aren't obvious from reading any single file.
 
 ## Scope
 
-Static knowledge is scenario-shared and typed as `avatar_knowledge`, `world`, or `media`.
+Static knowledge is scenario-shared and typed as `avatar_knowledge` or `world`.
 Conversational memory is a separate system. Static sources and chunks must not contain
 `userId`, `sessionId`, or `conversationId` scope — those keys are rejected recursively at
 persistence time, and the removed `memory` knowledge type is not accepted.
@@ -36,7 +36,7 @@ Main implementation entry points: `knowledge-ingestion.service.ts`, `typed-retri
 1. Register a source with an explicit visibility policy. Registering also schedules ingestion by
    default; the separate ingest route creates another queued job. Only `status: ready` sources are
    considered by runtime retrieval — `pending`/`error` sources are excluded.
-2. Ingest text/Markdown/PDF/media descriptions into deterministic paragraph-aware chunks (see
+2. Ingest text/Markdown/PDF/URL content into deterministic paragraph-aware chunks (see
    "Chunking strategy" below).
 3. Embed chunks through the active immutable embedding profile. During same-profile reindexing,
    unchanged final chunk text can reuse its active-generation vector by source and chunk index;
@@ -78,9 +78,6 @@ Main implementation entry points: `knowledge-ingestion.service.ts`, `typed-retri
   when a caller requests the largest target.
 - An empty source still produces one fallback chunk (`Reference source: <uriOrPath>`) so a source
   never silently ends up with zero retrievable content.
-- A media source always produces exactly one chunk, from `metadata.description` or a generated
-  `Media reference: <uriOrPath>` fallback — Core stores descriptions/references, not a real
-  multimodal embedding of the asset.
 
 ## Embedding provider
 
@@ -165,8 +162,7 @@ similarity, bounded selected references, and each returned item's vector/lexical
 Visibility diagnostics include considered candidates but do not claim to count rows excluded by SQL
 visibility filters. Never expose raw vectors, credentials, provider payloads, or unbounded source
 content. Runtime events and admin/console projections reuse the shared retrieval DTOs; operator
-screens use the same categories as the API (Shared Avatar Knowledge, Shared World Knowledge, Media
-Knowledge). GM plan diagnostics distinguish a proposal that was not sent to Avatar retrieval from one
+screens use the same categories as the API (Shared Avatar Knowledge, Shared World Knowledge). GM plan diagnostics distinguish a proposal that was not sent to Avatar retrieval from one
 that was sent but retained no final chunk; raw per-proposal candidate counts are not persisted.
 
 See [EMBEDDING_OPERATIONS.md](EMBEDDING_OPERATIONS.md) for profile changes and reindex operations.

@@ -19,6 +19,7 @@ import type { ILlmAdapter } from '../../application/ports/ILlmAdapter.js'
 import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
 import type { IScenarioRepository } from '../../application/ports/IScenarioRepository.js'
+import type { IMediaAssetRepository } from '../../application/ports/IMediaAssetRepository.js'
 import type { ISessionRepository } from '../../application/ports/ISessionRepository.js'
 import { CreateAvatarUseCase } from '../../application/use-cases/create-avatar/create-avatar.use-case.js'
 import type { CreateAvatarOutput } from '../../application/use-cases/create-avatar/create-avatar.types.js'
@@ -71,6 +72,7 @@ export type ScenariosRouteOptions = {
   avatarRepository?: IAvatarRepository
   sessionRepository?: ISessionRepository
   knowledgeSourceRepository?: IKnowledgeSourceRepository
+  mediaAssetRepository: IMediaAssetRepository
   llmAdapter: ILlmAdapter
   observabilityAdapter?: IObservabilityAdapter
   modelConfigRepository?: IModelConfigRepository
@@ -211,7 +213,11 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
   const avatarRepository = options.avatarRepository ?? new InMemoryAvatarRepository()
   const sessionRepository = options.sessionRepository ?? new InMemorySessionRepository()
   const createScenarioUseCase = new CreateScenarioUseCase(scenarioRepository)
-  const createAvatarUseCase = new CreateAvatarUseCase(scenarioRepository, avatarRepository)
+  const createAvatarUseCase = new CreateAvatarUseCase(
+    scenarioRepository,
+    avatarRepository,
+    options.mediaAssetRepository,
+  )
   const listScenariosUseCase = new ListScenariosUseCase(scenarioRepository)
   const listScenarioAvatarsUseCase = new ListScenarioAvatarsUseCase(
     scenarioRepository,
@@ -222,7 +228,10 @@ export const scenariosRoute: FastifyPluginCallback<ScenariosRouteOptions> = (app
     avatarRepository,
     sessionRepository,
   )
-  const updateScenarioUseCase = new UpdateScenarioUseCase(scenarioRepository)
+  const updateScenarioUseCase = new UpdateScenarioUseCase(
+    scenarioRepository,
+    options.mediaAssetRepository,
+  )
   const getScenarioUseCase = new GetScenarioUseCase(scenarioRepository)
   const knowledgeSourceRepository =
     options.knowledgeSourceRepository ?? new InMemoryKnowledgeSourceRepository()

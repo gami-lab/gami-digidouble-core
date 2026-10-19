@@ -1,5 +1,6 @@
 import type { AvatarSummary, ConversationSummary, SessionSummary } from './entity-types.js'
 import type { LlmResponseMetrics } from './llm-contract-types.js'
+import type { PublicAvatarPresentation } from './presentation-contract-types.js'
 export type { LlmResponseMetrics } from './llm-contract-types.js'
 
 export type MessageMetadata = {
@@ -48,8 +49,10 @@ export type GetHistoryResponse = {
  */
 export type AvailableAvatarSummary = Pick<
   AvatarSummary,
-  'avatarId' | 'scenarioId' | 'name' | 'status' | 'tone' | 'description' | 'presentation'
->
+  'avatarId' | 'scenarioId' | 'name' | 'status' | 'tone' | 'description'
+> & {
+  presentation?: PublicAvatarPresentation
+}
 
 export type GetAvailableAvatarsResponse = {
   sessionId: string

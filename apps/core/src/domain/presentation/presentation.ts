@@ -1,7 +1,11 @@
 import {
+  AVATAR_PRESENTATION_MEDIA_SLOTS,
+  SCENARIO_PRESENTATION_MEDIA_SLOTS,
   isAvatarPresentation,
   isScenarioPresentation,
   type AvatarPresentation,
+  type MediaKind,
+  type MediaRef,
   type ScenarioPresentation,
 } from '@gami/shared'
 import { DomainError } from '../errors.js'
@@ -18,6 +22,30 @@ const GUARDS = {
   scenario: isScenarioPresentation,
   avatar: isAvatarPresentation,
 } as const
+
+const MEDIA_SLOTS: Record<PresentationKind, Record<string, readonly MediaKind[]>> = {
+  scenario: SCENARIO_PRESENTATION_MEDIA_SLOTS,
+  avatar: AVATAR_PRESENTATION_MEDIA_SLOTS,
+}
+
+type PresentationMediaReference = {
+  slot: string
+  assetId: MediaRef
+  allowedKinds: readonly MediaKind[]
+}
+
+/** Every media asset a presentation references, with the kinds its slot accepts. */
+export function presentationMediaReferences(
+  kind: PresentationKind,
+  presentation: ScenarioPresentation | AvatarPresentation | undefined,
+): PresentationMediaReference[] {
+  if (presentation === undefined) return []
+  const values: Record<string, unknown> = { ...presentation }
+  return Object.entries(MEDIA_SLOTS[kind]).flatMap(([slot, allowedKinds]) => {
+    const assetId = values[slot]
+    return typeof assetId === 'string' ? [{ slot, assetId, allowedKinds }] : []
+  })
+}
 
 export function readPresentation<K extends PresentationKind>(
   kind: K,

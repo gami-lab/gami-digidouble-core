@@ -146,18 +146,6 @@ const INITIAL_KNOWLEDGE_SOURCES = [
     createdAt: '2026-07-20T09:00:00.000Z',
     updatedAt: '2026-07-20T09:00:00.000Z',
   },
-  {
-    sourceId: 'media_source_1',
-    scenarioId: 'scenario_1',
-    name: 'Harbor map',
-    knowledgeType: 'media' as const,
-    format: 'text' as const,
-    uriOrPath: 'media://harbor-map',
-    status: 'ready' as const,
-    visibilityPolicy: 'all' as const,
-    createdAt: '2026-07-20T09:00:00.000Z',
-    updatedAt: '2026-07-20T09:00:00.000Z',
-  },
 ]
 
 const INITIAL_KNOWLEDGE_CHUNKS = [
@@ -175,16 +163,6 @@ const INITIAL_KNOWLEDGE_CHUNKS = [
     chunkId: 'world_chunk_1',
     sourceId: 'world_source_1',
     content: 'Storm tide starts at dusk near the north harbor tide gates.',
-    chunkIndex: 0,
-    embedding: [1, 0],
-    embeddingProfileId: 'profile_1',
-    corpusGenerationId: 'generation_1',
-    createdAt: '2026-07-20T09:00:00.000Z',
-  },
-  {
-    chunkId: 'media_chunk_1',
-    sourceId: 'media_source_1',
-    content: 'Harbor map with dock markers and tide gates.',
     chunkIndex: 0,
     embedding: [1, 0],
     embeddingProfileId: 'profile_1',

@@ -99,7 +99,6 @@ function buildService(
   const sourceRepository = new InMemoryKnowledgeSourceRepository([
     source('memory_source', 'avatar_knowledge'),
     source('world_source', 'world'),
-    source('media_source', 'media'),
   ])
   const chunkRepository = new InMemoryKnowledgeChunkRepository(chunks, sourceRepository)
   const embedVariants = vi.fn().mockResolvedValue(embedding)
@@ -209,8 +208,8 @@ describe('TypedRetrievalService', () => {
     })
 
     expect(embedVariants).toHaveBeenCalledTimes(1)
-    expect(searchByVector).toHaveBeenCalledTimes(3)
-    expect(searchByText).toHaveBeenCalledTimes(3)
+    expect(searchByVector).toHaveBeenCalledTimes(2)
+    expect(searchByText).toHaveBeenCalledTimes(2)
     expect(searchByVector.mock.calls.every(([request]) => request.candidateLimit === 2)).toBe(true)
     expect(searchByText.mock.calls.every(([request]) => request.candidateLimit === 2)).toBe(true)
     expect(result.avatar_knowledge[0]).toEqual(
@@ -353,7 +352,6 @@ describe('TypedRetrievalService', () => {
 
     expect(callerBResult.avatar_knowledge).toEqual(callerAResult.avatar_knowledge)
     expect(callerBResult.world).toEqual(callerAResult.world)
-    expect(callerBResult.media).toEqual(callerAResult.media)
     expect(callerBResult.trace).toMatchObject({
       query: callerAResult.trace.query,
       queryVectorCount: callerAResult.trace.queryVectorCount,

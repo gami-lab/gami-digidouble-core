@@ -74,7 +74,7 @@ export class TypedRetrievalService {
     private readonly queryEmbeddingService: QueryEmbeddingService,
   ) {}
 
-  // eslint-disable-next-line complexity, max-lines-per-function -- embedding, per-type search, merge, and trace steps share one timing and failure span
+  // eslint-disable-next-line complexity -- embedding, per-type search, merge, and trace steps share one timing and failure span
   async retrieve(input: TypedRetrievalInput): Promise<TypedRetrievalResult> {
     const startedAt = Date.now()
     const limit = Math.min(
@@ -125,12 +125,8 @@ export class TypedRetrievalService {
           this.retrieveByType(type, input, embedding.queryVectors, resolvedProfile, limit),
         ),
       )
-      const [avatarKnowledge, world, media] = retrievedByType as [
-        RetrievedType,
-        RetrievedType,
-        RetrievedType,
-      ]
-      const totalSelected = avatarKnowledge.items.length + world.items.length + media.items.length
+      const [avatarKnowledge, world] = retrievedByType as [RetrievedType, RetrievedType]
+      const totalSelected = avatarKnowledge.items.length + world.items.length
       const vectorSearchMs = Math.max(
         0,
         Date.now() - startedAt - (embedding.diagnostics.timings.totalMs ?? 0),
@@ -139,7 +135,6 @@ export class TypedRetrievalService {
       return {
         avatar_knowledge: avatarKnowledge.items,
         world: world.items,
-        media: media.items,
         trace: {
           query: input.query,
           queries: [...embedding.queries],
@@ -152,25 +147,18 @@ export class TypedRetrievalService {
           ),
           visibilityMode: visibilityMode(input),
           gmUnrestricted: input.bypassVisibilityFilter === true,
-          candidateCount:
-            avatarKnowledge.candidateCount + world.candidateCount + media.candidateCount,
+          candidateCount: avatarKnowledge.candidateCount + world.candidateCount,
           selectedCount: totalSelected,
-          ...optionalCount(
-            'duplicateCount',
-            avatarKnowledge.duplicateCount + world.duplicateCount + media.duplicateCount,
-          ),
+          ...optionalCount('duplicateCount', avatarKnowledge.duplicateCount + world.duplicateCount),
           ...optionalCount(
             'selectionExcludedCount',
-            avatarKnowledge.selectionExcludedCount +
-              world.selectionExcludedCount +
-              media.selectionExcludedCount,
+            avatarKnowledge.selectionExcludedCount + world.selectionExcludedCount,
           ),
-          excludedCount: avatarKnowledge.excludedCount + world.excludedCount + media.excludedCount,
+          excludedCount: avatarKnowledge.excludedCount + world.excludedCount,
           outcome: totalSelected > 0 ? 'success' : 'no_results',
           perType: {
             avatar_knowledge: toTrace(avatarKnowledge),
             world: toTrace(world),
-            media: toTrace(media),
           },
         },
       }
@@ -443,7 +431,6 @@ function emptyRetrievalResult(
   return {
     avatar_knowledge: [],
     world: [],
-    media: [],
     trace: {
       query: input.query,
       queries: [...embedding.queries],
@@ -464,7 +451,6 @@ function emptyRetrievalResult(
       perType: {
         avatar_knowledge: toTrace(empty),
         world: toTrace(empty),
-        media: toTrace(empty),
       },
     },
   }

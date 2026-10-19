@@ -35,7 +35,6 @@ export function presentKnowledgeRetrieval(
       ...retrieval,
       avatar_knowledge: retrieval.avatar_knowledge.map(toItem),
       world: retrieval.world.map(toItem),
-      media: retrieval.media.map(toItem),
       trace: toRetrievalTraceDto(retrieval.trace),
     },
   }

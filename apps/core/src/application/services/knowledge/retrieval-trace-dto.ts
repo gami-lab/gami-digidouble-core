@@ -20,7 +20,6 @@ export function toRetrievalTraceDto(trace: RetrievalTrace): RetrievalTraceDto {
     perType: {
       avatar_knowledge: toTracePerTypeDto(trace.perType.avatar_knowledge),
       world: toTracePerTypeDto(trace.perType.world),
-      media: toTracePerTypeDto(trace.perType.media),
     },
   }
 }
@@ -47,7 +46,6 @@ export function parseRetrievalTraceDto(value: unknown): RetrievalTraceDto | unde
     perType: {
       avatar_knowledge: readRetrievalTracePerType(perTypeValue['avatar_knowledge']),
       world: readRetrievalTracePerType(perTypeValue['world']),
-      media: readRetrievalTracePerType(perTypeValue['media']),
     },
     ...(queries !== undefined ? { queries } : {}),
     ...(embeddingProfile !== undefined ? { embeddingProfile } : {}),

@@ -196,6 +196,5 @@ export interface LexicalRetrievalCandidate {
 export interface TypedRetrievalResult {
   avatar_knowledge: RetrievedKnowledgeItem[]
   world: RetrievedKnowledgeItem[]
-  media: RetrievedKnowledgeItem[]
   trace: RetrievalTrace
 }

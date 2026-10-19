@@ -145,13 +145,11 @@ beforeEach(() => {
   retrieveTypedContextMock.mockResolvedValue({
     avatar_knowledge: [],
     world: [],
-    media: [],
     trace: {
       query: 'q',
       perType: {
         avatar_knowledge: { sourceIds: [], selectedChunkIds: [] },
         world: { sourceIds: [], selectedChunkIds: [] },
-        media: { sourceIds: [], selectedChunkIds: [] },
       },
     },
   })

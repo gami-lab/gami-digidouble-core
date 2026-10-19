@@ -41,15 +41,6 @@ describe('FileUrlKnowledgeSourceContentLoader', () => {
     expect(result.content).toBe('Inline override text')
   })
 
-  it('produces a description for media sources without fetching', async () => {
-    const loader = new FileUrlKnowledgeSourceContentLoader()
-    const result = await loader.load(
-      makeSource({ format: 'media', uriOrPath: 's3://bucket/clip.mp3' }),
-    )
-
-    expect(result.content).toBe('Media reference: s3://bucket/clip.mp3')
-  })
-
   it('fetches text content for url sources over HTTP(S)', async () => {
     const loader = new FileUrlKnowledgeSourceContentLoader({
       fetchImpl: fakeFetch('Remote world lore.'),

@@ -1,6 +1,9 @@
 import type { AvatarPresentation, ScenarioPresentation } from '@gami/shared'
 
-/** Trims authored text and drops blank fields; `null` means "no presentation" (clears on update). */
+/**
+ * Trims authored text and drops blank fields; `null` means "no presentation" (clears on update).
+ * Media slots carry asset ids and pass through unchanged.
+ */
 export function toScenarioPresentationPayload(
   value: ScenarioPresentation,
 ): ScenarioPresentation | null {
@@ -9,10 +12,12 @@ export function toScenarioPresentationPayload(
     ...text('cover', value.cover),
     ...text('tagline', value.tagline),
     ...text('introText', value.introText),
+    ...text('introMedia', value.introMedia),
     ...(value.entryQuestion !== undefined && prompt.length > 0
       ? { entryQuestion: { prompt, personaField: value.entryQuestion.personaField } }
       : {}),
     ...text('outroText', value.outroText),
+    ...text('outroMedia', value.outroMedia),
   })
 }
 
@@ -22,6 +27,7 @@ export function toAvatarPresentationPayload(value: AvatarPresentation): AvatarPr
     .filter((question) => question.length > 0)
   return nonEmpty({
     ...text('portrait', value.portrait),
+    ...text('idleLoop', value.idleLoop),
     ...text('hook', value.hook),
     ...(starterQuestions.length > 0 ? { starterQuestions } : {}),
   })

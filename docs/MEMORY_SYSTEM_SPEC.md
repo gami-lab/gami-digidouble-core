@@ -10,7 +10,7 @@ details live in `DATA_MODEL.md`; GM-specific usage rules live in `GAME_MASTER_CO
   `system` messages are not exchanges, and an incomplete pair is never exposed as a recent exchange.
 - **Conversation working memory:** compact, rewritten (not appended) state for one conversation episode.
 - **Episodic memory:** durable summaries of completed conversation episodes, for one user + avatar + scenario.
-- **Static knowledge:** scenario-owned Avatar/world/media content, always carrying source/chunk/type
+- **Static knowledge:** scenario-owned Avatar/world content, always carrying source/chunk/type
   provenance; it is not memory. Static source/chunk metadata cannot carry `userId`, `sessionId`, or
   `conversationId`, and is never converted into a conversational-memory record — even though static
   retrieval may use conversational text (e.g. a working-memory summary) as its query.
@@ -95,7 +95,7 @@ concatenating an unbounded transcript into a prompt.
   uses its visibility-filtered result — neither is a conversational-memory input.
 - Operator/admin inspection preserves the same boundary: memory-layer views label Conversation
   Working Memory and Episodic Memory separately with their user/session/
-  conversation scope; static views use Shared Avatar/World/Media Knowledge labels instead. A
+  conversation scope; static views use Shared Avatar/World Knowledge labels instead. A
   static source is never shown in a generic memory category, and chronological messages are never
   duplicated into a synthetic working-memory message.
 

@@ -178,13 +178,11 @@ beforeEach(() => {
   retrieveTypedContextMock.mockResolvedValue({
     avatar_knowledge: [],
     world: [],
-    media: [],
     trace: {
       query: 'q',
       perType: {
         avatar_knowledge: { sourceIds: [], selectedChunkIds: [] },
         world: { sourceIds: [], selectedChunkIds: [] },
-        media: { sourceIds: [], selectedChunkIds: [] },
       },
     },
   })
@@ -350,13 +348,11 @@ describe('SendMessageUseCase — prompt assembly v2 context influence', () => {
           content: 'Ships dock at tidefall in this harbor.',
         },
       ],
-      media: [],
       trace: {
         query: 'How do tides affect docking?',
         perType: {
           avatar_knowledge: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
           world: { sourceIds: ['source_2'], selectedChunkIds: ['chunk_2'] },
-          media: { sourceIds: [], selectedChunkIds: [] },
         },
       },
     })
@@ -407,13 +403,11 @@ describe('SendMessageUseCase — context selection observability', () => {
         },
       ],
       world: [],
-      media: [],
       trace: {
         query: 'How do tides affect docking?',
         perType: {
           avatar_knowledge: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
           world: { sourceIds: [], selectedChunkIds: [] },
-          media: { sourceIds: [], selectedChunkIds: [] },
         },
       },
     })
@@ -427,9 +421,9 @@ describe('SendMessageUseCase — context selection observability', () => {
           shortTermExchangeCount: number
           hasWorkingMemory: boolean
           retrieval?: {
-            selectedForAssemblyCounts: { avatar_knowledge: number; world: number; media: number }
-            includedCounts: { avatar_knowledge: number; world: number; media: number }
-            omittedByAssemblyCounts?: { avatar_knowledge: number; world: number; media: number }
+            selectedForAssemblyCounts: { avatar_knowledge: number; world: number }
+            includedCounts: { avatar_knowledge: number; world: number }
+            omittedByAssemblyCounts?: { avatar_knowledge: number; world: number }
           }
           hasUserPersona: boolean
           hasGmDirective: boolean
@@ -444,15 +438,14 @@ describe('SendMessageUseCase — context selection observability', () => {
       shortTermExchangeCount: 1,
       hasWorkingMemory: false,
       retrieval: {
-        selectedForAssemblyCounts: { avatar_knowledge: 1, world: 0, media: 0 },
-        includedCounts: { avatar_knowledge: 1, world: 0, media: 0 },
-        omittedByAssemblyCounts: { avatar_knowledge: 0, world: 0, media: 0 },
+        selectedForAssemblyCounts: { avatar_knowledge: 1, world: 0 },
+        includedCounts: { avatar_knowledge: 1, world: 0 },
+        omittedByAssemblyCounts: { avatar_knowledge: 0, world: 0 },
         retrievalTrace: {
           query: 'How do tides affect docking?',
           perType: {
             avatar_knowledge: { sourceIds: ['source_1'], selectedChunkIds: ['chunk_1'] },
             world: { sourceIds: [], selectedChunkIds: [] },
-            media: { sourceIds: [], selectedChunkIds: [] },
           },
         },
       },

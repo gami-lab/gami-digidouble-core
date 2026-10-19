@@ -52,13 +52,11 @@ describe('knowledge API wrappers - retrieval operations', () => {
       retrieval: {
         avatar_knowledge: [],
         world: [],
-        media: [],
         trace: {
           query: 'q',
           perType: {
             avatar_knowledge: { sourceIds: [], selectedChunkIds: [] },
             world: { sourceIds: [], selectedChunkIds: [] },
-            media: { sourceIds: [], selectedChunkIds: [] },
           },
         },
       },

@@ -117,7 +117,7 @@ function TurnItem({
   const { turn, gm } = entry
   const retrieval = turn.contextSelection?.retrieval?.includedCounts
   const chunkCount =
-    retrieval === undefined ? 0 : retrieval.avatar_knowledge + retrieval.world + retrieval.media
+    retrieval === undefined ? 0 : retrieval.avatar_knowledge + retrieval.world
   const trimmed = turn.contextSelection?.contextEngineSelection?.trimmedSegmentCount ?? 0
   const decision = gm?.payload.decision
 

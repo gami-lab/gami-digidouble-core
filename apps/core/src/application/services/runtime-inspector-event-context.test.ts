@@ -57,7 +57,6 @@ function createAvatarSnapshotInput() {
                 consideredChunkCount: 1,
               },
             },
-            media: { sourceIds: [], selectedChunkIds: [] },
           },
         },
       },
@@ -106,7 +105,6 @@ function createGmSnapshotInput() {
           },
         ],
         world: [],
-        media: [],
       },
       userPersona: null,
       worldContext: { scenarioId: 'scenario_1' },
@@ -172,10 +170,8 @@ describe('runtime inspector event context snapshots', () => {
               consideredChunkCount: 1,
             },
           },
-          media: { sourceIds: [], selectedChunkIds: [] },
         },
       },
-      media: [],
     })
     expect(JSON.stringify(snapshot)).toContain('Sensitive chunk text')
     expect(JSON.stringify(snapshot)).toContain('Who left?')
@@ -203,7 +199,6 @@ describe('runtime inspector event context snapshots', () => {
         },
       ],
       world: [],
-      media: [],
     })
     expect(snapshot.sections.retrievedContext?.avatar_knowledge[0]?.content).toBe('Avatar secret')
     expect(snapshot.sections.retrievedContext?.avatar_knowledge[0]?.matchedQuery?.text).toBe(

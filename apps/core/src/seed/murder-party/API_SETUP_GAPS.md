@@ -73,7 +73,6 @@ is now the production content loader, wired in `src/index.ts`:
   from local/mounted disk — gated by an explicit `allowedRoots` allowlist (empty by default, i.e. local
   file access is disabled unless configured)
 - `format: 'pdf'` sources are fetched/read the same way and parsed via `pdf-parse`
-- `format: 'media'` sources still produce a description/reference string (no binary transcription)
 - a `maxContentBytes` guard (10 MB default) bounds fetched/read content size
 
 Configuration: `KNOWLEDGE_SOURCE_ALLOWED_ROOTS` (comma-separated absolute paths), see `.env.example`.

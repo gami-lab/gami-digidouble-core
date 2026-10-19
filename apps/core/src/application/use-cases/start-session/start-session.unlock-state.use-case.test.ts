@@ -7,6 +7,7 @@ import { InMemoryScenarioRepository } from '../../../infrastructure/db/in-memory
 import { InMemorySessionRepository } from '../../../infrastructure/db/in-memory-session.repository.js'
 import { GetAvailableAvatarsUseCase } from '../get-available-avatars/get-available-avatars.use-case.js'
 import { StartSessionUseCase } from './start-session.use-case.js'
+import { InMemoryMediaAssetRepository } from '../../../infrastructure/db/in-memory-media-asset.repository.js'
 
 const guide = makeAvatarConfig({
   avatarId: 'avatar_guide',
@@ -47,7 +48,11 @@ async function startSession(avatarAvailability: Scenario['avatarAvailability']) 
     new InMemoryScenarioRepository([makeScenario(avatarAvailability)]),
     avatars,
   ).execute({ userId: 'user_1', scenarioId: 'scenario_1' })
-  const available = await new GetAvailableAvatarsUseCase(sessions, avatars).execute({
+  const available = await new GetAvailableAvatarsUseCase(
+    sessions,
+    avatars,
+    new InMemoryMediaAssetRepository(),
+  ).execute({
     sessionId: session.sessionId,
   })
   return { session, sessions, avatars, available }
@@ -88,7 +93,11 @@ describe('session unlock state', () => {
       config: {},
     })
 
-    const available = await new GetAvailableAvatarsUseCase(sessions, avatars).execute({
+    const available = await new GetAvailableAvatarsUseCase(
+      sessions,
+      avatars,
+      new InMemoryMediaAssetRepository(),
+    ).execute({
       sessionId: session.sessionId,
     })
 

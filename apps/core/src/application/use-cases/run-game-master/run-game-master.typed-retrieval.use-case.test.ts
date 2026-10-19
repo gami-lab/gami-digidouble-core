@@ -177,20 +177,11 @@ beforeEach(() => {
         content: 'Storm tide starts at dusk near the harbor.',
       },
     ],
-    media: [
-      {
-        sourceId: 'media_source_1',
-        chunkId: 'media_chunk_1',
-        knowledgeType: 'media',
-        content: 'Harbor map with dock markers.',
-      },
-    ],
     trace: {
       query: 'q',
       perType: {
         avatar_knowledge: { sourceIds: [], selectedChunkIds: [] },
         world: { sourceIds: [], selectedChunkIds: [] },
-        media: { sourceIds: [], selectedChunkIds: [] },
       },
     },
   })
@@ -251,9 +242,6 @@ describe('RunGameMasterUseCase typed retrieval input', () => {
     )
     expect(prompt).toContain(
       '1. [world_source_1 / world_chunk_1 / world] Storm tide starts at dusk near the harbor.',
-    )
-    expect(prompt).toContain(
-      '1. [media_source_1 / media_chunk_1 / media] Harbor map with dock markers.',
     )
   })
 

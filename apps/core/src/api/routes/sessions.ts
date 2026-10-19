@@ -19,6 +19,7 @@ import type { ISessionEventPublisher } from '../../application/ports/ISessionEve
 import type { IConversationWorkingMemoryRepository } from '../../application/ports/IConversationWorkingMemoryRepository.js'
 import type { IConversationMemoryRepository } from '../../application/ports/IConversationMemoryRepository.js'
 import type { IObservabilityAdapter } from '../../application/ports/IObservabilityAdapter.js'
+import type { IMediaAssetRepository } from '../../application/ports/IMediaAssetRepository.js'
 import type { IModelConfigRepository } from '../../application/ports/IModelConfigRepository.js'
 import type { RunGameMasterUseCase } from '../../application/use-cases/run-game-master/run-game-master.use-case.js'
 import { GetAvailableAvatarsUseCase } from '../../application/use-cases/get-available-avatars/get-available-avatars.use-case.js'
@@ -74,6 +75,7 @@ export type SessionsRouteOptions = {
   gmStateRepository?: IGmStateRepository
   sessionEventPublisher?: ISessionEventPublisher
   modelConfigRepository?: IModelConfigRepository
+  mediaAssetRepository: IMediaAssetRepository
   llmAdapterRegistry?: LlmAdapterRegistry
   modelConfigFallback?: ModelConfig
   runGameMasterUseCase?: RunGameMasterUseCase
@@ -205,6 +207,7 @@ export const sessionsRoute: FastifyPluginCallback<SessionsRouteOptions> = (app, 
     conversationMemoryRepository,
     eventLogRepository,
     sessionEventPublisher,
+    mediaAssetRepository: options.mediaAssetRepository,
     llmAdapter:
       options.llmAdapter ?? createLlmAdapter(buildLlmConfig(options.config), observabilityAdapter),
     ...(options.modelConfigRepository !== undefined
